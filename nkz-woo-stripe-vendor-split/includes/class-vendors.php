@@ -152,88 +152,92 @@ final class Vendors {
 			echo '<p style="color:#50575e;">' . esc_html__( 'Prodejce ještě není připojený ke Stripe. Pošli mu níže uvedený odkaz — všechny údaje vyplní sám přímo u Stripe.', 'nkz-woo-stripe-vendor-split' ) . '</p>';
 		}
 
-		// Onboarding link — always available (permanent URL, regenerates Stripe session on each visit).
-		$onboarding_link = \NKVSVS\Onboarding_Controller::vendor_start_url( $vendor_id );
+		// Onboarding section — only when account is missing or not yet fully enabled.
+		$show_onboarding = ( '' === $account_id ) || ( 'enabled' !== $status );
 
-		$input_id = 'nkv-onboarding-link-' . $vendor_id;
-		echo '<div style="background:#f6f7f7;border:1px solid #dcdcde;border-radius:4px;padding:12px;margin:12px 0;">';
-		echo '<p style="margin:0 0 8px;font-weight:600;">' . esc_html__( 'Onboarding odkaz pro prodejce', 'nkz-woo-stripe-vendor-split' ) . '</p>';
-		echo '<div style="display:flex;gap:6px;align-items:stretch;">';
-		printf(
-			'<input type="text" id="%s" readonly value="%s" onclick="this.select();" style="flex:1;font-family:monospace;font-size:12px;padding:6px;" />',
-			esc_attr( $input_id ),
-			esc_attr( $onboarding_link )
-		);
-		printf(
-			'<button type="button" class="button" data-nkv-copy="%s" style="white-space:nowrap;">%s</button>',
-			esc_attr( $input_id ),
-			esc_html__( 'Kopírovat', 'nkz-woo-stripe-vendor-split' )
-		);
-		echo '</div>';
-		echo '<p style="margin:8px 0 0;font-size:12px;color:#50575e;">' . esc_html__( 'Odkaz je trvalý — pokud prodejce onboarding přeruší, může se přes něj kdykoliv vrátit a pokračovat.', 'nkz-woo-stripe-vendor-split' ) . '</p>';
-		echo '</div>';
+		if ( $show_onboarding ) {
+			$onboarding_link = \NKVSVS\Onboarding_Controller::vendor_start_url( $vendor_id );
+			$input_id = 'nkv-onboarding-link-' . $vendor_id;
+			echo '<div style="background:#f6f7f7;border:1px solid #dcdcde;border-radius:4px;padding:12px;margin:12px 0;">';
+			echo '<p style="margin:0 0 8px;font-weight:600;">' . esc_html__( 'Onboarding odkaz pro prodejce', 'nkz-woo-stripe-vendor-split' ) . '</p>';
+			echo '<div style="display:flex;gap:6px;align-items:stretch;">';
+			printf(
+				'<input type="text" id="%s" readonly value="%s" onclick="this.select();" style="flex:1;font-family:monospace;font-size:12px;padding:6px;" />',
+				esc_attr( $input_id ),
+				esc_attr( $onboarding_link )
+			);
+			printf(
+				'<button type="button" class="button" data-nkv-copy="%s" style="white-space:nowrap;">%s</button>',
+				esc_attr( $input_id ),
+				esc_html__( 'Kopírovat', 'nkz-woo-stripe-vendor-split' )
+			);
+			echo '</div>';
+			echo '<p style="margin:8px 0 0;font-size:12px;color:#50575e;">' . esc_html__( 'Odkaz je trvalý — pokud prodejce onboarding přeruší, může se přes něj kdykoliv vrátit a pokračovat.', 'nkz-woo-stripe-vendor-split' ) . '</p>';
+			echo '</div>';
 
-		static $script_printed = false;
-		if ( ! $script_printed ) {
-			$script_printed = true;
-			?>
-			<script>
-			(function(){
-				document.addEventListener('click', function(e){
-					var btn = e.target.closest('[data-nkv-copy]');
-					if (!btn) return;
-					e.preventDefault();
-					var input = document.getElementById(btn.getAttribute('data-nkv-copy'));
-					if (!input) return;
-					var done = function(){
-						var orig = btn.textContent;
-						btn.textContent = <?php echo wp_json_encode( __( 'Zkopírováno ✓', 'nkz-woo-stripe-vendor-split' ) ); ?>;
-						btn.disabled = true;
-						setTimeout(function(){ btn.textContent = orig; btn.disabled = false; }, 1500);
-					};
-					if (navigator.clipboard && window.isSecureContext) {
-						navigator.clipboard.writeText(input.value).then(done, function(){
+			static $script_printed = false;
+			if ( ! $script_printed ) {
+				$script_printed = true;
+				?>
+				<script>
+				(function(){
+					document.addEventListener('click', function(e){
+						var btn = e.target.closest('[data-nkv-copy]');
+						if (!btn) return;
+						e.preventDefault();
+						var input = document.getElementById(btn.getAttribute('data-nkv-copy'));
+						if (!input) return;
+						var done = function(){
+							var orig = btn.textContent;
+							btn.textContent = <?php echo wp_json_encode( __( 'Zkopírováno ✓', 'nkz-woo-stripe-vendor-split' ) ); ?>;
+							btn.disabled = true;
+							setTimeout(function(){ btn.textContent = orig; btn.disabled = false; }, 1500);
+						};
+						if (navigator.clipboard && window.isSecureContext) {
+							navigator.clipboard.writeText(input.value).then(done, function(){
+								input.select(); document.execCommand('copy'); done();
+							});
+						} else {
 							input.select(); document.execCommand('copy'); done();
-						});
-					} else {
-						input.select(); document.execCommand('copy'); done();
-					}
-				});
-			})();
-			</script>
-			<?php
+						}
+					});
+				})();
+				</script>
+				<?php
+			}
+
+			// Email + mailto action buttons (only while onboarding is relevant).
+			$mailto_subject = rawurlencode( sprintf( __( '[%s] Dokonči svou registraci přes Stripe', 'nkz-woo-stripe-vendor-split' ), get_bloginfo( 'name' ) ) );
+			$mailto_body    = rawurlencode( sprintf(
+				__( "Ahoj,\n\nabys mohl/a na platformě %1\$s přijímat platby, dokonči prosím registraci u našeho platebního partnera Stripe na tomto odkazu:\n\n%2\$s\n\nOdkaz je trvalý — pokud onboarding přerušíš, můžeš se přes něj kdykoliv vrátit.\n\nDíky", 'nkz-woo-stripe-vendor-split' ),
+				get_bloginfo( 'name' ),
+				$onboarding_link
+			) );
+			$mailto = 'mailto:' . rawurlencode( $email ) . '?subject=' . $mailto_subject . '&body=' . $mailto_body;
+
+			if ( is_email( $email ) ) {
+				printf(
+					'<a href="%s" class="button button-primary">%s</a> ',
+					esc_url( Onboarding_Controller::email_url( $vendor_id ) ),
+					esc_html__( 'Odeslat odkaz emailem', 'nkz-woo-stripe-vendor-split' )
+				);
+				printf(
+					'<a href="%s" class="button">%s</a> ',
+					esc_url( $mailto ),
+					esc_html__( 'Otevřít v mém emailu', 'nkz-woo-stripe-vendor-split' )
+				);
+			} else {
+				echo '<p style="color:#dc3232;">' . esc_html__( 'Vyplň prodejci email níže a ulož, pak budeš moct odeslat onboarding link přímo z WP.', 'nkz-woo-stripe-vendor-split' ) . '</p>';
+			}
+
+			printf(
+				'<a href="%s" class="button" target="_blank" rel="noopener">%s</a> ',
+				esc_url( $onboarding_link ),
+				esc_html__( 'Otevřít onboarding (test)', 'nkz-woo-stripe-vendor-split' )
+			);
 		}
 
-		// Action buttons.
-		$mailto_subject = rawurlencode( sprintf( __( '[%s] Dokonči svou registraci přes Stripe', 'nkz-woo-stripe-vendor-split' ), get_bloginfo( 'name' ) ) );
-		$mailto_body    = rawurlencode( sprintf(
-			__( "Ahoj,\n\nabys mohl/a na platformě %1\$s přijímat platby, dokonči prosím registraci u našeho platebního partnera Stripe na tomto odkazu:\n\n%2\$s\n\nOdkaz je trvalý — pokud onboarding přerušíš, můžeš se přes něj kdykoliv vrátit.\n\nDíky", 'nkz-woo-stripe-vendor-split' ),
-			get_bloginfo( 'name' ),
-			$onboarding_link
-		) );
-		$mailto = 'mailto:' . rawurlencode( $email ) . '?subject=' . $mailto_subject . '&body=' . $mailto_body;
-
-		if ( is_email( $email ) ) {
-			printf(
-				'<a href="%s" class="button button-primary">%s</a> ',
-				esc_url( Onboarding_Controller::email_url( $vendor_id ) ),
-				esc_html__( 'Odeslat odkaz emailem', 'nkz-woo-stripe-vendor-split' )
-			);
-			printf(
-				'<a href="%s" class="button">%s</a> ',
-				esc_url( $mailto ),
-				esc_html__( 'Otevřít v mém emailu', 'nkz-woo-stripe-vendor-split' )
-			);
-		} else {
-			echo '<p style="color:#dc3232;">' . esc_html__( 'Vyplň prodejci email níže a ulož, pak budeš moct odeslat onboarding link přímo z WP.', 'nkz-woo-stripe-vendor-split' ) . '</p>';
-		}
-
-		printf(
-			'<a href="%s" class="button" target="_blank" rel="noopener">%s</a> ',
-			esc_url( $onboarding_link ),
-			esc_html__( 'Otevřít onboarding (test)', 'nkz-woo-stripe-vendor-split' )
-		);
-
+		// Always-visible actions for existing accounts.
 		if ( '' !== $account_id ) {
 			printf(
 				'<a href="%s" class="button">%s</a> ',
