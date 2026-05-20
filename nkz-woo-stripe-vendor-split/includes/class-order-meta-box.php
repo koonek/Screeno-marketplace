@@ -34,7 +34,7 @@ final class Order_Meta_Box {
 			$screens[] = wc_get_page_screen_id( 'shop-order' );
 		}
 		foreach ( $screens as $screen ) {
-			add_meta_box( 'nkv_svs_box', __( 'NKV Stripe Vendor Split', 'nkz-woo-stripe-vendor-split' ), [ $this, 'render' ], $screen, 'side', 'default' );
+			add_meta_box( 'nkv_svs_box', __( 'NKV Stripe Vendor Split', 'nkz-woo-stripe-vendor-split' ), [ $this, 'render' ], $screen, 'normal', 'default' );
 		}
 	}
 
