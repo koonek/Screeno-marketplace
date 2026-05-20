@@ -105,24 +105,23 @@ final class Onboarding_Controller {
 		try {
 			$account_id = $vendor['stripe_account_id'];
 			if ( '' === $account_id ) {
-				$email = is_email( $vendor['email'] ) ? $vendor['email'] : '';
-				$account = $client->create_account(
-					[
-						'type'             => 'express',
-						'country'          => 'CZ',
-						'email'            => $email,
-						'capabilities'     => [
-							'card_payments' => [ 'requested' => 'true' ],
-							'transfers'     => [ 'requested' => 'true' ],
-						],
-						'business_profile' => [ 'name' => $vendor['name'] ],
-						'metadata'         => [
-							'nkv_vendor_id' => (string) $vendor_id,
-							'site'          => home_url(),
-						],
+				$params = [
+					'type'             => 'express',
+					'country'          => 'CZ',
+					'capabilities'     => [
+						'card_payments' => [ 'requested' => 'true' ],
+						'transfers'     => [ 'requested' => 'true' ],
 					],
-					'nkv_acct_create_v1_' . $vendor_id
-				);
+					'business_profile' => [ 'name' => $vendor['name'] ],
+					'metadata'         => [
+						'nkv_vendor_id' => (string) $vendor_id,
+						'site'          => home_url(),
+					],
+				];
+				if ( is_email( $vendor['email'] ) ) {
+					$params['email'] = $vendor['email'];
+				}
+				$account = $client->create_account( $params, 'nkv_acct_create_v1_' . $vendor_id );
 				$account_id = (string) ( $account['id'] ?? '' );
 				if ( '' === $account_id ) {
 					throw new \RuntimeException( 'Stripe nevrátil ID účtu.' );
@@ -143,7 +142,11 @@ final class Onboarding_Controller {
 			exit;
 		} catch ( \Throwable $e ) {
 			Logger::error( 'Vendor onboarding start failed', [ 'vendor' => $vendor_id, 'err' => $e->getMessage() ] );
-			$this->public_error( __( 'Nepodařilo se zahájit Stripe onboarding. Zkus to za chvíli znovu nebo kontaktuj provozovatele.', 'nkz-woo-stripe-vendor-split' ) );
+			$detail = $e->getMessage();
+			$this->public_error(
+				__( 'Nepodařilo se zahájit Stripe onboarding.', 'nkz-woo-stripe-vendor-split' ) .
+				( $detail ? ' (' . $detail . ')' : '' )
+			);
 		}
 	}
 
