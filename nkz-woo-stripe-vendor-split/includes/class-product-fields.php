@@ -26,7 +26,7 @@ final class Product_Fields {
 		woocommerce_wp_select(
 			[
 				'id'      => '_nkv_vendor_id',
-				'label'   => __( 'Vendor (Stripe split)', 'nkz-woo-stripe-vendor-split' ),
+				'label'   => __( 'Prodejce (Stripe split)', 'nkz-woo-stripe-vendor-split' ),
 				'options' => array_map( 'strval', Vendors::dropdown_options() ),
 				'value'   => (string) get_post_meta( $post->ID, '_nkv_vendor_id', true ),
 			]
@@ -35,8 +35,8 @@ final class Product_Fields {
 		woocommerce_wp_checkbox(
 			[
 				'id'          => '_nkv_vendor_split_enabled',
-				'label'       => __( 'Enable vendor split', 'nkz-woo-stripe-vendor-split' ),
-				'description' => __( 'Vytvořit Stripe transfer pro tohoto vendora po zaplacení.', 'nkz-woo-stripe-vendor-split' ),
+				'label'       => __( 'Aktivovat rozdělení', 'nkz-woo-stripe-vendor-split' ),
+				'description' => __( 'Vytvořit Stripe transfer pro tohoto prodejce po zaplacení.', 'nkz-woo-stripe-vendor-split' ),
 				'value'       => get_post_meta( $post->ID, '_nkv_vendor_split_enabled', true ) ?: 'yes',
 			]
 		);
@@ -44,12 +44,24 @@ final class Product_Fields {
 		woocommerce_wp_text_input(
 			[
 				'id'                => '_nkv_platform_fee_percent_override',
-				'label'             => __( 'Platform fee override (%)', 'nkz-woo-stripe-vendor-split' ),
+				'label'             => __( 'Provize platformy — procento (%)', 'nkz-woo-stripe-vendor-split' ),
 				'desc_tip'          => true,
-				'description'       => __( 'Ponechte prázdné pro default vendora.', 'nkz-woo-stripe-vendor-split' ),
+				'description'       => __( 'Ponechte prázdné pro default prodejce. Ignoruje se, pokud je vyplněná fixní částka níže.', 'nkz-woo-stripe-vendor-split' ),
 				'type'              => 'number',
 				'custom_attributes' => [ 'step' => '0.01', 'min' => '0', 'max' => '100' ],
 				'value'             => get_post_meta( $post->ID, '_nkv_platform_fee_percent_override', true ),
+			]
+		);
+
+		woocommerce_wp_text_input(
+			[
+				'id'                => '_nkv_platform_fee_fixed_override',
+				'label'             => __( 'Provize platformy — fixní částka (Kč)', 'nkz-woo-stripe-vendor-split' ),
+				'desc_tip'          => true,
+				'description'       => __( 'Pokud je vyplněno, ignoruje se procento výše. Použij pro fee dle materiálu/typu produktu.', 'nkz-woo-stripe-vendor-split' ),
+				'type'              => 'number',
+				'custom_attributes' => [ 'step' => '0.01', 'min' => '0' ],
+				'value'             => get_post_meta( $post->ID, '_nkv_platform_fee_fixed_override', true ),
 			]
 		);
 
@@ -71,6 +83,13 @@ final class Product_Fields {
 			delete_post_meta( $product_id, '_nkv_platform_fee_percent_override' );
 		} else {
 			update_post_meta( $product_id, '_nkv_platform_fee_percent_override', (float) $override );
+		}
+
+		$fixed = $_POST['_nkv_platform_fee_fixed_override'] ?? '';
+		if ( '' === $fixed ) {
+			delete_post_meta( $product_id, '_nkv_platform_fee_fixed_override' );
+		} else {
+			update_post_meta( $product_id, '_nkv_platform_fee_fixed_override', (float) $fixed );
 		}
 	}
 }
