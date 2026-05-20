@@ -244,10 +244,18 @@ final class Onboarding_Controller {
 	public function handle_sync(): void {
 		$vendor_id = $this->authorize_admin( 'nkv_stripe_sync_' );
 		$vendor    = Vendor_Repository::get( $vendor_id );
+		$err = null;
 		if ( $vendor && '' !== $vendor['stripe_account_id'] ) {
-			$this->sync_account_status( $vendor_id, $vendor['stripe_account_id'] );
+			$err = $this->sync_account_status( $vendor_id, $vendor['stripe_account_id'] );
 		}
-		wp_safe_redirect( add_query_arg( 'nkv_onboarding', 'synced', get_edit_post_link( $vendor_id, 'url' ) ) );
+		if ( null === $err ) {
+			wp_safe_redirect( add_query_arg( 'nkv_onboarding', 'synced', get_edit_post_link( $vendor_id, 'url' ) ) );
+		} else {
+			wp_safe_redirect( add_query_arg(
+				[ 'nkv_onboarding' => 'sync_failed', 'nkv_msg' => rawurlencode( $err ) ],
+				get_edit_post_link( $vendor_id, 'url' )
+			) );
+		}
 		exit;
 	}
 
@@ -317,15 +325,20 @@ final class Onboarding_Controller {
 	 * Status sync (shared).
 	 * ------------------------------------------------------------------- */
 
-	public function sync_account_status( int $vendor_id, string $account_id ): void {
+	public function sync_account_status( int $vendor_id, string $account_id ): ?string {
 		try {
 			$account = ( new Stripe_Client() )->retrieve_account( $account_id );
 		} catch ( \Throwable $e ) {
 			Logger::error( 'Account retrieve failed', [ 'vendor' => $vendor_id, 'err' => $e->getMessage() ] );
-			return;
+			return $e->getMessage();
 		}
-		if ( ! is_array( $account ) || isset( $account['error'] ) ) {
-			return;
+		if ( ! is_array( $account ) ) {
+			return 'Stripe nevrátil odpověď.';
+		}
+		if ( isset( $account['error'] ) ) {
+			$msg = (string) ( $account['error']['message'] ?? 'Stripe vrátil chybu.' );
+			Logger::error( 'Account sync rejected', [ 'vendor' => $vendor_id, 'account' => $account_id, 'err' => $msg ] );
+			return $msg;
 		}
 
 		$charges_enabled = ! empty( $account['charges_enabled'] );
@@ -345,5 +358,6 @@ final class Onboarding_Controller {
 		update_post_meta( $vendor_id, '_nkv_stripe_charges_enabled', $charges_enabled ? 1 : 0 );
 		update_post_meta( $vendor_id, '_nkv_stripe_payouts_enabled', $payouts_enabled ? 1 : 0 );
 		update_post_meta( $vendor_id, '_nkv_stripe_requirements_due', wp_json_encode( $currently_due ) );
+		return null;
 	}
 }

@@ -115,6 +115,9 @@ final class Vendors {
 			case 'synced':
 				echo '<div class="notice notice-info inline"><p>' . esc_html__( 'Stav byl aktualizován ze Stripe.', 'nkz-woo-stripe-vendor-split' ) . '</p></div>';
 				break;
+			case 'sync_failed':
+				echo '<div class="notice notice-error inline"><p><strong>' . esc_html__( 'Sync ze Stripe selhal:', 'nkz-woo-stripe-vendor-split' ) . '</strong> ' . esc_html( $msg ?: 'neznámá chyba' ) . '<br>' . esc_html__( 'Pravděpodobně byl Stripe účet smazán nebo se neshodují klíče. Klikni Odpojit Stripe účet a onboarduj znovu.', 'nkz-woo-stripe-vendor-split' ) . '</p></div>';
+				break;
 			case 'reset':
 				echo '<div class="notice notice-warning inline"><p>' . esc_html__( 'Stripe účet odpojen od prodejce. Můžeš ho onboardovat znovu.', 'nkz-woo-stripe-vendor-split' ) . '</p></div>';
 				break;
