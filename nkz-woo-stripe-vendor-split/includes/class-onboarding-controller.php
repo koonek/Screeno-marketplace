@@ -130,7 +130,9 @@ final class Onboarding_Controller {
 				if ( is_email( $vendor['email'] ) ) {
 					$params['email'] = $vendor['email'];
 				}
-				$account = $client->create_account( $params, 'nkv_acct_create_v1_' . $vendor_id );
+				$attempt    = (int) get_post_meta( $vendor_id, '_nkv_stripe_create_attempt', true );
+				$idem       = 'nkv_acct_create_v' . max( 1, $attempt + 1 ) . '_' . $vendor_id;
+				$account    = $client->create_account( $params, $idem );
 				$account_id = (string) ( $account['id'] ?? '' );
 				if ( '' === $account_id ) {
 					throw new \RuntimeException( 'Stripe nevrátil ID účtu.' );
@@ -236,7 +238,10 @@ final class Onboarding_Controller {
 		delete_post_meta( $vendor_id, '_nkv_stripe_charges_enabled' );
 		delete_post_meta( $vendor_id, '_nkv_stripe_payouts_enabled' );
 		delete_post_meta( $vendor_id, '_nkv_stripe_requirements_due' );
-		Logger::info( 'Vendor Stripe account reset', [ 'vendor' => $vendor_id ] );
+		// Bump attempt counter so the next create call uses a fresh Stripe idempotency key.
+		$attempt = (int) get_post_meta( $vendor_id, '_nkv_stripe_create_attempt', true );
+		update_post_meta( $vendor_id, '_nkv_stripe_create_attempt', $attempt + 1 );
+		Logger::info( 'Vendor Stripe account reset', [ 'vendor' => $vendor_id, 'attempt' => $attempt + 1 ] );
 		wp_safe_redirect( add_query_arg( 'nkv_onboarding', 'reset', get_edit_post_link( $vendor_id, 'url' ) ) );
 		exit;
 	}
