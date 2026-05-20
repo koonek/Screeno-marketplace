@@ -119,7 +119,7 @@ final class Vendors {
 		if ( '' === $account_id ) {
 			echo '<p>' . esc_html__( 'No Stripe account connected yet.', 'nkz-woo-stripe-vendor-split' ) . '</p>';
 			printf(
-				'<a href="%s" class="button button-primary">%s</a>',
+				'<a href="%s" class="button button-primary" target="_blank" rel="noopener">%s</a>',
 				esc_url( Onboarding_Controller::connect_url( $vendor_id ) ),
 				esc_html__( 'Connect to Stripe', 'nkz-woo-stripe-vendor-split' )
 			);
@@ -146,13 +146,13 @@ final class Vendors {
 
 			if ( in_array( $status, [ 'pending', 'restricted' ], true ) ) {
 				printf(
-					'<a href="%s" class="button button-primary">%s</a> ',
+					'<a href="%s" class="button button-primary" target="_blank" rel="noopener">%s</a> ',
 					esc_url( Onboarding_Controller::connect_url( $vendor_id ) ),
 					esc_html__( 'Continue onboarding', 'nkz-woo-stripe-vendor-split' )
 				);
 			}
 			printf(
-				'<a href="%s" class="button">%s</a>',
+				'<a href="%s" class="button" target="_blank" rel="noopener">%s</a>',
 				esc_url( Onboarding_Controller::dashboard_url( $vendor_id ) ),
 				esc_html__( 'Open Stripe Dashboard', 'nkz-woo-stripe-vendor-split' )
 			);
