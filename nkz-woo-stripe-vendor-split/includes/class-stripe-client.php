@@ -51,6 +51,50 @@ final class Stripe_Client {
 	}
 
 	/**
+	 * Create an Express connected account.
+	 *
+	 * @param array $params country, email, capabilities[], business_type?, metadata
+	 */
+	public function create_account( array $params, string $idempotency_key ): array {
+		$res = $this->request( 'POST', 'accounts', $params, [ 'Idempotency-Key' => $idempotency_key ] );
+		if ( null === $res || isset( $res['error'] ) ) {
+			throw new \RuntimeException( 'Stripe account create failed: ' . ( $res['error']['message'] ?? 'transport' ) );
+		}
+		return $res;
+	}
+
+	/**
+	 * Retrieve a connected account (for status sync).
+	 */
+	public function retrieve_account( string $account_id ): ?array {
+		return $this->request( 'GET', "accounts/{$account_id}", [] );
+	}
+
+	/**
+	 * Create an Account Link for hosted onboarding.
+	 *
+	 * @param array $params account, refresh_url, return_url, type (account_onboarding|account_update)
+	 */
+	public function create_account_link( array $params ): array {
+		$res = $this->request( 'POST', 'account_links', $params );
+		if ( null === $res || isset( $res['error'] ) ) {
+			throw new \RuntimeException( 'Stripe account_link failed: ' . ( $res['error']['message'] ?? 'transport' ) );
+		}
+		return $res;
+	}
+
+	/**
+	 * Create an Express Dashboard login link.
+	 */
+	public function create_login_link( string $account_id ): array {
+		$res = $this->request( 'POST', "accounts/{$account_id}/login_links", [] );
+		if ( null === $res || isset( $res['error'] ) ) {
+			throw new \RuntimeException( 'Stripe login_link failed: ' . ( $res['error']['message'] ?? 'transport' ) );
+		}
+		return $res;
+	}
+
+	/**
 	 * Reverse a Stripe Transfer.
 	 */
 	public function reverse_transfer( string $transfer_id, array $params, string $idempotency_key ): array {
