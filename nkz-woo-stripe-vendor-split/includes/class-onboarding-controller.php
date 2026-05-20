@@ -105,7 +105,7 @@ final class Onboarding_Controller {
 				]
 			);
 
-			wp_safe_redirect( (string) $link['url'] );
+			wp_redirect( (string) $link['url'] );
 			exit;
 		} catch ( \Throwable $e ) {
 			Logger::error( 'Onboarding connect failed', [ 'vendor' => $vendor_id, 'err' => $e->getMessage() ] );
@@ -140,7 +140,7 @@ final class Onboarding_Controller {
 		try {
 			$client = new Stripe_Client();
 			$link   = $client->create_login_link( $vendor['stripe_account_id'] );
-			wp_safe_redirect( (string) $link['url'] );
+			wp_redirect( (string) $link['url'] );
 			exit;
 		} catch ( \Throwable $e ) {
 			Logger::error( 'Login link failed', [ 'vendor' => $vendor_id, 'err' => $e->getMessage() ] );
