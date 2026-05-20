@@ -26,6 +26,7 @@ final class Plugin {
 		Admin_Settings::instance()->init();
 		Order_Meta_Box::instance()->init();
 		Onboarding_Controller::instance()->init();
+		Webhook_Controller::instance()->init();
 
 		// Domain / service layer hooks.
 		Transfer_Service::instance()->init();
@@ -45,7 +46,8 @@ final class Plugin {
 			'split_includes_tax'               => 'yes',
 			'split_includes_shipping'          => 'no',
 			'deduct_coupons_proportionally'    => 'yes',
-			'deduct_stripe_fee_from_vendor'    => 'no',
+			'deduct_stripe_fee_from_vendor'    => 'no', // legacy, kept for back-compat
+			'stripe_fee_vendor_share_percent'  => 0,    // 0 = platform pays all, 50 = half, 100 = vendor pays all
 			'automatic_transfers'              => 'yes',
 			'log_only_mode'                    => 'no',
 			'minimum_transfer_amount'          => 1.0,

@@ -34,6 +34,19 @@ final class Stripe_Client {
 	}
 
 	/**
+	 * Retrieve a Charge, optionally expanding balance_transaction (for fee lookup).
+	 *
+	 * @return array|null
+	 */
+	public function retrieve_charge( string $charge_id, array $expand = [] ): ?array {
+		$params = [];
+		foreach ( $expand as $i => $path ) {
+			$params[ 'expand[' . $i . ']' ] = $path;
+		}
+		return $this->request( 'GET', "charges/{$charge_id}", $params );
+	}
+
+	/**
 	 * Create a Stripe Transfer.
 	 *
 	 * @param array  $params         destination, amount, currency, transfer_group, source_transaction?, metadata
