@@ -67,25 +67,27 @@ final class Onboarding_Controller {
 		try {
 			$account_id = $vendor['stripe_account_id'];
 			if ( '' === $account_id ) {
-				$account = $client->create_account(
-					[
-						'type'                => 'express',
-						'country'             => 'CZ',
-						'email'               => $vendor['email'] ?: '',
-						'capabilities'        => [
-							'card_payments' => [ 'requested' => 'true' ],
-							'transfers'     => [ 'requested' => 'true' ],
-						],
-						'business_profile'    => [
-							'name' => $vendor['name'],
-						],
-						'metadata'            => [
-							'nkv_vendor_id' => (string) $vendor_id,
-							'site'          => home_url(),
-						],
+				$email = is_email( $vendor['email'] ) ? $vendor['email'] : '';
+				if ( '' === $email ) {
+					$this->bail( $vendor_id, __( 'Vendor email is required before connecting to Stripe — fill it in and save the vendor first.', 'nkz-woo-stripe-vendor-split' ) );
+				}
+				$params = [
+					'type'             => 'express',
+					'country'          => 'CZ',
+					'email'            => $email,
+					'capabilities'     => [
+						'card_payments' => [ 'requested' => 'true' ],
+						'transfers'     => [ 'requested' => 'true' ],
 					],
-					'nkv_acct_create_v1_' . $vendor_id
-				);
+					'business_profile' => [
+						'name' => $vendor['name'],
+					],
+					'metadata'         => [
+						'nkv_vendor_id' => (string) $vendor_id,
+						'site'          => home_url(),
+					],
+				];
+				$account = $client->create_account( $params, 'nkv_acct_create_v1_' . $vendor_id );
 				$account_id = (string) ( $account['id'] ?? '' );
 				if ( '' === $account_id ) {
 					throw new \RuntimeException( 'Account ID missing in Stripe response.' );
