@@ -57,10 +57,9 @@ final class Vendors {
 
 	public function render_meta_box( \WP_Post $post ): void {
 		wp_nonce_field( 'nkv_vendor_save_' . $post->ID, 'nkv_vendor_nonce' );
+		$this->render_onboarding_panel( $post->ID );
 		$fields = [
-			'_nkv_stripe_account_id'      => [ 'label' => 'Stripe connected account ID', 'type' => 'text', 'placeholder' => 'acct_...' ],
 			'_nkv_vendor_status'          => [ 'label' => 'Vendor status', 'type' => 'select', 'options' => [ 'active' => 'active', 'inactive' => 'inactive' ] ],
-			'_nkv_stripe_account_status'  => [ 'label' => 'Stripe account status', 'type' => 'select', 'options' => [ 'unknown' => 'unknown', 'pending' => 'pending', 'enabled' => 'enabled', 'restricted' => 'restricted' ] ],
 			'_nkv_default_fee_percent'    => [ 'label' => 'Default platform fee (%)', 'type' => 'number', 'step' => '0.01' ],
 			'_nkv_default_fee_fixed'      => [ 'label' => 'Default fixed fee (minor units, optional)', 'type' => 'number', 'step' => '1' ],
 			'_nkv_vendor_email'           => [ 'label' => 'Email', 'type' => 'email' ],
@@ -99,6 +98,69 @@ final class Vendors {
 		echo '</table>';
 	}
 
+	private function render_onboarding_panel( int $vendor_id ): void {
+		$account_id = (string) get_post_meta( $vendor_id, '_nkv_stripe_account_id', true );
+		$status     = (string) ( get_post_meta( $vendor_id, '_nkv_stripe_account_status', true ) ?: 'unknown' );
+		$due_json   = (string) get_post_meta( $vendor_id, '_nkv_stripe_requirements_due', true );
+		$due        = $due_json ? (array) json_decode( $due_json, true ) : [];
+
+		$flash = isset( $_GET['nkv_onboarding'] ) ? sanitize_text_field( wp_unslash( $_GET['nkv_onboarding'] ) ) : '';
+		$msg   = isset( $_GET['nkv_msg'] ) ? sanitize_text_field( wp_unslash( $_GET['nkv_msg'] ) ) : '';
+
+		echo '<div class="nkv-onboarding" style="padding:12px;border:1px solid #ccd0d4;background:#fff;margin-bottom:12px;">';
+		echo '<h3 style="margin-top:0;">' . esc_html__( 'Stripe Connect', 'nkz-woo-stripe-vendor-split' ) . '</h3>';
+
+		if ( 'returned' === $flash ) {
+			echo '<div class="notice notice-info inline"><p>' . esc_html__( 'Onboarding session finished — status refreshed below.', 'nkz-woo-stripe-vendor-split' ) . '</p></div>';
+		} elseif ( 'error' === $flash && '' !== $msg ) {
+			echo '<div class="notice notice-error inline"><p>' . esc_html( $msg ) . '</p></div>';
+		}
+
+		if ( '' === $account_id ) {
+			echo '<p>' . esc_html__( 'No Stripe account connected yet.', 'nkz-woo-stripe-vendor-split' ) . '</p>';
+			printf(
+				'<a href="%s" class="button button-primary">%s</a>',
+				esc_url( Onboarding_Controller::connect_url( $vendor_id ) ),
+				esc_html__( 'Connect to Stripe', 'nkz-woo-stripe-vendor-split' )
+			);
+		} else {
+			$labels = [
+				'enabled'    => [ 'Enabled', '#46b450' ],
+				'pending'    => [ 'Pending', '#ffb900' ],
+				'restricted' => [ 'Restricted', '#dc3232' ],
+				'unknown'    => [ 'Unknown', '#888' ],
+			];
+			$badge = $labels[ $status ] ?? $labels['unknown'];
+			printf(
+				'<p><strong>%s:</strong> <code>%s</code><br><strong>%s:</strong> <span style="display:inline-block;padding:2px 8px;border-radius:3px;color:#fff;background:%s;">%s</span></p>',
+				esc_html__( 'Account', 'nkz-woo-stripe-vendor-split' ),
+				esc_html( $account_id ),
+				esc_html__( 'Status', 'nkz-woo-stripe-vendor-split' ),
+				esc_attr( $badge[1] ),
+				esc_html( $badge[0] )
+			);
+
+			if ( ! empty( $due ) ) {
+				echo '<p><strong>' . esc_html__( 'Requirements due', 'nkz-woo-stripe-vendor-split' ) . ':</strong><br><code>' . esc_html( implode( ', ', array_map( 'strval', $due ) ) ) . '</code></p>';
+			}
+
+			if ( in_array( $status, [ 'pending', 'restricted' ], true ) ) {
+				printf(
+					'<a href="%s" class="button button-primary">%s</a> ',
+					esc_url( Onboarding_Controller::connect_url( $vendor_id ) ),
+					esc_html__( 'Continue onboarding', 'nkz-woo-stripe-vendor-split' )
+				);
+			}
+			printf(
+				'<a href="%s" class="button">%s</a>',
+				esc_url( Onboarding_Controller::dashboard_url( $vendor_id ) ),
+				esc_html__( 'Open Stripe Dashboard', 'nkz-woo-stripe-vendor-split' )
+			);
+		}
+
+		echo '</div>';
+	}
+
 	public function save( int $post_id, \WP_Post $post ): void {
 		if ( ! isset( $_POST['nkv_vendor_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nkv_vendor_nonce'] ) ), 'nkv_vendor_save_' . $post_id ) ) {
 			return;
@@ -111,9 +173,7 @@ final class Vendors {
 		}
 
 		$map = [
-			'_nkv_stripe_account_id'     => 'text',
 			'_nkv_vendor_status'         => 'enum:active,inactive',
-			'_nkv_stripe_account_status' => 'enum:unknown,pending,enabled,restricted',
 			'_nkv_default_fee_percent'   => 'float',
 			'_nkv_default_fee_fixed'     => 'int',
 			'_nkv_vendor_email'          => 'email',
