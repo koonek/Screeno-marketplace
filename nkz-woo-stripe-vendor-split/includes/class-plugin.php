@@ -25,6 +25,7 @@ final class Plugin {
 		Product_Fields::instance()->init();
 		Admin_Settings::instance()->init();
 		Order_Meta_Box::instance()->init();
+		Onboarding_Controller::instance()->init();
 
 		// Domain / service layer hooks.
 		Transfer_Service::instance()->init();
