@@ -115,6 +115,9 @@ final class Vendors {
 			case 'synced':
 				echo '<div class="notice notice-info inline"><p>' . esc_html__( 'Stav byl aktualizován ze Stripe.', 'nkz-woo-stripe-vendor-split' ) . '</p></div>';
 				break;
+			case 'reset':
+				echo '<div class="notice notice-warning inline"><p>' . esc_html__( 'Stripe účet odpojen od prodejce. Můžeš ho onboardovat znovu.', 'nkz-woo-stripe-vendor-split' ) . '</p></div>';
+				break;
 			case 'email_sent':
 				echo '<div class="notice notice-success inline"><p>' . esc_html__( 'Email s onboarding odkazem byl odeslán prodejci.', 'nkz-woo-stripe-vendor-split' ) . '</p></div>';
 				break;
@@ -245,9 +248,16 @@ final class Vendors {
 				esc_html__( 'Obnovit stav ze Stripe', 'nkz-woo-stripe-vendor-split' )
 			);
 			printf(
-				'<a href="%s" class="button" target="_blank" rel="noopener">%s</a>',
+				'<a href="%s" class="button" target="_blank" rel="noopener">%s</a> ',
 				esc_url( Onboarding_Controller::dashboard_url( $vendor_id ) ),
 				esc_html__( 'Stripe Dashboard prodejce', 'nkz-woo-stripe-vendor-split' )
+			);
+			$confirm = esc_attr__( 'Opravdu odpojit tento Stripe účet od prodejce? Stripe účet samotný se nesmaže — bude pouze odpojen od tohoto prodejce ve WP a budeš ho moct znovu onboardovat.', 'nkz-woo-stripe-vendor-split' );
+			printf(
+				'<a href="%s" class="button button-link-delete" onclick="return confirm(\'%s\');">%s</a>',
+				esc_url( Onboarding_Controller::reset_url( $vendor_id ) ),
+				esc_attr( $confirm ),
+				esc_html__( 'Odpojit Stripe účet', 'nkz-woo-stripe-vendor-split' )
 			);
 		}
 

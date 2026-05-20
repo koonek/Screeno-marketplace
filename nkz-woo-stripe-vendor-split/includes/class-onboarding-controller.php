@@ -24,6 +24,7 @@ final class Onboarding_Controller {
 		add_action( 'admin_post_nkv_stripe_dashboard', [ $this, 'handle_dashboard' ] );
 		add_action( 'admin_post_nkv_stripe_sync',      [ $this, 'handle_sync' ] );
 		add_action( 'admin_post_nkv_stripe_email',     [ $this, 'handle_email' ] );
+		add_action( 'admin_post_nkv_stripe_reset',     [ $this, 'handle_reset' ] );
 
 		// Public (vendor-facing) — both logged-in and anonymous.
 		add_action( 'admin_post_nopriv_nkv_stripe_vendor_start',  [ $this, 'handle_vendor_start' ] );
@@ -86,6 +87,14 @@ final class Onboarding_Controller {
 		return wp_nonce_url(
 			admin_url( 'admin-post.php?action=nkv_stripe_email&vendor_id=' . $vendor_id ),
 			'nkv_stripe_email_' . $vendor_id,
+			'_nkv_nonce'
+		);
+	}
+
+	public static function reset_url( int $vendor_id ): string {
+		return wp_nonce_url(
+			admin_url( 'admin-post.php?action=nkv_stripe_reset&vendor_id=' . $vendor_id ),
+			'nkv_stripe_reset_' . $vendor_id,
 			'_nkv_nonce'
 		);
 	}
@@ -219,6 +228,18 @@ final class Onboarding_Controller {
 	/* ---------------------------------------------------------------------
 	 * Admin handlers.
 	 * ------------------------------------------------------------------- */
+
+	public function handle_reset(): void {
+		$vendor_id = $this->authorize_admin( 'nkv_stripe_reset_' );
+		delete_post_meta( $vendor_id, '_nkv_stripe_account_id' );
+		delete_post_meta( $vendor_id, '_nkv_stripe_account_status' );
+		delete_post_meta( $vendor_id, '_nkv_stripe_charges_enabled' );
+		delete_post_meta( $vendor_id, '_nkv_stripe_payouts_enabled' );
+		delete_post_meta( $vendor_id, '_nkv_stripe_requirements_due' );
+		Logger::info( 'Vendor Stripe account reset', [ 'vendor' => $vendor_id ] );
+		wp_safe_redirect( add_query_arg( 'nkv_onboarding', 'reset', get_edit_post_link( $vendor_id, 'url' ) ) );
+		exit;
+	}
 
 	public function handle_sync(): void {
 		$vendor_id = $this->authorize_admin( 'nkv_stripe_sync_' );
