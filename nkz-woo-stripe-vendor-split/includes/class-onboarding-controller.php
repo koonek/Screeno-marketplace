@@ -130,9 +130,11 @@ final class Onboarding_Controller {
 				if ( is_email( $vendor['email'] ) ) {
 					$params['email'] = $vendor['email'];
 				}
-				$attempt    = (int) get_post_meta( $vendor_id, '_nkv_stripe_create_attempt', true );
-				$idem       = 'nkv_acct_create_v' . max( 1, $attempt + 1 ) . '_' . $vendor_id;
-				$account    = $client->create_account( $params, $idem );
+				// Bump attempt before each create so a stale Stripe idempotency cache can't block re-onboarding.
+				$attempt = (int) get_post_meta( $vendor_id, '_nkv_stripe_create_attempt', true ) + 1;
+				update_post_meta( $vendor_id, '_nkv_stripe_create_attempt', $attempt );
+				$idem    = 'nkv_acct_create_v' . $attempt . '_' . $vendor_id . '_' . substr( md5( (string) $attempt . wp_salt( 'auth' ) ), 0, 8 );
+				$account = $client->create_account( $params, $idem );
 				$account_id = (string) ( $account['id'] ?? '' );
 				if ( '' === $account_id ) {
 					throw new \RuntimeException( 'Stripe nevrátil ID účtu.' );
