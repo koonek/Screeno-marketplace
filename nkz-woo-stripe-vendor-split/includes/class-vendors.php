@@ -155,14 +155,54 @@ final class Vendors {
 		// Onboarding link — always available (permanent URL, regenerates Stripe session on each visit).
 		$onboarding_link = \NKVSVS\Onboarding_Controller::vendor_start_url( $vendor_id );
 
+		$input_id = 'nkv-onboarding-link-' . $vendor_id;
 		echo '<div style="background:#f6f7f7;border:1px solid #dcdcde;border-radius:4px;padding:12px;margin:12px 0;">';
 		echo '<p style="margin:0 0 8px;font-weight:600;">' . esc_html__( 'Onboarding odkaz pro prodejce', 'nkz-woo-stripe-vendor-split' ) . '</p>';
+		echo '<div style="display:flex;gap:6px;align-items:stretch;">';
 		printf(
-			'<input type="text" readonly value="%s" onclick="this.select();" style="width:100%%;font-family:monospace;font-size:12px;padding:6px;" />',
+			'<input type="text" id="%s" readonly value="%s" onclick="this.select();" style="flex:1;font-family:monospace;font-size:12px;padding:6px;" />',
+			esc_attr( $input_id ),
 			esc_attr( $onboarding_link )
 		);
+		printf(
+			'<button type="button" class="button" data-nkv-copy="%s" style="white-space:nowrap;">%s</button>',
+			esc_attr( $input_id ),
+			esc_html__( 'Kopírovat', 'nkz-woo-stripe-vendor-split' )
+		);
+		echo '</div>';
 		echo '<p style="margin:8px 0 0;font-size:12px;color:#50575e;">' . esc_html__( 'Odkaz je trvalý — pokud prodejce onboarding přeruší, může se přes něj kdykoliv vrátit a pokračovat.', 'nkz-woo-stripe-vendor-split' ) . '</p>';
 		echo '</div>';
+
+		static $script_printed = false;
+		if ( ! $script_printed ) {
+			$script_printed = true;
+			?>
+			<script>
+			(function(){
+				document.addEventListener('click', function(e){
+					var btn = e.target.closest('[data-nkv-copy]');
+					if (!btn) return;
+					e.preventDefault();
+					var input = document.getElementById(btn.getAttribute('data-nkv-copy'));
+					if (!input) return;
+					var done = function(){
+						var orig = btn.textContent;
+						btn.textContent = <?php echo wp_json_encode( __( 'Zkopírováno ✓', 'nkz-woo-stripe-vendor-split' ) ); ?>;
+						btn.disabled = true;
+						setTimeout(function(){ btn.textContent = orig; btn.disabled = false; }, 1500);
+					};
+					if (navigator.clipboard && window.isSecureContext) {
+						navigator.clipboard.writeText(input.value).then(done, function(){
+							input.select(); document.execCommand('copy'); done();
+						});
+					} else {
+						input.select(); document.execCommand('copy'); done();
+					}
+				});
+			})();
+			</script>
+			<?php
+		}
 
 		// Action buttons.
 		$mailto_subject = rawurlencode( sprintf( __( '[%s] Dokonči svou registraci přes Stripe', 'nkz-woo-stripe-vendor-split' ), get_bloginfo( 'name' ) ) );
