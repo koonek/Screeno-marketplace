@@ -112,6 +112,8 @@ final class Vendors {
 
 		if ( 'returned' === $flash ) {
 			echo '<div class="notice notice-info inline"><p>' . esc_html__( 'Onboarding session finished — status refreshed below.', 'nkz-woo-stripe-vendor-split' ) . '</p></div>';
+		} elseif ( 'synced' === $flash ) {
+			echo '<div class="notice notice-info inline"><p>' . esc_html__( 'Status refreshed from Stripe.', 'nkz-woo-stripe-vendor-split' ) . '</p></div>';
 		} elseif ( 'error' === $flash && '' !== $msg ) {
 			echo '<div class="notice notice-error inline"><p>' . esc_html( $msg ) . '</p></div>';
 		}
@@ -152,9 +154,14 @@ final class Vendors {
 				);
 			}
 			printf(
-				'<a href="%s" class="button" target="_blank" rel="noopener">%s</a>',
+				'<a href="%s" class="button" target="_blank" rel="noopener">%s</a> ',
 				esc_url( Onboarding_Controller::dashboard_url( $vendor_id ) ),
 				esc_html__( 'Open Stripe Dashboard', 'nkz-woo-stripe-vendor-split' )
+			);
+			printf(
+				'<a href="%s" class="button">%s</a>',
+				esc_url( Onboarding_Controller::sync_url( $vendor_id ) ),
+				esc_html__( 'Refresh status', 'nkz-woo-stripe-vendor-split' )
 			);
 		}
 

@@ -26,6 +26,7 @@ final class Onboarding_Controller {
 		add_action( 'admin_post_nkv_stripe_refresh',   [ $this, 'handle_refresh' ] );
 		add_action( 'admin_post_nkv_stripe_return',    [ $this, 'handle_return' ] );
 		add_action( 'admin_post_nkv_stripe_dashboard', [ $this, 'handle_dashboard' ] );
+		add_action( 'admin_post_nkv_stripe_sync',      [ $this, 'handle_sync' ] );
 	}
 
 	/* ---------------------------------------------------------------------
@@ -36,6 +37,14 @@ final class Onboarding_Controller {
 		return wp_nonce_url(
 			admin_url( 'admin-post.php?action=nkv_stripe_connect&vendor_id=' . $vendor_id ),
 			'nkv_stripe_connect_' . $vendor_id,
+			'_nkv_nonce'
+		);
+	}
+
+	public static function sync_url( int $vendor_id ): string {
+		return wp_nonce_url(
+			admin_url( 'admin-post.php?action=nkv_stripe_sync&vendor_id=' . $vendor_id ),
+			'nkv_stripe_sync_' . $vendor_id,
 			'_nkv_nonce'
 		);
 	}
@@ -128,6 +137,16 @@ final class Onboarding_Controller {
 			$this->sync_account_status( $vendor_id, $vendor['stripe_account_id'] );
 		}
 		wp_safe_redirect( add_query_arg( 'nkv_onboarding', 'returned', get_edit_post_link( $vendor_id, 'url' ) ) );
+		exit;
+	}
+
+	public function handle_sync(): void {
+		$vendor_id = $this->authorize( 'nkv_stripe_sync_' );
+		$vendor    = Vendor_Repository::get( $vendor_id );
+		if ( $vendor && '' !== $vendor['stripe_account_id'] ) {
+			$this->sync_account_status( $vendor_id, $vendor['stripe_account_id'] );
+		}
+		wp_safe_redirect( add_query_arg( 'nkv_onboarding', 'synced', get_edit_post_link( $vendor_id, 'url' ) ) );
 		exit;
 	}
 
