@@ -27,6 +27,8 @@ final class Plugin {
 		Order_Meta_Box::instance()->init();
 		Onboarding_Controller::instance()->init();
 		Webhook_Controller::instance()->init();
+		Checkout_Guard::instance()->init();
+		Cron_Sync::instance()->init();
 
 		// Domain / service layer hooks.
 		Transfer_Service::instance()->init();

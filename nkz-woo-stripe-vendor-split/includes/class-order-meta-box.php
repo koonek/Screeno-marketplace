@@ -110,6 +110,60 @@ final class Order_Meta_Box {
 		submit_button( __( 'Označit jako vyřešené', 'nkz-woo-stripe-vendor-split' ), 'secondary small', 'nkv_action_resolve', false );
 		echo '</p>';
 		echo '</form>';
+
+		// Partial reversal panel — one form per completed transfer.
+		$this->render_partial_reversal( $order, $records );
+	}
+
+	private function render_partial_reversal( \WC_Order $order, array $records ): void {
+		$reversible = array_filter( $records, static fn( $r ) => 'completed' === $r['status'] && ! empty( $r['transfer_id'] ) );
+		if ( empty( $reversible ) ) {
+			return;
+		}
+		echo '<hr><h4 style="margin:14px 0 6px;">' . esc_html__( 'Ruční reversal (vrátit peníze z prodejce)', 'nkz-woo-stripe-vendor-split' ) . '</h4>';
+		echo '<p style="color:#50575e;font-size:12px;margin:0 0 10px;">' . esc_html__( 'Použij při částečném refundu objednávky — proporční hodnota je předvyplněná podle naposled vytvořeného refundu.', 'nkz-woo-stripe-vendor-split' ) . '</p>';
+
+		// Compute suggestions from the most recent refund (if any).
+		$suggestions = [];
+		$refunds = $order->get_refunds();
+		if ( ! empty( $refunds ) ) {
+			$latest_refund = $refunds[0]; // get_refunds() is sorted DESC by date.
+			$suggestions   = Refund_Service::suggested_reversal_minor( $order, $latest_refund );
+		}
+
+		foreach ( $reversible as $rec ) {
+			$vendor_id = (int) $rec['vendor_id'];
+			$vendor    = Vendor_Repository::get( $vendor_id );
+			$vname     = $vendor['name'] ?? '#' . $vendor_id;
+			$remaining = (int) $rec['amount_minor'] - Refund_Service::reversed_amount_minor( $rec );
+			$suggested = (int) ( $suggestions[ $vendor_id ] ?? 0 );
+			$default   = $suggested > 0 ? $suggested : $remaining;
+			$currency  = $order->get_currency();
+
+			echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:wrap;">';
+			echo '<input type="hidden" name="action" value="nkv_svs_action" />';
+			echo '<input type="hidden" name="order_id" value="' . esc_attr( (string) $order->get_id() ) . '" />';
+			echo '<input type="hidden" name="reverse_vendor_id" value="' . esc_attr( (string) $vendor_id ) . '" />';
+			wp_nonce_field( 'nkv_svs_action_' . $order->get_id(), 'nkv_svs_nonce' );
+
+			printf(
+				'<strong style="min-width:120px;">%s</strong>',
+				esc_html( $vname )
+			);
+			printf(
+				'<span style="color:#50575e;font-size:12px;">%s: %s</span>',
+				esc_html__( 'lze vrátit', 'nkz-woo-stripe-vendor-split' ),
+				esc_html( nkvsvs_from_minor_display( $remaining, $currency ) )
+			);
+			printf(
+				'<input type="number" name="reverse_amount" step="0.01" min="0.01" max="%s" value="%s" style="width:110px;" />',
+				esc_attr( (string) ( $remaining / nkvsvs_minor_factor( $currency ) ) ),
+				esc_attr( (string) ( $default / nkvsvs_minor_factor( $currency ) ) )
+			);
+			echo '<span style="color:#50575e;">' . esc_html( $currency ) . '</span>';
+			submit_button( __( 'Vrátit částku', 'nkz-woo-stripe-vendor-split' ), 'secondary small', 'nkv_action_reverse', false );
+			echo '</form>';
+		}
 	}
 
 	public function handle_action(): void {
@@ -142,6 +196,23 @@ final class Order_Meta_Box {
 			$order->update_meta_data( '_nkv_split_status', 'manual' );
 			$order->add_order_note( __( 'NKV: Označeno jako ručně vyřešeno.', 'nkz-woo-stripe-vendor-split' ) );
 			$order->save();
+		} elseif ( isset( $_POST['nkv_action_reverse'] ) ) {
+			$vendor_id = (int) ( $_POST['reverse_vendor_id'] ?? 0 );
+			$amount    = (float) ( $_POST['reverse_amount'] ?? 0 );
+			$currency  = $order->get_currency();
+			$minor     = nkvsvs_to_minor( $amount, $currency );
+			if ( $vendor_id > 0 && $minor > 0 ) {
+				try {
+					Refund_Service::instance()->reverse(
+						$order,
+						$vendor_id,
+						$minor,
+						'manual_partial_' . current_time( 'U' )
+					);
+				} catch ( \Throwable $e ) {
+					$order->add_order_note( sprintf( __( 'NKV: Ruční reversal selhal: %s', 'nkz-woo-stripe-vendor-split' ), $e->getMessage() ) );
+				}
+			}
 		}
 
 		wp_safe_redirect( wp_get_referer() ?: admin_url() );
