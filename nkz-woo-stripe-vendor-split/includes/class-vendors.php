@@ -150,6 +150,8 @@ final class Vendors {
 		$due_json   = (string) get_post_meta( $vendor_id, '_nkv_stripe_requirements_due', true );
 		$due        = $due_json ? (array) json_decode( $due_json, true ) : [];
 		$email      = (string) get_post_meta( $vendor_id, '_nkv_vendor_email', true );
+		$ico        = trim( (string) get_post_meta( $vendor_id, '_nkv_vendor_ico', true ) );
+		$has_ico    = '' !== $ico;
 
 		$flash = isset( $_GET['nkv_onboarding'] ) ? sanitize_text_field( wp_unslash( $_GET['nkv_onboarding'] ) ) : '';
 		$msg   = isset( $_GET['nkv_msg'] ) ? sanitize_text_field( wp_unslash( $_GET['nkv_msg'] ) ) : '';
@@ -202,6 +204,16 @@ final class Vendors {
 			}
 		} else {
 			echo '<p style="color:#50575e;">' . esc_html__( 'Prodejce ještě není připojený ke Stripe. Pošli mu níže uvedený odkaz — všechny údaje vyplní sám přímo u Stripe.', 'nkz-woo-stripe-vendor-split' ) . '</p>';
+		}
+
+		// Hard policy: vendors without IČO cannot be onboarded to Stripe.
+		// Show a clear admin message and suppress onboarding UI entirely until IČO is filled.
+		if ( ! $has_ico && '' === $account_id ) {
+			echo '<div class="notice notice-warning inline" style="margin:0;"><p>'
+				. esc_html__( 'Tento prodejce zatím nemá vyplněné IČO. Bez IČO ho nelze onboardovat na Stripe — vyplň IČO v polích níže a ulož, pak se objeví onboarding panel.', 'nkz-woo-stripe-vendor-split' )
+				. '</p></div>';
+			echo '</div>'; // close .nkv-onboarding wrapper
+			return;
 		}
 
 		// Onboarding section — only when account is missing or not yet fully enabled.
