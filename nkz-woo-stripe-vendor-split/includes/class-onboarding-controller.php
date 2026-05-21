@@ -24,6 +24,7 @@ final class Onboarding_Controller {
 		add_action( 'admin_post_nkv_stripe_dashboard', [ $this, 'handle_dashboard' ] );
 		add_action( 'admin_post_nkv_stripe_sync',      [ $this, 'handle_sync' ] );
 		add_action( 'admin_post_nkv_stripe_email',     [ $this, 'handle_email' ] );
+		add_action( 'admin_post_nkv_stripe_reset',     [ $this, 'handle_reset' ] );
 
 		// Public (vendor-facing) — both logged-in and anonymous.
 		add_action( 'admin_post_nopriv_nkv_stripe_vendor_start',  [ $this, 'handle_vendor_start' ] );
@@ -90,6 +91,14 @@ final class Onboarding_Controller {
 		);
 	}
 
+	public static function reset_url( int $vendor_id ): string {
+		return wp_nonce_url(
+			admin_url( 'admin-post.php?action=nkv_stripe_reset&vendor_id=' . $vendor_id ),
+			'nkv_stripe_reset_' . $vendor_id,
+			'_nkv_nonce'
+		);
+	}
+
 	/* ---------------------------------------------------------------------
 	 * Public (vendor) handlers.
 	 * ------------------------------------------------------------------- */
@@ -121,7 +130,11 @@ final class Onboarding_Controller {
 				if ( is_email( $vendor['email'] ) ) {
 					$params['email'] = $vendor['email'];
 				}
-				$account = $client->create_account( $params, 'nkv_acct_create_v1_' . $vendor_id );
+				// Bump attempt before each create so a stale Stripe idempotency cache can't block re-onboarding.
+				$attempt = (int) get_post_meta( $vendor_id, '_nkv_stripe_create_attempt', true ) + 1;
+				update_post_meta( $vendor_id, '_nkv_stripe_create_attempt', $attempt );
+				$idem    = 'nkv_acct_create_v' . $attempt . '_' . $vendor_id . '_' . substr( md5( (string) $attempt . wp_salt( 'auth' ) ), 0, 8 );
+				$account = $client->create_account( $params, $idem );
 				$account_id = (string) ( $account['id'] ?? '' );
 				if ( '' === $account_id ) {
 					throw new \RuntimeException( 'Stripe nevrátil ID účtu.' );
@@ -220,13 +233,36 @@ final class Onboarding_Controller {
 	 * Admin handlers.
 	 * ------------------------------------------------------------------- */
 
+	public function handle_reset(): void {
+		$vendor_id = $this->authorize_admin( 'nkv_stripe_reset_' );
+		delete_post_meta( $vendor_id, '_nkv_stripe_account_id' );
+		delete_post_meta( $vendor_id, '_nkv_stripe_account_status' );
+		delete_post_meta( $vendor_id, '_nkv_stripe_charges_enabled' );
+		delete_post_meta( $vendor_id, '_nkv_stripe_payouts_enabled' );
+		delete_post_meta( $vendor_id, '_nkv_stripe_requirements_due' );
+		// Bump attempt counter so the next create call uses a fresh Stripe idempotency key.
+		$attempt = (int) get_post_meta( $vendor_id, '_nkv_stripe_create_attempt', true );
+		update_post_meta( $vendor_id, '_nkv_stripe_create_attempt', $attempt + 1 );
+		Logger::info( 'Vendor Stripe account reset', [ 'vendor' => $vendor_id, 'attempt' => $attempt + 1 ] );
+		wp_safe_redirect( add_query_arg( 'nkv_onboarding', 'reset', get_edit_post_link( $vendor_id, 'url' ) ) );
+		exit;
+	}
+
 	public function handle_sync(): void {
 		$vendor_id = $this->authorize_admin( 'nkv_stripe_sync_' );
 		$vendor    = Vendor_Repository::get( $vendor_id );
+		$err = null;
 		if ( $vendor && '' !== $vendor['stripe_account_id'] ) {
-			$this->sync_account_status( $vendor_id, $vendor['stripe_account_id'] );
+			$err = $this->sync_account_status( $vendor_id, $vendor['stripe_account_id'] );
 		}
-		wp_safe_redirect( add_query_arg( 'nkv_onboarding', 'synced', get_edit_post_link( $vendor_id, 'url' ) ) );
+		if ( null === $err ) {
+			wp_safe_redirect( add_query_arg( 'nkv_onboarding', 'synced', get_edit_post_link( $vendor_id, 'url' ) ) );
+		} else {
+			wp_safe_redirect( add_query_arg(
+				[ 'nkv_onboarding' => 'sync_failed', 'nkv_msg' => rawurlencode( $err ) ],
+				get_edit_post_link( $vendor_id, 'url' )
+			) );
+		}
 		exit;
 	}
 
@@ -296,15 +332,20 @@ final class Onboarding_Controller {
 	 * Status sync (shared).
 	 * ------------------------------------------------------------------- */
 
-	public function sync_account_status( int $vendor_id, string $account_id ): void {
+	public function sync_account_status( int $vendor_id, string $account_id ): ?string {
 		try {
 			$account = ( new Stripe_Client() )->retrieve_account( $account_id );
 		} catch ( \Throwable $e ) {
 			Logger::error( 'Account retrieve failed', [ 'vendor' => $vendor_id, 'err' => $e->getMessage() ] );
-			return;
+			return $e->getMessage();
 		}
-		if ( ! is_array( $account ) || isset( $account['error'] ) ) {
-			return;
+		if ( ! is_array( $account ) ) {
+			return 'Stripe nevrátil odpověď.';
+		}
+		if ( isset( $account['error'] ) ) {
+			$msg = (string) ( $account['error']['message'] ?? 'Stripe vrátil chybu.' );
+			Logger::error( 'Account sync rejected', [ 'vendor' => $vendor_id, 'account' => $account_id, 'err' => $msg ] );
+			return $msg;
 		}
 
 		$charges_enabled = ! empty( $account['charges_enabled'] );
@@ -324,5 +365,6 @@ final class Onboarding_Controller {
 		update_post_meta( $vendor_id, '_nkv_stripe_charges_enabled', $charges_enabled ? 1 : 0 );
 		update_post_meta( $vendor_id, '_nkv_stripe_payouts_enabled', $payouts_enabled ? 1 : 0 );
 		update_post_meta( $vendor_id, '_nkv_stripe_requirements_due', wp_json_encode( $currently_due ) );
+		return null;
 	}
 }

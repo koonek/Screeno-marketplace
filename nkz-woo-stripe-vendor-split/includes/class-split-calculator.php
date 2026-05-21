@@ -79,22 +79,37 @@ final class Split_Calculator {
 			$net_base = $deduct_coupons ? $agg['total_minor'] : $agg['subtotal_minor'];
 			$base     = $net_base + ( $include_tax ? $agg['tax_minor'] : 0 );
 
-			// Fee % per vendor: product-level override (first item that has it wins) > vendor default > global default.
-			$fee_pct_override = null;
+			// Per-product fixed fee OVERRIDES percent for that item. If item has fixed override,
+			// it contributes a fixed amount to platform fee; otherwise it contributes via percent.
+			$fixed_fee_minor    = 0;
+			$percent_base_minor = 0; // base portion covered by percent (items without fixed override)
+			$fee_pct_override   = null;
+
 			foreach ( $agg['items'] as $it ) {
-				$ov = get_post_meta( $it['product_id'], '_nkv_platform_fee_percent_override', true );
-				if ( '' !== $ov && null !== $ov ) {
-					$fee_pct_override = (float) $ov;
-					break;
+				$fixed_ov  = get_post_meta( $it['product_id'], '_nkv_platform_fee_fixed_override', true );
+				$pct_ov    = get_post_meta( $it['product_id'], '_nkv_platform_fee_percent_override', true );
+				$line_base = (int) ( $deduct_coupons ? $it['line_total_minor'] : $it['line_subtotal_minor'] )
+					+ ( $include_tax ? (int) $it['line_tax_minor'] : 0 );
+
+				if ( '' !== $fixed_ov && null !== $fixed_ov && (float) $fixed_ov > 0 ) {
+					// Fixed is per-unit × qty.
+					$fixed_fee_minor += nkvsvs_to_minor( (float) $fixed_ov * (float) $it['qty'], $currency );
+					continue;
+				}
+				$percent_base_minor += $line_base;
+				if ( null === $fee_pct_override && '' !== $pct_ov && null !== $pct_ov ) {
+					$fee_pct_override = (float) $pct_ov;
 				}
 			}
+
 			$fee_pct = $fee_pct_override ?? ( $vendor['fee_percent'] > 0 ? $vendor['fee_percent'] : $default_fee_pct );
 			$fee_pct = (float) apply_filters( 'nkv_svs_filter_platform_fee_percent', $fee_pct, $vendor, $agg );
 
-			// Floor the fee — platform keeps the rounding crumb. Safer than overpaying vendor.
-			$platform_fee_minor = (int) floor( $base * $fee_pct / 100 );
-			$platform_fee_minor += (int) $vendor['fee_fixed'];
-			$platform_fee_minor = min( $platform_fee_minor, $base );
+			// Floor the percent portion — platform keeps the rounding crumb.
+			$platform_fee_minor  = (int) floor( $percent_base_minor * $fee_pct / 100 );
+			$platform_fee_minor += $fixed_fee_minor;
+			$platform_fee_minor += (int) $vendor['fee_fixed']; // vendor-level fixed surcharge
+			$platform_fee_minor  = min( $platform_fee_minor, $base );
 
 			$transfer_amount = $base - $platform_fee_minor;
 			$transfer_amount = (int) apply_filters( 'nkv_svs_filter_transfer_amount_minor', $transfer_amount, $vendor, $order );
