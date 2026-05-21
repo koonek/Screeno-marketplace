@@ -85,12 +85,47 @@ final class Transfer_Service {
 			$dry_run    = $force_dry_run || Plugin::is_dry_run();
 			$stripe_ids = $this->resolve_stripe_ids( $order );
 
+			// Compute per-vendor Stripe fee share (only if configured & charge known).
+			$settings  = Plugin::settings();
+			$share_pct = (float) ( $settings['stripe_fee_vendor_share_percent'] ?? 0 );
+			$fee_per_vendor_minor = []; // vendor_id => fee_share_minor
+
+			if ( $share_pct > 0 && ! empty( $stripe_ids['charge_id'] ) ) {
+				$total_fee_minor = $this->fetch_stripe_fee_minor( $stripe_ids['charge_id'], $order->get_currency() );
+				$vendor_fee_pool = (int) floor( $total_fee_minor * $share_pct / 100 );
+				if ( $vendor_fee_pool > 0 ) {
+					$base_sum = 0;
+					foreach ( $calc['vendors'] as $vs ) {
+						if ( empty( $vs['reason_skipped'] ) ) {
+							$base_sum += (int) $vs['base_minor'];
+						}
+					}
+					if ( $base_sum > 0 ) {
+						foreach ( $calc['vendors'] as $vs ) {
+							if ( ! empty( $vs['reason_skipped'] ) ) {
+								continue;
+							}
+							$fee_per_vendor_minor[ (int) $vs['vendor_id'] ] = (int) floor( $vendor_fee_pool * (int) $vs['base_minor'] / $base_sum );
+						}
+					}
+				}
+			}
+
 			$existing  = $this->get_transfer_records( $order );
 			$completed = 0;
 			$failed    = 0;
 			$skipped   = 0;
 
 			foreach ( $calc['vendors'] as $vendor_split ) {
+				// Inject Stripe fee deduction into the split before any further checks.
+				$vid                                = (int) $vendor_split['vendor_id'];
+				$vendor_split['stripe_fee_share_minor'] = $fee_per_vendor_minor[ $vid ] ?? 0;
+				if ( $vendor_split['stripe_fee_share_minor'] > 0 ) {
+					$vendor_split['transfer_amount_minor'] = max( 0, (int) $vendor_split['transfer_amount_minor'] - $vendor_split['stripe_fee_share_minor'] );
+					if ( $vendor_split['transfer_amount_minor'] <= 0 && empty( $vendor_split['reason_skipped'] ) ) {
+						$vendor_split['reason_skipped'] = 'zero_amount';
+					}
+				}
 				$vendor_id = $vendor_split['vendor_id'];
 
 				// Idempotence check per vendor.
@@ -123,6 +158,7 @@ final class Transfer_Service {
 						'amount_minor'      => $vendor_split['transfer_amount_minor'],
 						'currency'          => strtolower( $calc['currency'] ),
 						'platform_fee_minor'=> $vendor_split['platform_fee_minor'],
+						'stripe_fee_share_minor' => (int) ( $vendor_split['stripe_fee_share_minor'] ?? 0 ),
 						'base_minor'        => $vendor_split['base_minor'],
 						'transfer_id'       => null,
 						'payment_intent_id' => $stripe_ids['payment_intent_id'] ?? null,
@@ -203,6 +239,37 @@ final class Transfer_Service {
 		];
 	}
 
+	/**
+	 * Fetch the actual Stripe fee for a charge, in minor units of the platform settlement currency.
+	 * Returns 0 if the fee cannot be resolved (transport error, currency mismatch, etc.).
+	 */
+	private function fetch_stripe_fee_minor( string $charge_id, string $order_currency ): int {
+		try {
+			$client = new Stripe_Client();
+			if ( ! $client->is_ready() ) {
+				return 0;
+			}
+			$charge = $client->retrieve_charge( $charge_id, [ 'balance_transaction' ] );
+			if ( ! is_array( $charge ) || ! isset( $charge['balance_transaction']['fee'] ) ) {
+				return 0;
+			}
+			$fee = (int) $charge['balance_transaction']['fee'];
+			$bt_curr = strtolower( (string) ( $charge['balance_transaction']['currency'] ?? '' ) );
+			if ( '' !== $bt_curr && strtolower( $order_currency ) !== $bt_curr ) {
+				Logger::warning( 'Stripe fee currency mismatch — skipping vendor share deduction', [
+					'charge'        => $charge_id,
+					'order_curr'    => $order_currency,
+					'fee_curr'      => $bt_curr,
+				] );
+				return 0;
+			}
+			return $fee;
+		} catch ( \Throwable $e ) {
+			Logger::warning( 'Could not fetch Stripe fee', [ 'charge' => $charge_id, 'err' => $e->getMessage() ] );
+			return 0;
+		}
+	}
+
 	private function idempotency_key( \WC_Order $order, int $vendor_id ): string {
 		return sprintf( 'wc_order_%d_vendor_%d_transfer_v1', $order->get_id(), $vendor_id );
 	}
@@ -224,6 +291,7 @@ final class Transfer_Service {
 			'amount_minor'      => $vendor_split['transfer_amount_minor'],
 			'currency'          => $currency,
 			'platform_fee_minor'=> $vendor_split['platform_fee_minor'],
+			'stripe_fee_share_minor' => (int) ( $vendor_split['stripe_fee_share_minor'] ?? 0 ),
 			'base_minor'        => $vendor_split['base_minor'],
 			'transfer_id'       => null,
 			'payment_intent_id' => $stripe_ids['payment_intent_id'],

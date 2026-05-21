@@ -1,0 +1,35 @@
+name: Release plugin ZIP
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve version
+        id: ver
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Build plugin ZIP
+        run: |
+          mkdir -p build
+          cp -r nkz-woo-stripe-vendor-split build/nkz-woo-stripe-vendor-split
+          # Strip dev / VCS artifacts that should never ship to WP.
+          find build/nkz-woo-stripe-vendor-split -type d \( -name '.git' -o -name 'node_modules' -o -name 'tests' \) -prune -exec rm -rf {} +
+          find build/nkz-woo-stripe-vendor-split -type f \( -name '.gitignore' -o -name '.gitattributes' -o -name '*.log' \) -delete
+          cd build && zip -r "../nkz-woo-stripe-vendor-split-${{ steps.ver.outputs.version }}.zip" nkz-woo-stripe-vendor-split
+
+      - name: Create GitHub Release with ZIP asset
+        uses: softprops/action-gh-release@v2
+        with:
+          files: nkz-woo-stripe-vendor-split-${{ steps.ver.outputs.version }}.zip
+          generate_release_notes: true

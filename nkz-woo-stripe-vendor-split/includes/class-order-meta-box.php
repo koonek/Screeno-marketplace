@@ -34,7 +34,7 @@ final class Order_Meta_Box {
 			$screens[] = wc_get_page_screen_id( 'shop-order' );
 		}
 		foreach ( $screens as $screen ) {
-			add_meta_box( 'nkv_svs_box', __( 'NKV Stripe Vendor Split', 'nkz-woo-stripe-vendor-split' ), [ $this, 'render' ], $screen, 'side', 'default' );
+			add_meta_box( 'nkv_svs_box', __( 'Rozdělení plateb Stripe', 'nkz-woo-stripe-vendor-split' ), [ $this, 'render' ], $screen, 'normal', 'default' );
 		}
 	}
 
@@ -51,24 +51,29 @@ final class Order_Meta_Box {
 		$records  = Transfer_Service::instance()->get_transfer_records( $order );
 		$currency = $order->get_currency();
 
-		echo '<p><strong>' . esc_html__( 'Status', 'nkz-woo-stripe-vendor-split' ) . ':</strong> ';
+		echo '<p><strong>' . esc_html__( 'Stav', 'nkz-woo-stripe-vendor-split' ) . ':</strong> ';
 		printf( '<span class="nkv-svs-status nkv-svs-status-%s">%s</span></p>', esc_attr( $status ), esc_html( $status ) );
 
 		if ( $calc && ! empty( $calc['vendors'] ) ) {
 			echo '<table class="widefat striped"><thead><tr>';
-			echo '<th>' . esc_html__( 'Vendor', 'nkz-woo-stripe-vendor-split' ) . '</th>';
-			echo '<th>' . esc_html__( 'Base', 'nkz-woo-stripe-vendor-split' ) . '</th>';
-			echo '<th>' . esc_html__( 'Fee', 'nkz-woo-stripe-vendor-split' ) . '</th>';
-			echo '<th>' . esc_html__( 'Vendor amt', 'nkz-woo-stripe-vendor-split' ) . '</th>';
+			echo '<th>' . esc_html__( 'Prodejce', 'nkz-woo-stripe-vendor-split' ) . '</th>';
+			echo '<th>' . esc_html__( 'Základ', 'nkz-woo-stripe-vendor-split' ) . '</th>';
+			echo '<th>' . esc_html__( 'Provize', 'nkz-woo-stripe-vendor-split' ) . '</th>';
+			echo '<th>' . esc_html__( 'Stripe fee (vendor)', 'nkz-woo-stripe-vendor-split' ) . '</th>';
+			echo '<th>' . esc_html__( 'Pro prodejce', 'nkz-woo-stripe-vendor-split' ) . '</th>';
 			echo '<th>' . esc_html__( 'Transfer', 'nkz-woo-stripe-vendor-split' ) . '</th>';
 			echo '</tr></thead><tbody>';
 			foreach ( $calc['vendors'] as $v ) {
 				$rec = $this->find_record( $records, (int) $v['vendor_id'] );
+				// stripe_fee_share_minor lives on the record (post-fetch), fall back to 0 in calc snapshot.
+				$stripe_fee_minor = (int) ( $rec['stripe_fee_share_minor'] ?? $v['stripe_fee_share_minor'] ?? 0 );
 				echo '<tr>';
 				echo '<td>' . esc_html( $v['vendor_name'] ) . '</td>';
 				echo '<td>' . esc_html( nkvsvs_from_minor_display( (int) $v['base_minor'], $currency ) ) . '</td>';
 				echo '<td>' . esc_html( nkvsvs_from_minor_display( (int) $v['platform_fee_minor'], $currency ) ) . '</td>';
-				echo '<td>' . esc_html( nkvsvs_from_minor_display( (int) $v['transfer_amount_minor'], $currency ) ) . '</td>';
+				echo '<td>' . esc_html( $stripe_fee_minor > 0 ? nkvsvs_from_minor_display( $stripe_fee_minor, $currency ) : '—' ) . '</td>';
+				$vendor_amt_minor = $rec ? (int) $rec['amount_minor'] : (int) $v['transfer_amount_minor'];
+				echo '<td>' . esc_html( nkvsvs_from_minor_display( $vendor_amt_minor, $currency ) ) . '</td>';
 				echo '<td>';
 				if ( $rec ) {
 					printf( '<span class="nkv-svs-status nkv-svs-status-%s">%s</span>', esc_attr( $rec['status'] ), esc_html( $rec['status'] ) );
@@ -96,13 +101,13 @@ final class Order_Meta_Box {
 		wp_nonce_field( 'nkv_svs_action_' . $order->get_id(), 'nkv_svs_nonce' );
 
 		echo '<p>';
-		submit_button( __( 'Recalculate', 'nkz-woo-stripe-vendor-split' ), 'secondary small', 'nkv_action_recalculate', false );
+		submit_button( __( 'Přepočítat', 'nkz-woo-stripe-vendor-split' ), 'secondary small', 'nkv_action_recalculate', false );
 		echo ' ';
-		submit_button( __( 'Create transfers', 'nkz-woo-stripe-vendor-split' ), 'primary small', 'nkv_action_run', false );
+		submit_button( __( 'Vytvořit transfery', 'nkz-woo-stripe-vendor-split' ), 'primary small', 'nkv_action_run', false );
 		echo ' ';
-		submit_button( __( 'Retry failed', 'nkz-woo-stripe-vendor-split' ), 'secondary small', 'nkv_action_retry', false );
+		submit_button( __( 'Opakovat neúspěšné', 'nkz-woo-stripe-vendor-split' ), 'secondary small', 'nkv_action_retry', false );
 		echo ' ';
-		submit_button( __( 'Mark resolved', 'nkz-woo-stripe-vendor-split' ), 'secondary small', 'nkv_action_resolve', false );
+		submit_button( __( 'Označit jako vyřešené', 'nkz-woo-stripe-vendor-split' ), 'secondary small', 'nkv_action_resolve', false );
 		echo '</p>';
 		echo '</form>';
 	}
