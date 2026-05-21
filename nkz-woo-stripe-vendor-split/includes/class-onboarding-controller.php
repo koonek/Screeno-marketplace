@@ -106,6 +106,11 @@ final class Onboarding_Controller {
 	public function handle_vendor_start(): void {
 		[ $vendor_id, $vendor ] = $this->authorize_public();
 
+		// Policy: bez IČO se prodejce neonboarduje (vendoři s pouhým rodným číslem nemohou).
+		if ( '' === trim( (string) $vendor['ico'] ) ) {
+			$this->public_error( __( 'Pro registraci v Stripe je potřeba IČO. Pokud podnikáš pod jiným identifikátorem, ozvi se prosím provozovateli platformy.', 'nkz-woo-stripe-vendor-split' ) );
+		}
+
 		$client = new Stripe_Client();
 		if ( ! $client->is_ready() ) {
 			$this->public_error( __( 'Platforma nemá nakonfigurovaný Stripe. Kontaktuj prosím provozovatele.', 'nkz-woo-stripe-vendor-split' ) );
