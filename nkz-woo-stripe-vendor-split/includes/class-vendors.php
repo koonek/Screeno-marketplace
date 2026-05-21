@@ -21,6 +21,9 @@ final class Vendors {
 		add_action( 'init', [ $this, 'register_public_meta' ] );
 		add_action( 'add_meta_boxes', [ $this, 'add_meta_box' ] );
 		add_action( 'save_post_' . self::POST_TYPE, [ $this, 'save' ], 10, 2 );
+		// Block direct front-end access to a single vendor — Elementor still queries the CPT
+		// via WP_Query, but no public URL renders the full vendor post.
+		add_action( 'template_redirect', [ $this, 'block_single_vendor' ] );
 	}
 
 	public function register_cpt(): void {
@@ -34,12 +37,14 @@ final class Vendors {
 					'add_new_item'  => __( 'Přidat prodejce', 'nkz-woo-stripe-vendor-split' ),
 					'edit_item'     => __( 'Upravit prodejce', 'nkz-woo-stripe-vendor-split' ),
 				],
-				// CPT must be queryable + show_in_rest so Elementor Loop Grid / Dynamic Tags can read it.
-				// `public => false` + these flags keep the admin UX private but allow public-fields output.
-				'public'              => false,
+				// `public => true` is required so Elementor Pro Loop Grid shows the CPT
+				// in its source dropdown. We disable URLs (rewrite + has_archive false)
+				// and 404 single requests in `block_single_vendor()` so no vendor data leaks.
+				'public'              => true,
 				'publicly_queryable'  => true,
 				'show_in_rest'        => true,
 				'exclude_from_search' => true,
+				'show_in_nav_menus'   => false,
 				'has_archive'         => false,
 				'rewrite'             => false,
 				'show_ui'             => true,
@@ -50,6 +55,18 @@ final class Vendors {
 				'map_meta_cap'        => true,
 			]
 		);
+	}
+
+	/**
+	 * 404 any direct front-end request for a single vendor post.
+	 */
+	public function block_single_vendor(): void {
+		if ( is_singular( self::POST_TYPE ) ) {
+			global $wp_query;
+			$wp_query->set_404();
+			status_header( 404 );
+			nocache_headers();
+		}
 	}
 
 	/**
