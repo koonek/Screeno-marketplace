@@ -18,6 +18,7 @@ final class Vendors {
 
 	public function init(): void {
 		add_action( 'init', [ $this, 'register_cpt' ] );
+		add_action( 'init', [ $this, 'register_public_meta' ] );
 		add_action( 'add_meta_boxes', [ $this, 'add_meta_box' ] );
 		add_action( 'save_post_' . self::POST_TYPE, [ $this, 'save' ], 10, 2 );
 	}
@@ -33,15 +34,41 @@ final class Vendors {
 					'add_new_item'  => __( 'Přidat prodejce', 'nkz-woo-stripe-vendor-split' ),
 					'edit_item'     => __( 'Upravit prodejce', 'nkz-woo-stripe-vendor-split' ),
 				],
-				'public'       => false,
-				'show_ui'      => true,
-				'show_in_menu' => true,
-				'menu_icon'    => 'dashicons-businessperson',
-				'supports'     => [ 'title' ],
-				'capability_type' => 'page',
-				'map_meta_cap'    => true,
+				// CPT must be queryable + show_in_rest so Elementor Loop Grid / Dynamic Tags can read it.
+				// `public => false` + these flags keep the admin UX private but allow public-fields output.
+				'public'              => false,
+				'publicly_queryable'  => true,
+				'show_in_rest'        => true,
+				'exclude_from_search' => true,
+				'has_archive'         => false,
+				'rewrite'             => false,
+				'show_ui'             => true,
+				'show_in_menu'        => true,
+				'menu_icon'           => 'dashicons-businessperson',
+				'supports'            => [ 'title', 'thumbnail' ],
+				'capability_type'     => 'page',
+				'map_meta_cap'        => true,
 			]
 		);
+	}
+
+	/**
+	 * Public-facing meta exposed to REST so Elementor Dynamic Tags can read it.
+	 * Sensitive fields (email, ICO, fee config, Stripe IDs) are intentionally NOT registered here.
+	 */
+	public function register_public_meta(): void {
+		$public_string = [
+			'_nkv_vendor_website' => __( 'Web prodejce', 'nkz-woo-stripe-vendor-split' ),
+			'_nkv_vendor_bio'     => __( 'Bio / popisek (veřejný)', 'nkz-woo-stripe-vendor-split' ),
+		];
+		foreach ( $public_string as $key => $label ) {
+			register_post_meta( self::POST_TYPE, $key, [
+				'show_in_rest' => true,
+				'single'       => true,
+				'type'         => 'string',
+				'auth_callback' => static fn() => current_user_can( 'manage_woocommerce' ),
+			] );
+		}
 	}
 
 	public function add_meta_box(): void {
@@ -65,6 +92,8 @@ final class Vendors {
 			'_nkv_vendor_email'           => [ 'label' => __( 'Email prodejce', 'nkz-woo-stripe-vendor-split' ), 'type' => 'email' ],
 			'_nkv_vendor_ico'             => [ 'label' => __( 'IČO / DIČ', 'nkz-woo-stripe-vendor-split' ), 'type' => 'text' ],
 			'_nkv_vendor_currency'        => [ 'label' => __( 'Měna (ISO, volitelné)', 'nkz-woo-stripe-vendor-split' ), 'type' => 'text', 'placeholder' => 'CZK' ],
+			'_nkv_vendor_website'         => [ 'label' => __( 'Web prodejce (veřejný odkaz)', 'nkz-woo-stripe-vendor-split' ), 'type' => 'url', 'placeholder' => 'https://...' ],
+			'_nkv_vendor_bio'             => [ 'label' => __( 'Bio / popisek (veřejný)', 'nkz-woo-stripe-vendor-split' ), 'type' => 'textarea' ],
 			'_nkv_internal_note'          => [ 'label' => __( 'Interní poznámka', 'nkz-woo-stripe-vendor-split' ), 'type' => 'textarea' ],
 		];
 		echo '<table class="form-table">';
@@ -285,6 +314,8 @@ final class Vendors {
 			'_nkv_vendor_email'          => 'email',
 			'_nkv_vendor_ico'            => 'text',
 			'_nkv_vendor_currency'       => 'currency',
+			'_nkv_vendor_website'        => 'url',
+			'_nkv_vendor_bio'            => 'textarea',
 			'_nkv_internal_note'         => 'textarea',
 		];
 
@@ -305,6 +336,7 @@ final class Vendors {
 			case 'text':     return sanitize_text_field( (string) wp_unslash( $raw ) );
 			case 'textarea': return sanitize_textarea_field( (string) wp_unslash( $raw ) );
 			case 'email':    return sanitize_email( (string) wp_unslash( $raw ) );
+			case 'url':      return esc_url_raw( (string) wp_unslash( $raw ) );
 			case 'float':    return (float) $raw;
 			case 'int':      return (int) $raw;
 			case 'currency': return strtoupper( preg_replace( '/[^A-Za-z]/', '', (string) $raw ) );
