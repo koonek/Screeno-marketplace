@@ -29,6 +29,7 @@ final class Plugin {
 		Webhook_Controller::instance()->init();
 		Checkout_Guard::instance()->init();
 		Cron_Sync::instance()->init();
+		Elementor_Integration::instance()->init();
 
 		// Domain / service layer hooks.
 		Transfer_Service::instance()->init();
