@@ -37,6 +37,17 @@ final class Plugin {
 			\NKZMP\Vendor\Registry::instance()->init();
 		}
 
+		if ( is_admin() ) {
+			if ( ! function_exists( 'is_plugin_active' ) ) {
+				require_once ABSPATH . 'wp-admin/includes/plugin.php';
+			}
+			\NKZMP\Admin\StatusPage::instance()->init();
+		}
+
+		if ( defined( 'WP_CLI' ) && WP_CLI ) {
+			\WP_CLI::add_command( 'nkzmp status', \NKZMP\CLI\StatusCommand::class );
+		}
+
 		// TODO Phase 0:
 		// - Product\Ownership admin UI panel + capability guard
 		// - Allocation\Service (Order → Allocation[])

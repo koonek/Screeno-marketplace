@@ -24,3 +24,7 @@ Marketplace platforma pro WooCommerce, postavená jako **tenké jádro + add-ony
 Viz `docs/` a plán refaktoru. Aktuální fáze: **Fáze 0 – extrakce core ze Stripe adapteru, rename `NKVSVS` → `NKZMP`, ledger + payout state machine + reconciliation cron.**
 
 Stable Screeno produkce tag: `v0.6.5-screeno-stable`.
+
+### Staging
+
+Pro nahrání na Screeno staging viz [`docs/staging-install.md`](docs/staging-install.md). Core je v této fázi **pasivní pozorovatel** – instaluje vlastní tabulky a oprávnění, ale neovlivňuje chování existujícího Stripe adapteru.
