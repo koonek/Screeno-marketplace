@@ -23,8 +23,42 @@ defined( 'ABSPATH' ) || exit;
 
 final class DashboardPage {
 
+	private static ?DashboardPage $instance = null;
+
+	public static function instance(): DashboardPage {
+		return self::$instance ??= new self();
+	}
+
+	public function init(): void {
+		add_action( 'admin_post_nkzmp_dashboard_quick_approve', [ $this, 'handle_quick_approve' ] );
+	}
+
+	public function handle_quick_approve(): void {
+		$vendor_id = isset( $_POST['vendor_id'] ) ? (int) $_POST['vendor_id'] : 0;
+		check_admin_referer( 'nkzmp_dashboard_quick_approve_' . $vendor_id );
+		if ( ! current_user_can( Capabilities::APPROVE_VENDOR ) && ! current_user_can( Capabilities::MANAGE_VENDORS ) ) {
+			wp_die( esc_html__( 'Nedostatečná oprávnění.', 'nkz-marketplace' ) );
+		}
+		$msg = '';
+		try {
+			( new \NKZMP\Vendor\StatusService() )->transition(
+				$vendor_id,
+				\NKZMP\Vendor\Status::APPROVED_AWAITING_KYC,
+				[ 'source' => 'dashboard_quick_approve' ]
+			);
+			$msg = sprintf( __( 'Vendor #%d schválen, čeká na KYC.', 'nkz-marketplace' ), $vendor_id );
+		} catch ( \Throwable $e ) {
+			$msg = $e->getMessage();
+		}
+		wp_safe_redirect( add_query_arg(
+			[ 'page' => NKZMP_ADMIN_MENU_SLUG, 'nkzmp_approve_msg' => rawurlencode( $msg ) ],
+			admin_url( 'admin.php' )
+		) );
+		exit;
+	}
+
 	public static function render_static(): void {
-		( new self() )->render();
+		self::instance()->render();
 	}
 
 	public function render(): void {
@@ -32,12 +66,21 @@ final class DashboardPage {
 			wp_die( esc_html__( 'Nedostatečná oprávnění.', 'nkz-marketplace' ) );
 		}
 
-		$stats  = $this->stats();
-		$audit  = $this->recent_audit( 8 );
-		$health = $this->health();
+		$stats   = $this->stats();
+		$audit   = $this->recent_audit( 8 );
+		$health  = $this->health();
+		$pending = $this->pending_vendors();
+
+		$flash_msg = isset( $_GET['nkzmp_approve_msg'] ) ? sanitize_text_field( wp_unslash( $_GET['nkzmp_approve_msg'] ) ) : '';
 
 		?>
 		<div class="wrap nkzmp-dash">
+
+			<?php if ( $flash_msg !== '' ) : ?>
+				<div class="notice notice-success is-dismissible" style="margin:8px 0 24px;">
+					<p><?php echo esc_html( $flash_msg ); ?></p>
+				</div>
+			<?php endif; ?>
 
 			<header class="nkzmp-dash-head">
 				<div>
@@ -63,6 +106,54 @@ final class DashboardPage {
 					</a>
 				<?php endforeach; ?>
 			</section>
+
+			<?php if ( ! empty( $pending ) ) : ?>
+				<section class="nkzmp-dash-block nkzmp-dash-pending">
+					<header class="nkzmp-dash-block-head">
+						<h2>
+							<?php esc_html_e( 'Čekají na schválení', 'nkz-marketplace' ); ?>
+							<span class="nkzmp-dash-pending-count"><?php echo (int) count( $pending ); ?></span>
+						</h2>
+						<a href="<?php echo esc_url( admin_url( 'edit.php?post_type=nkv_vendor' ) ); ?>"><?php esc_html_e( 'Vše', 'nkz-marketplace' ); ?> →</a>
+					</header>
+
+					<ul class="nkzmp-dash-pending-list">
+						<?php foreach ( $pending as $p ) : ?>
+							<li>
+								<div class="nkzmp-pend-avatar"><?php echo esc_html( $p['initials'] ); ?></div>
+								<div class="nkzmp-pend-body">
+									<div class="nkzmp-pend-name"><?php echo esc_html( $p['name'] ); ?></div>
+									<div class="nkzmp-pend-meta">
+										<?php if ( $p['email'] ) : ?>
+											<a href="mailto:<?php echo esc_attr( $p['email'] ); ?>"><?php echo esc_html( $p['email'] ); ?></a>
+										<?php endif; ?>
+										<?php if ( $p['ico'] ) : ?>
+											<span class="dot">·</span><?php echo esc_html( 'IČO ' . $p['ico'] ); ?>
+										<?php endif; ?>
+										<?php if ( $p['submitted_at'] ) : ?>
+											<span class="dot">·</span><?php echo esc_html( sprintf( __( 'před %s', 'nkz-marketplace' ), human_time_diff( $p['submitted_at'], time() ) ) ); ?>
+										<?php endif; ?>
+									</div>
+									<?php if ( $p['bio'] ) : ?>
+										<div class="nkzmp-pend-bio"><?php echo esc_html( wp_trim_words( $p['bio'], 22 ) ); ?></div>
+									<?php endif; ?>
+								</div>
+								<div class="nkzmp-pend-actions">
+									<a class="nkzmp-pend-btn nkzmp-pend-btn--view" href="<?php echo esc_url( $p['edit_url'] ); ?>"><?php esc_html_e( 'Detail', 'nkz-marketplace' ); ?></a>
+									<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline;">
+										<input type="hidden" name="action" value="nkzmp_dashboard_quick_approve" />
+										<input type="hidden" name="vendor_id" value="<?php echo (int) $p['id']; ?>" />
+										<?php wp_nonce_field( 'nkzmp_dashboard_quick_approve_' . $p['id'] ); ?>
+										<button type="submit" class="nkzmp-pend-btn nkzmp-pend-btn--approve">
+											<?php esc_html_e( 'Schválit', 'nkz-marketplace' ); ?> →
+										</button>
+									</form>
+								</div>
+							</li>
+						<?php endforeach; ?>
+					</ul>
+				</section>
+			<?php endif; ?>
 
 			<div class="nkzmp-dash-cols">
 
@@ -344,6 +435,112 @@ final class DashboardPage {
 			.nkzmp-health-label { color: #0a0a0a; }
 			.nkzmp-health-detail { font-size: 12px; color: rgba(10,10,10,0.55); }
 
+			/* Pending vendors list */
+			.nkzmp-dash-pending { margin-bottom: 32px; border-color: #0060FF; }
+			.nkzmp-dash-pending .nkzmp-dash-block-head h2 {
+				display: flex;
+				align-items: center;
+				gap: 12px;
+			}
+			.nkzmp-dash-pending-count {
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
+				min-width: 24px;
+				height: 24px;
+				padding: 0 8px;
+				background: #0060FF;
+				color: #fff;
+				font-size: 12px;
+				font-weight: 600;
+				font-variant-numeric: tabular-nums;
+			}
+			.nkzmp-dash-pending-list {
+				list-style: none;
+				margin: 0;
+				padding: 0;
+			}
+			.nkzmp-dash-pending-list li {
+				display: grid;
+				grid-template-columns: 48px 1fr auto;
+				gap: 16px;
+				padding: 16px 0;
+				border-bottom: 1px solid rgba(10,10,10,0.06);
+				align-items: center;
+			}
+			.nkzmp-dash-pending-list li:last-child { border-bottom: none; }
+			.nkzmp-pend-avatar {
+				width: 48px;
+				height: 48px;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				background: #f5f5f5;
+				color: #0a0a0a;
+				font-size: 14px;
+				font-weight: 600;
+				letter-spacing: 0.04em;
+				border: 1px solid #0a0a0a;
+			}
+			.nkzmp-pend-name {
+				font-size: 16px;
+				font-weight: 500;
+				color: #0a0a0a;
+				letter-spacing: -0.005em;
+			}
+			.nkzmp-pend-meta {
+				font-size: 12px;
+				color: rgba(10,10,10,0.55);
+				margin-top: 4px;
+			}
+			.nkzmp-pend-meta a {
+				color: #0060FF;
+				text-decoration: none;
+			}
+			.nkzmp-pend-meta .dot { margin: 0 6px; }
+			.nkzmp-pend-bio {
+				font-size: 13px;
+				color: rgba(10,10,10,0.75);
+				margin-top: 6px;
+				line-height: 1.45;
+				max-width: 60ch;
+			}
+			.nkzmp-pend-actions {
+				display: flex;
+				gap: 8px;
+				align-items: center;
+			}
+			.nkzmp-pend-btn {
+				display: inline-flex;
+				align-items: center;
+				gap: 6px;
+				padding: 8px 14px;
+				font-size: 13px;
+				font-weight: 500;
+				text-decoration: none !important;
+				border: 1px solid #0a0a0a;
+				background: #fff;
+				color: #0a0a0a;
+				cursor: pointer;
+				transition: background 0.15s ease, color 0.15s ease;
+				border-radius: 0;
+				font-family: inherit;
+			}
+			.nkzmp-pend-btn--view:hover {
+				background: #0a0a0a;
+				color: #fff !important;
+			}
+			.nkzmp-pend-btn--approve {
+				background: #0060FF;
+				border-color: #0060FF;
+				color: #fff;
+			}
+			.nkzmp-pend-btn--approve:hover {
+				background: #0050d6;
+				border-color: #0050d6;
+				color: #fff !important;
+			}
+
 			/* Quick actions */
 			.nkzmp-dash-actions {
 				display: grid;
@@ -462,6 +659,73 @@ final class DashboardPage {
 	/**
 	 * @return \NKZMP\Audit\Event[]
 	 */
+	/**
+	 * @return array<int, array{id:int,name:string,email:string,ico:string,bio:string,submitted_at:int,edit_url:string,initials:string}>
+	 */
+	private function pending_vendors(): array {
+		global $wpdb;
+		$rows = $wpdb->get_results( $wpdb->prepare(
+			"SELECT p.ID
+			 FROM {$wpdb->posts} p
+			 INNER JOIN {$wpdb->postmeta} pm ON pm.post_id = p.ID
+			 WHERE p.post_type IN ('nkv_vendor','nkzmp_vendor')
+			   AND p.post_status = 'publish'
+			   AND pm.meta_key IN ('_nkzmp_vendor_status', '_nkv_vendor_status')
+			   AND pm.meta_value = %s
+			 GROUP BY p.ID
+			 ORDER BY p.post_date DESC
+			 LIMIT 10",
+			Status::PENDING->value
+		) );
+
+		$out = [];
+		foreach ( $rows ?: [] as $row ) {
+			$id    = (int) $row->ID;
+			$post  = get_post( $id );
+			$email = (string) get_post_meta( $id, '_nkzmp_vendor_email', true );
+			if ( $email === '' ) {
+				$email = (string) get_post_meta( $id, '_nkv_vendor_email', true );
+			}
+			$ico = (string) get_post_meta( $id, '_nkzmp_vendor_ico', true );
+			if ( $ico === '' ) {
+				$ico = (string) get_post_meta( $id, '_nkv_vendor_ico', true );
+			}
+			$bio = (string) get_post_meta( $id, '_nkzmp_vendor_bio', true );
+			if ( $bio === '' ) {
+				$bio = (string) get_post_meta( $id, '_nkv_vendor_bio', true );
+			}
+			$submitted_meta = (int) get_post_meta( $id, '_nkzmp_registration_submitted_at', true );
+
+			$name     = (string) ( $post ? $post->post_title : '—' );
+			$initials = self::initials( $name );
+
+			$out[] = [
+				'id'           => $id,
+				'name'         => $name,
+				'email'        => $email,
+				'ico'          => $ico,
+				'bio'          => $bio,
+				'submitted_at' => $submitted_meta ?: ( $post ? (int) get_post_time( 'U', true, $post ) : 0 ),
+				'edit_url'     => (string) get_edit_post_link( $id, '' ),
+				'initials'     => $initials,
+			];
+		}
+		return $out;
+	}
+
+	private static function initials( string $name ): string {
+		$name = trim( $name );
+		if ( $name === '' ) {
+			return '?';
+		}
+		$parts = preg_split( '/\s+/', $name );
+		$ini   = '';
+		foreach ( array_slice( $parts, 0, 2 ) as $p ) {
+			$ini .= mb_substr( $p, 0, 1 );
+		}
+		return mb_strtoupper( $ini );
+	}
+
 	private function recent_audit( int $limit ): array {
 		if ( ! class_exists( AuditRecorder::class ) ) {
 			return [];
