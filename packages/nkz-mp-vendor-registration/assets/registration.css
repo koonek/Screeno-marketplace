@@ -239,35 +239,52 @@
 	margin-top: var(--nkzmp-gap-md);
 }
 
-.nkzmp-reg-submit {
-	display: inline-flex;
-	align-items: center;
-	gap: 12px;
-	background: var(--nkzmp-text);
-	color: var(--nkzmp-bg);
-	border: none;
-	padding: 18px 40px;
-	font-family: inherit;
-	font-size: 16px;
+.nkzmp-reg-form-wrap .nkzmp-reg-submit,
+.nkzmp-reg-form .nkzmp-reg-submit,
+button.nkzmp-reg-submit {
+	display: inline-flex !important;
+	align-items: center !important;
+	gap: 12px !important;
+	background: var(--nkzmp-text) !important;
+	color: var(--nkzmp-bg) !important;
+	border: none !important;
+	padding: 18px 40px !important;
+	font-family: inherit !important;
+	font-size: 16px !important;
+	font-weight: 500 !important;
+	letter-spacing: 0.005em !important;
+	cursor: pointer !important;
+	border-radius: 0 !important;
+	box-shadow: none !important;
+	text-transform: none !important;
+	transition: gap 0.2s ease, background 0.15s ease !important;
+	align-self: flex-start !important;
+	width: auto !important;
+	min-width: 0 !important;
+	line-height: 1 !important;
+	text-decoration: none !important;
+}
+.nkzmp-reg-form-wrap .nkzmp-reg-submit svg,
+.nkzmp-reg-form .nkzmp-reg-submit svg {
+	width: 18px !important;
+	height: 18px !important;
+	transition: transform 0.2s ease !important;
+}
+.nkzmp-reg-form-wrap .nkzmp-reg-submit:hover,
+.nkzmp-reg-form .nkzmp-reg-submit:hover {
+	gap: 16px !important;
+	background: var(--nkzmp-accent) !important;
+	color: var(--nkzmp-bg) !important;
+}
+.nkzmp-reg-form-wrap .nkzmp-reg-submit:hover svg {
+	transform: translateX(4px) !important;
+}
+
+.nkzmp-reg-ares-status {
+	color: var(--nkzmp-accent);
 	font-weight: 500;
-	letter-spacing: 0.005em;
-	cursor: pointer;
-	border-radius: 0;
-	transition: gap 0.2s ease, background 0.15s ease;
-	align-self: flex-start;
 }
-.nkzmp-reg-submit svg {
-	width: 18px;
-	height: 18px;
-	transition: transform 0.2s ease;
-}
-.nkzmp-reg-submit:hover {
-	gap: 16px;
-	background: var(--nkzmp-accent);
-}
-.nkzmp-reg-submit:hover svg {
-	transform: translateX(4px);
-}
+.nkzmp-reg-ares-status:empty { display: none; }
 
 .nkzmp-reg-foot {
 	color: var(--nkzmp-muted);

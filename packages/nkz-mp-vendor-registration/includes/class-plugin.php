@@ -24,6 +24,7 @@ final class Plugin {
 		Listener::instance()->init();
 		MetaWatcher::instance()->init();
 		StatusPage::instance()->init();
+		AresLookup::instance()->init();
 		Assets::instance()->init();
 	}
 }

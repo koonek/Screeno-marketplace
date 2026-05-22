@@ -53,8 +53,9 @@ defined( 'ABSPATH' ) || exit;
 			<div class="nkzmp-reg-grid nkzmp-reg-grid--2">
 				<div class="nkzmp-reg-field">
 					<label for="nkzmp_ico"><?php esc_html_e( 'IČO', 'nkz-mp-vendor-registration' ); ?> <span class="req">*</span></label>
-					<input id="nkzmp_ico" type="text" name="ico" required maxlength="20" inputmode="numeric" />
-					<small><?php esc_html_e( 'Bez IČO ti Stripe neumí vyplácet. Pokud podnikáš jinak, ozvi se nám.', 'nkz-mp-vendor-registration' ); ?></small>
+					<input id="nkzmp_ico" type="text" name="ico" required maxlength="10" inputmode="numeric" pattern="[0-9]{6,10}" />
+					<small class="nkzmp-reg-ares-status" aria-live="polite"></small>
+					<small><?php esc_html_e( 'Bez IČO ti Stripe neumí vyplácet. Jméno se ti samo vyplní z ARES.', 'nkz-mp-vendor-registration' ); ?></small>
 				</div>
 				<div class="nkzmp-reg-field">
 					<label for="nkzmp_website"><?php esc_html_e( 'Web nebo Instagram', 'nkz-mp-vendor-registration' ); ?></label>
@@ -124,12 +125,81 @@ defined( 'ABSPATH' ) || exit;
 
 <script>
 (function(){
+	var form = document.querySelector('.nkzmp-reg-form');
+	if (!form) return;
+
+	var STORAGE = 'nkzmp_reg_draft_v1';
+	var fields  = ['name','email','ico','website','bio'];
+
+	// Restore (kromě úspěšného submitu, který znegoval values na ?nkzmp_reg=ok)
+	var isSuccess = /[?&]nkzmp_reg=ok/.test(window.location.search);
+	if (!isSuccess) {
+		try {
+			var saved = JSON.parse(localStorage.getItem(STORAGE) || '{}');
+			fields.forEach(function(name){
+				var el = form.querySelector('[name="'+name+'"]');
+				if (el && saved[name] && !el.value) { el.value = saved[name]; }
+			});
+		} catch(e){}
+	} else {
+		try { localStorage.removeItem(STORAGE); } catch(e){}
+	}
+
+	// Persist na každý input
+	fields.forEach(function(name){
+		var el = form.querySelector('[name="'+name+'"]');
+		if (!el) return;
+		el.addEventListener('input', function(){
+			try {
+				var s = JSON.parse(localStorage.getItem(STORAGE) || '{}');
+				s[name] = el.value;
+				localStorage.setItem(STORAGE, JSON.stringify(s));
+			} catch(e){}
+		});
+	});
+
+	// Char counter pro bio
 	var bio = document.getElementById('nkzmp_bio');
-	if (!bio) return;
 	var count = document.querySelector('[data-count]');
-	if (!count) return;
-	var update = function(){ count.textContent = bio.value.length; };
-	bio.addEventListener('input', update);
-	update();
+	if (bio && count) {
+		var updateCount = function(){ count.textContent = bio.value.length; };
+		bio.addEventListener('input', updateCount);
+		updateCount();
+	}
+
+	// ARES lookup pro IČO (8 čísel → fetch → autofill name pokud prázdné)
+	var ico  = document.getElementById('nkzmp_ico');
+	var name = document.getElementById('nkzmp_name');
+	var icoStatus = document.querySelector('.nkzmp-reg-ares-status');
+	if (ico && name) {
+		var lookupTimer;
+		ico.addEventListener('input', function(){
+			clearTimeout(lookupTimer);
+			var val = ico.value.replace(/[^0-9]/g, '');
+			if (val.length !== 8) {
+				if (icoStatus) icoStatus.textContent = '';
+				return;
+			}
+			if (icoStatus) icoStatus.textContent = 'Hledám v ARES…';
+			lookupTimer = setTimeout(function(){
+				fetch('/wp-json/nkzmp-registration/v1/ares/' + val)
+					.then(function(r){ return r.json(); })
+					.then(function(data){
+						if (!data || !data.found) {
+							if (icoStatus) icoStatus.textContent = 'V ARES jsme tě nenašli — IČO si zkontroluj.';
+							return;
+						}
+						if (icoStatus) icoStatus.textContent = '✓ ' + (data.name || '');
+						if (name && !name.value && data.name) {
+							name.value = data.name;
+							name.dispatchEvent(new Event('input'));
+						}
+					})
+					.catch(function(){
+						if (icoStatus) icoStatus.textContent = '';
+					});
+			}, 350);
+		});
+	}
 })();
 </script>

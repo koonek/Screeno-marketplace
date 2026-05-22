@@ -33,26 +33,9 @@ final class MetaWatcher {
 		if ( ! in_array( $meta_key, self::MIRROR_KEYS, true ) ) {
 			return;
 		}
-		$post = get_post( $post_id );
-		if ( ! $post || ! in_array( $post->post_type, [ 'nkv_vendor', 'nkzmp_vendor' ], true ) ) {
-			return;
-		}
-		// Najdi předchozí hodnotu z druhého klíče (nebo prázdné).
-		$other     = $meta_key === '_nkv_vendor_status' ? '_nkzmp_vendor_status' : '_nkv_vendor_status';
-		$from      = (string) get_post_meta( $post_id, $other, true );
-		$to        = (string) $meta_value;
-		if ( $from === $to ) {
-			return;
-		}
-		// Zrcadlit do druhého klíče (aby to nehmiklo nekonečnou smyčku, kontroluju hodnotu).
-		if ( get_post_meta( $post_id, $other, true ) !== $to ) {
-			update_post_meta( $post_id, $other, $to );
-		}
-		do_action( 'nkzmp/v1/vendor/status_changed', $post_id, $from, $to, [ 'source' => 'meta_watcher' ] );
-	}
-
-	public function on_meta_added( int $meta_id, int $post_id, string $meta_key, $meta_value ): void {
-		if ( ! in_array( $meta_key, self::MIRROR_KEYS, true ) ) {
+		if ( class_exists( \NKZMP\Vendor\StatusService::class ) && \NKZMP\Vendor\StatusService::$in_transition ) {
+			// StatusService už fire-uje hook sám. Jen zrcadlíme do druhého klíče.
+			$this->mirror( $post_id, $meta_key, (string) $meta_value );
 			return;
 		}
 		$post = get_post( $post_id );
@@ -60,9 +43,35 @@ final class MetaWatcher {
 			return;
 		}
 		$other = $meta_key === '_nkv_vendor_status' ? '_nkzmp_vendor_status' : '_nkv_vendor_status';
-		if ( get_post_meta( $post_id, $other, true ) !== $meta_value ) {
-			update_post_meta( $post_id, $other, $meta_value );
+		$from  = (string) get_post_meta( $post_id, $other, true );
+		$to    = (string) $meta_value;
+		if ( $from === $to ) {
+			return;
 		}
+		$this->mirror( $post_id, $meta_key, $to );
+		do_action( 'nkzmp/v1/vendor/status_changed', $post_id, $from, $to, [ 'source' => 'meta_watcher' ] );
+	}
+
+	public function on_meta_added( int $meta_id, int $post_id, string $meta_key, $meta_value ): void {
+		if ( ! in_array( $meta_key, self::MIRROR_KEYS, true ) ) {
+			return;
+		}
+		if ( class_exists( \NKZMP\Vendor\StatusService::class ) && \NKZMP\Vendor\StatusService::$in_transition ) {
+			$this->mirror( $post_id, $meta_key, (string) $meta_value );
+			return;
+		}
+		$post = get_post( $post_id );
+		if ( ! $post || ! in_array( $post->post_type, [ 'nkv_vendor', 'nkzmp_vendor' ], true ) ) {
+			return;
+		}
+		$this->mirror( $post_id, $meta_key, (string) $meta_value );
 		do_action( 'nkzmp/v1/vendor/status_changed', $post_id, '', (string) $meta_value, [ 'source' => 'meta_watcher' ] );
+	}
+
+	private function mirror( int $post_id, string $current_key, string $value ): void {
+		$other = $current_key === '_nkv_vendor_status' ? '_nkzmp_vendor_status' : '_nkv_vendor_status';
+		if ( get_post_meta( $post_id, $other, true ) !== $value ) {
+			update_post_meta( $post_id, $other, $value );
+		}
 	}
 }

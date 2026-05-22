@@ -23,6 +23,9 @@ defined( 'ABSPATH' ) || exit;
 
 final class StatusService {
 
+	/** Public flag — MetaWatcher / external listeners ho čtou aby předešli duplikaci. */
+	public static bool $in_transition = false;
+
 	private const ALLOWED = [
 		'pending'               => [ 'approved_awaiting_kyc', 'rejected' ],
 		'approved_awaiting_kyc' => [ 'active', 'rejected', 'terminated' ],
@@ -68,13 +71,18 @@ final class StatusService {
 
 		update_post_meta( $vendor_id, MetaKeys::STATUS, $to->value );
 
-		do_action(
-			'nkzmp/v1/vendor/status_changed',
-			$vendor_id,
-			$current_raw,
-			$to->value,
-			$context
-		);
+		self::$in_transition = true;
+		try {
+			do_action(
+				'nkzmp/v1/vendor/status_changed',
+				$vendor_id,
+				$current_raw,
+				$to->value,
+				$context
+			);
+		} finally {
+			self::$in_transition = false;
+		}
 
 		return $to;
 	}
