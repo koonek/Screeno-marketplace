@@ -78,6 +78,7 @@ final class StatusPage {
 
 		$this->render_recent_ledger();
 		$this->render_recent_payouts();
+		$this->render_allocation_preview();
 
 		echo '<h2>' . esc_html__( 'Pro staging', 'nkz-marketplace' ) . '</h2>';
 		echo '<p>' . esc_html__( 'Core NKZ Marketplace je v této verzi pasivní pozorovatel – existující Stripe adapter (nkz-woo-stripe-vendor-split) jede beze změny. Shadow observer paralelně píše do ledgeru z hooku nkv_svs_after_create_transfer.', 'nkz-marketplace' ) . '</p>';
@@ -140,6 +141,74 @@ final class StatusPage {
 			echo '</tr>';
 		}
 		echo '</tbody></table>';
+	}
+
+	private function render_allocation_preview(): void {
+		$order_id = isset( $_GET['nkzmp_alloc_order'] ) ? (int) $_GET['nkzmp_alloc_order'] : 0;
+
+		echo '<h2>' . esc_html__( 'Allocation preview (parity check)', 'nkz-marketplace' ) . '</h2>';
+		echo '<p>' . esc_html__( 'Vlož ID objednávky → core spočítá Allocation[] přes mapper a porovnej s reálnými Stripe transfery v ledger tabulce výše.', 'nkz-marketplace' ) . '</p>';
+
+		echo '<form method="get" style="margin-bottom:12px;">';
+		echo '<input type="hidden" name="page" value="nkz-marketplace-status" />';
+		echo '<input type="number" name="nkzmp_alloc_order" value="' . esc_attr( (string) $order_id ) . '" placeholder="Order ID" style="width:160px;" />';
+		echo ' <button type="submit" class="button button-primary">' . esc_html__( 'Spočítat', 'nkz-marketplace' ) . '</button>';
+		echo '</form>';
+
+		if ( $order_id <= 0 ) {
+			return;
+		}
+
+		$order = function_exists( 'wc_get_order' ) ? wc_get_order( $order_id ) : null;
+		if ( ! $order instanceof \WC_Order ) {
+			echo '<div class="notice notice-error inline"><p>' . esc_html( sprintf( __( 'Objednávka #%d nenalezena.', 'nkz-marketplace' ), $order_id ) ) . '</p></div>';
+			return;
+		}
+
+		if ( ! class_exists( \NKVSVS\Split_Calculator::class ) ) {
+			echo '<div class="notice notice-error inline"><p>' . esc_html__( 'Stripe adapter (Split_Calculator) není dostupný.', 'nkz-marketplace' ) . '</p></div>';
+			return;
+		}
+
+		try {
+			$calc        = \NKVSVS\Split_Calculator::calculate( $order );
+			$allocations = \NKZMP\Allocation\Calculator::from_legacy_calc( $calc, $order );
+		} catch ( \Throwable $e ) {
+			echo '<div class="notice notice-error inline"><p>' . esc_html( $e->getMessage() ) . '</p></div>';
+			return;
+		}
+
+		if ( empty( $allocations ) ) {
+			echo '<p><em>' . esc_html__( 'Žádný splitable vendor v této objednávce (skipped nebo neexistuje).', 'nkz-marketplace' ) . '</em></p>';
+			return;
+		}
+
+		echo '<table class="widefat striped"><thead><tr>';
+		foreach ( [ 'Vendor', 'Currency', 'Gross', 'Commission', 'Fee share', 'Net', 'Meta' ] as $h ) {
+			echo '<th>' . esc_html( $h ) . '</th>';
+		}
+		echo '</tr></thead><tbody>';
+		foreach ( $allocations as $a ) {
+			echo '<tr>';
+			echo '<td>#' . (int) $a->vendor_id . '</td>';
+			echo '<td>' . esc_html( $a->currency ) . '</td>';
+			echo '<td>' . esc_html( Money::from_minor_display( $a->gross_minor, $a->currency ) ) . '</td>';
+			echo '<td>' . esc_html( Money::from_minor_display( $a->commission_minor, $a->currency ) ) . '</td>';
+			echo '<td>' . esc_html( Money::from_minor_display( $a->fee_share_minor, $a->currency ) ) . '</td>';
+			echo '<td><strong>' . esc_html( Money::from_minor_display( $a->net_minor, $a->currency ) ) . '</strong></td>';
+			echo '<td><code>' . esc_html( wp_json_encode( $a->meta ) ) . '</code></td>';
+			echo '</tr>';
+		}
+		echo '</tbody></table>';
+
+		$skipped = array_filter( (array) ( $calc['vendors'] ?? [] ), static fn( $v ) => ! empty( $v['reason_skipped'] ) );
+		if ( $skipped ) {
+			echo '<p><strong>' . esc_html__( 'Skipped vendoři:', 'nkz-marketplace' ) . '</strong></p><ul>';
+			foreach ( $skipped as $v ) {
+				echo '<li>#' . (int) ( $v['vendor_id'] ?? 0 ) . ' — ' . esc_html( (string) $v['reason_skipped'] ) . '</li>';
+			}
+			echo '</ul>';
+		}
 	}
 
 	/**
