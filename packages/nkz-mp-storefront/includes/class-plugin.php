@@ -27,5 +27,15 @@ final class Plugin {
 		ProductLink::instance()->init();
 		Seo::instance()->init();
 		Assets::instance()->init();
+
+		// Elementor integration je opt-in podle dostupnosti pluginu.
+		if ( did_action( 'elementor/loaded' ) || class_exists( \Elementor\Plugin::class ) ) {
+			\NKZMP\Storefront\Elementor\ElementorIntegration::instance()->init();
+		} else {
+			// Registrace přes pozdější hook, kdyby se Elementor načítal později.
+			add_action( 'elementor/loaded', static function () {
+				\NKZMP\Storefront\Elementor\ElementorIntegration::instance()->init();
+			} );
+		}
 	}
 }
