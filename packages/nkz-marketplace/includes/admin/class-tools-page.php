@@ -31,6 +31,7 @@ final class ToolsPage {
 		add_action( 'admin_menu', [ $this, 'register_menu' ] );
 		add_action( 'admin_post_nkzmp_migrate_vendors', [ $this, 'handle_migrate' ] );
 		add_action( 'admin_post_nkzmp_vendor_status', [ $this, 'handle_status' ] );
+		add_action( 'admin_post_nkzmp_run_reconcile', [ $this, 'handle_reconcile' ] );
 	}
 
 	public function register_menu(): void {
@@ -64,7 +65,86 @@ final class ToolsPage {
 		$this->render_migration_section();
 		echo '<hr style="margin:24px 0;">';
 		$this->render_status_section();
+		echo '<hr style="margin:24px 0;">';
+		$this->render_reconcile_section();
 		echo '</div>';
+	}
+
+	private function render_reconcile_section(): void {
+		echo '<h2>' . esc_html__( 'Reconciliation', 'nkz-marketplace' ) . '</h2>';
+		echo '<p>' . esc_html__( 'Porovná ledger PAYOUT řádky se Stripe transfery ve zvoleném časovém okně. Drift se zaloguje do auditu.', 'nkz-marketplace' ) . '</p>';
+
+		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+		echo '<input type="hidden" name="action" value="nkzmp_run_reconcile" />';
+		wp_nonce_field( self::NONCE_ACTION );
+		echo '<table class="form-table"><tbody>';
+		echo '<tr><th><label>' . esc_html__( 'Okno (since)', 'nkz-marketplace' ) . '</label></th>';
+		echo '<td><select name="since"><option value="24h">24h</option><option value="7d" selected>7d</option><option value="30d">30d</option><option value="90d">90d</option></select></td></tr>';
+		echo '</tbody></table>';
+		echo '<button type="submit" class="button button-primary">' . esc_html__( 'Spustit reconcile', 'nkz-marketplace' ) . '</button>';
+		echo '</form>';
+
+		$last = get_transient( 'nkzmp_last_reconcile_result' );
+		if ( $last && is_array( $last ) ) {
+			echo '<h3 style="margin-top:18px;">' . esc_html__( 'Poslední běh', 'nkz-marketplace' ) . '</h3>';
+			foreach ( $last as $name => $r ) {
+				echo '<table class="widefat striped" style="max-width:700px;margin-bottom:8px;"><tbody>';
+				echo '<tr><th>Adapter</th><td><code>' . esc_html( $name ) . '</code></td></tr>';
+				if ( isset( $r['error'] ) ) {
+					echo '<tr><th>Error</th><td style="color:#dc3232;">' . esc_html( (string) $r['error'] ) . '</td></tr>';
+				} else {
+					echo '<tr><th>Window</th><td>' . esc_html( gmdate( 'Y-m-d H:i', (int) $r['from_ts'] ) ) . ' → ' . esc_html( gmdate( 'Y-m-d H:i', (int) $r['to_ts'] ) ) . ' UTC</td></tr>';
+					echo '<tr><th>Source</th><td>' . (int) $r['source_count'] . '</td></tr>';
+					echo '<tr><th>Ledger</th><td>' . (int) $r['ledger_count'] . '</td></tr>';
+					echo '<tr><th>Matched</th><td><strong style="color:' . ( $r['matched_count'] > 0 ? '#46b450' : '#777' ) . ';">' . (int) $r['matched_count'] . '</strong></td></tr>';
+					echo '<tr><th>Drift</th><td><strong style="color:' . ( $r['drift_count'] > 0 ? '#dc3232' : '#46b450' ) . ';">' . (int) $r['drift_count'] . '</strong></td></tr>';
+				}
+				echo '</tbody></table>';
+				if ( ! empty( $r['drift'] ) ) {
+					echo '<details><summary>' . esc_html__( 'Drift detail', 'nkz-marketplace' ) . '</summary><pre style="background:#f6f7f7;padding:8px;overflow:auto;">' . esc_html( wp_json_encode( $r['drift'], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) ) . '</pre></details>';
+				}
+			}
+		}
+	}
+
+	public function handle_reconcile(): void {
+		check_admin_referer( self::NONCE_ACTION );
+		if ( ! current_user_can( Capabilities::MANAGE_VENDORS ) ) {
+			wp_die( esc_html__( 'Nedostatečná oprávnění.', 'nkz-marketplace' ) );
+		}
+
+		$since = isset( $_POST['since'] ) ? sanitize_text_field( wp_unslash( $_POST['since'] ) ) : '7d';
+		$secs  = match ( $since ) {
+			'24h' => DAY_IN_SECONDS,
+			'30d' => 30 * DAY_IN_SECONDS,
+			'90d' => 90 * DAY_IN_SECONDS,
+			default => 7 * DAY_IN_SECONDS,
+		};
+
+		$to_ts   = time();
+		$from_ts = $to_ts - $secs;
+		$drivers = \NKZMP\Reconciliation\Service::drivers();
+		if ( ! $drivers ) {
+			$this->redirect( 'err', __( 'Žádné reconciliation drivery (chybí Stripe adapter ≥ 0.6.6?).', 'nkz-marketplace' ) );
+		}
+
+		$service = new \NKZMP\Reconciliation\Service();
+		$out     = [];
+		$totals  = [ 'matched' => 0, 'drift' => 0 ];
+		foreach ( $drivers as $name => $driver ) {
+			try {
+				$report             = $service->run( $driver, $from_ts, $to_ts );
+				$out[ $name ]       = $report->to_array();
+				$totals['matched'] += $report->matched_count;
+				$totals['drift']   += count( $report->drift );
+			} catch ( \Throwable $e ) {
+				$out[ $name ] = [ 'error' => $e->getMessage() ];
+			}
+		}
+		set_transient( 'nkzmp_last_reconcile_result', $out, 6 * HOUR_IN_SECONDS );
+
+		$msg = sprintf( __( 'Reconcile dokončen: %d matched, %d drift.', 'nkz-marketplace' ), $totals['matched'], $totals['drift'] );
+		$this->redirect( $totals['drift'] > 0 ? 'err' : 'ok', $msg );
 	}
 
 	private function render_migration_section(): void {
