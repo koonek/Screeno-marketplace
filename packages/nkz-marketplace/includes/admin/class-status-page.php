@@ -12,9 +12,11 @@
 
 namespace NKZMP\Admin;
 
+use NKZMP\Integration\LegacyStripeObserver;
 use NKZMP\Ledger\Schema as LedgerSchema;
 use NKZMP\Payout\Schema as PayoutSchema;
 use NKZMP\Support\Capabilities;
+use NKZMP\Support\Money;
 use NKZMP\Vendor\Registry;
 
 defined( 'ABSPATH' ) || exit;
@@ -74,9 +76,70 @@ final class StatusPage {
 		}
 		echo '</tbody></table>';
 
+		$this->render_recent_ledger();
+		$this->render_recent_payouts();
+
 		echo '<h2>' . esc_html__( 'Pro staging', 'nkz-marketplace' ) . '</h2>';
-		echo '<p>' . esc_html__( 'Core NKZ Marketplace je v této verzi pasivní pozorovatel – existující Stripe adapter (nkz-woo-stripe-vendor-split) jede beze změny. Core jen registruje tabulky, role a oprávnění. Reálné chování objednávek se aktivuje až v dalších verzích po migraci dat.', 'nkz-marketplace' ) . '</p>';
+		echo '<p>' . esc_html__( 'Core NKZ Marketplace je v této verzi pasivní pozorovatel – existující Stripe adapter (nkz-woo-stripe-vendor-split) jede beze změny. Shadow observer paralelně píše do ledgeru z hooku nkv_svs_after_create_transfer.', 'nkz-marketplace' ) . '</p>';
 		echo '</div>';
+	}
+
+	private function render_recent_ledger(): void {
+		global $wpdb;
+		$table = LedgerSchema::table_name();
+		$rows  = $wpdb->get_results( "SELECT id, vendor_id, type, amount_minor, currency, order_id, source_adapter, source_ref, occurred_at FROM {$table} ORDER BY id DESC LIMIT 10", ARRAY_A ); // phpcs:ignore
+
+		echo '<h2>' . esc_html__( 'Ledger – posledních 10 záznamů', 'nkz-marketplace' ) . '</h2>';
+		if ( empty( $rows ) ) {
+			echo '<p><em>' . esc_html__( 'Zatím prázdné. První Stripe transfer ze Screeno objednávky se tady projeví.', 'nkz-marketplace' ) . '</em></p>';
+			return;
+		}
+		echo '<table class="widefat striped"><thead><tr>';
+		foreach ( [ 'ID', 'Vendor', 'Type', 'Amount', 'Order', 'Source', 'When' ] as $h ) {
+			echo '<th>' . esc_html( $h ) . '</th>';
+		}
+		echo '</tr></thead><tbody>';
+		foreach ( $rows as $r ) {
+			echo '<tr>';
+			echo '<td>' . (int) $r['id'] . '</td>';
+			echo '<td>' . ( (int) $r['vendor_id'] === 0 ? '<em>platform</em>' : '#' . (int) $r['vendor_id'] ) . '</td>';
+			echo '<td><code>' . esc_html( (string) $r['type'] ) . '</code></td>';
+			echo '<td>' . esc_html( Money::from_minor_display( (int) $r['amount_minor'], (string) $r['currency'] ) ) . '</td>';
+			echo '<td>' . ( $r['order_id'] ? '#' . (int) $r['order_id'] : '—' ) . '</td>';
+			echo '<td>' . esc_html( (string) ( $r['source_adapter'] ?? '' ) ) . ( $r['source_ref'] ? ' / <code>' . esc_html( (string) $r['source_ref'] ) . '</code>' : '' ) . '</td>'; // phpcs:ignore
+			echo '<td>' . esc_html( gmdate( 'Y-m-d H:i', (int) $r['occurred_at'] ) ) . '</td>';
+			echo '</tr>';
+		}
+		echo '</tbody></table>';
+	}
+
+	private function render_recent_payouts(): void {
+		global $wpdb;
+		$table = PayoutSchema::table_name();
+		$rows  = $wpdb->get_results( "SELECT id, vendor_id, amount_minor, currency, state, adapter, adapter_ref, created_at FROM {$table} ORDER BY id DESC LIMIT 10", ARRAY_A ); // phpcs:ignore
+
+		echo '<h2>' . esc_html__( 'Payouts – posledních 10 záznamů', 'nkz-marketplace' ) . '</h2>';
+		if ( empty( $rows ) ) {
+			echo '<p><em>' . esc_html__( 'Zatím prázdné.', 'nkz-marketplace' ) . '</em></p>';
+			return;
+		}
+		echo '<table class="widefat striped"><thead><tr>';
+		foreach ( [ 'ID', 'Vendor', 'Amount', 'State', 'Adapter', 'Ref', 'Created' ] as $h ) {
+			echo '<th>' . esc_html( $h ) . '</th>';
+		}
+		echo '</tr></thead><tbody>';
+		foreach ( $rows as $r ) {
+			echo '<tr>';
+			echo '<td>' . (int) $r['id'] . '</td>';
+			echo '<td>#' . (int) $r['vendor_id'] . '</td>';
+			echo '<td>' . esc_html( Money::from_minor_display( (int) $r['amount_minor'], (string) $r['currency'] ) ) . '</td>';
+			echo '<td><code>' . esc_html( (string) $r['state'] ) . '</code></td>';
+			echo '<td>' . esc_html( (string) ( $r['adapter'] ?? '' ) ) . '</td>';
+			echo '<td>' . ( $r['adapter_ref'] ? '<code>' . esc_html( (string) $r['adapter_ref'] ) . '</code>' : '—' ) . '</td>'; // phpcs:ignore
+			echo '<td>' . esc_html( gmdate( 'Y-m-d H:i', (int) $r['created_at'] ) ) . '</td>';
+			echo '</tr>';
+		}
+		echo '</tbody></table>';
 	}
 
 	/**
@@ -166,6 +229,16 @@ final class StatusPage {
 			'detail' => $cpt_on
 				? esc_html__( 'AKTIVNÍ (NKZMP_ENABLE_CORE_CPT=true) – nová CPT registrovaná', 'nkz-marketplace' )
 				: esc_html__( 'pasivní (default) – během Fáze 0 záměrně. CPT nkzmp_vendor se registruje až po nastavení konstanty NKZMP_ENABLE_CORE_CPT=true.', 'nkz-marketplace' ),
+		];
+
+		// Shadow observer.
+		$observer_enabled = apply_filters( 'nkzmp/v1/integration/legacy_observer_enabled', true );
+		$rows[] = [
+			'label'  => __( 'Shadow observer', 'nkz-marketplace' ),
+			'state'  => $observer_enabled ? 'ok' : 'warn',
+			'detail' => $observer_enabled
+				? esc_html__( 'aktivní – paralelně píše do ledgeru z nkv_svs_after_create_transfer', 'nkz-marketplace' )
+				: esc_html__( 'vypnutý filterem nkzmp/v1/integration/legacy_observer_enabled', 'nkz-marketplace' ),
 		];
 
 		// Legacy adapter coexistence.

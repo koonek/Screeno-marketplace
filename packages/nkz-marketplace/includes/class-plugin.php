@@ -48,6 +48,10 @@ final class Plugin {
 			\WP_CLI::add_command( 'nkzmp status', \NKZMP\CLI\StatusCommand::class );
 		}
 
+		// Shadow observer: paralelně píše do ledgeru z legacy Stripe hooků.
+		// Bez jakékoli interakce se samotným transferem.
+		\NKZMP\Integration\LegacyStripeObserver::instance()->init();
+
 		// TODO Phase 0:
 		// - Product\Ownership admin UI panel + capability guard
 		// - Allocation\Service (Order → Allocation[])
