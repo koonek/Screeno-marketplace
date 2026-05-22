@@ -36,6 +36,17 @@ final class Plugin {
 		Refund_Service::instance()->init();
 
 		load_plugin_textdomain( 'nkz-woo-stripe-vendor-split', false, dirname( plugin_basename( NKVSVS_PLUGIN_FILE ) ) . '/languages' );
+
+		// Reconciliation driver pro core (registruje se jen pokud je core přítomné).
+		if ( interface_exists( \NKZMP\Reconciliation\SourceDriver::class ) ) {
+			add_filter(
+				'nkzmp/v1/reconciliation/drivers',
+				static function ( array $drivers ): array {
+					$drivers[ Reconciliation_Driver::ADAPTER_NAME ] = new Reconciliation_Driver();
+					return $drivers;
+				}
+			);
+		}
 	}
 
 	/**

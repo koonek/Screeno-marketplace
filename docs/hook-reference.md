@@ -24,7 +24,8 @@ Veřejný API kontrakt. Všechny hooky core jsou prefixované `nkzmp/v1/*`. Add-
 | `nkzmp/v1/allocation/calculate` | filter | `Allocation[] $allocations, WC_Order $order` | Po výpočtu, před zápisem do ledgeru. Adapter může upravit. *(planned)* |
 | `nkzmp/v1/allocation/calculated` | action | `Allocation[] $allocations, WC_Order $order` | Po definitivní alokaci. *(planned)* |
 | `nkzmp/v1/ledger/entry_recorded` | action | `Ledger\Entry $entry` | Po zápisu do `wp_nkzmp_ledger`. |
-| `nkzmp/v1/ledger/reconciliation` | action | `array $drift` | Cron reconciliation report. *(planned)* |
+| `nkzmp/v1/reconciliation/drivers` | filter | `array $drivers` | Adapter registruje `SourceDriver` implementaci. Klíč = adapter name. |
+| `nkzmp/v1/reconciliation/completed` | action | `Reconciliation\Report $report` | Po dokončení reconcile běhu (i bez driftu). |
 
 ## Shipping
 

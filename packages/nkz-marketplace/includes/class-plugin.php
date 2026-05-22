@@ -51,6 +51,7 @@ final class Plugin {
 			\WP_CLI::add_command( 'nkzmp status', \NKZMP\CLI\StatusCommand::class );
 			\WP_CLI::add_command( 'nkzmp backfill', \NKZMP\CLI\BackfillCommand::class );
 			\WP_CLI::add_command( 'nkzmp ledger', \NKZMP\CLI\LedgerCommand::class );
+			\WP_CLI::add_command( 'nkzmp reconcile', \NKZMP\CLI\ReconcileCommand::class );
 		}
 
 		// Shadow observer: paralelně píše do ledgeru z legacy Stripe hooků.
@@ -65,6 +66,9 @@ final class Plugin {
 
 		// GDPR exporter / eraser.
 		\NKZMP\Gdpr\Registrar::instance()->init();
+
+		// Reconciliation cron (denně).
+		\NKZMP\Reconciliation\Cron::instance()->init();
 
 		// TODO Phase 0:
 		// - Product\Ownership admin UI panel + capability guard
