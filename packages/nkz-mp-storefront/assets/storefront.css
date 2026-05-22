@@ -1,0 +1,53 @@
+/* NKZ Marketplace Storefront – TODO: AOZ design manual.
+ *
+ * Current state = neutral placeholder. Po dodání design manualu se
+ * tokens vystaví jako CSS custom properties (--nkzmp-color-primary atd.)
+ * a theme override půjde přes :root { --nkzmp-color-primary: ...; }.
+ */
+
+:root {
+	/* TODO: nahradit hodnotami z AOZ design manualu. */
+	--nkzmp-color-primary: #1a73e8;
+	--nkzmp-color-text: #1a1a1a;
+	--nkzmp-color-text-muted: #666;
+	--nkzmp-color-bg: #fff;
+	--nkzmp-color-border: #e5e5e5;
+	--nkzmp-radius: 8px;
+	--nkzmp-gap-sm: 8px;
+	--nkzmp-gap-md: 16px;
+	--nkzmp-gap-lg: 24px;
+	--nkzmp-font-h1: 28px;
+	--nkzmp-font-h2: 22px;
+	--nkzmp-font-h3: 16px;
+}
+
+.nkzmp-vendor-page { max-width: 1200px; margin: 0 auto; padding: var(--nkzmp-gap-lg) var(--nkzmp-gap-md); color: var(--nkzmp-color-text); }
+
+.nkzmp-vendor-header { display: flex; gap: var(--nkzmp-gap-lg); align-items: flex-start; margin-bottom: 32px; padding-bottom: var(--nkzmp-gap-lg); border-bottom: 1px solid var(--nkzmp-color-border); }
+.nkzmp-vendor-header__image { flex: 0 0 200px; }
+.nkzmp-vendor-header__image img { width: 100%; height: auto; border-radius: var(--nkzmp-radius); }
+.nkzmp-vendor-header__body { flex: 1; }
+.nkzmp-vendor-header__name { margin: 0 0 var(--nkzmp-gap-sm); font-size: var(--nkzmp-font-h1); }
+.nkzmp-vendor-header__web { display: inline-block; margin-right: var(--nkzmp-gap-md); color: var(--nkzmp-color-text-muted); text-decoration: none; }
+.nkzmp-vendor-header__web:hover { text-decoration: underline; }
+.nkzmp-vendor-header__bio { margin-top: 12px; color: var(--nkzmp-color-text); }
+
+.nkzmp-vendor-products { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; }
+.nkzmp-vendor-product { background: var(--nkzmp-color-bg); border: 1px solid var(--nkzmp-color-border); border-radius: var(--nkzmp-radius); padding: 12px; display: flex; flex-direction: column; text-decoration: none; color: inherit; }
+.nkzmp-vendor-product img { width: 100%; height: 180px; object-fit: cover; border-radius: 6px; margin-bottom: var(--nkzmp-gap-sm); }
+.nkzmp-vendor-product h3 { margin: 0 0 6px; font-size: var(--nkzmp-font-h3); }
+.nkzmp-vendor-product .price { color: var(--nkzmp-color-primary); font-weight: 600; }
+
+.nkzmp-vendor-archive { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; }
+.nkzmp-vendor-card { background: var(--nkzmp-color-bg); border: 1px solid var(--nkzmp-color-border); border-radius: var(--nkzmp-radius); padding: var(--nkzmp-gap-md); }
+.nkzmp-vendor-card h2 { margin: 0 0 var(--nkzmp-gap-sm); font-size: 18px; }
+.nkzmp-vendor-card h2 a { color: inherit; text-decoration: none; }
+.nkzmp-vendor-card .bio { color: var(--nkzmp-color-text-muted); font-size: 14px; }
+
+.nkzmp-pagination { margin-top: 32px; text-align: center; }
+.nkzmp-pagination .page-numbers { display: inline-block; padding: 6px 12px; margin: 0 4px; border: 1px solid var(--nkzmp-color-border); border-radius: 4px; text-decoration: none; color: var(--nkzmp-color-text); }
+.nkzmp-pagination .page-numbers.current { background: var(--nkzmp-color-primary); color: var(--nkzmp-color-bg); border-color: var(--nkzmp-color-primary); }
+
+.nkzmp-product-vendor { font-size: 14px; color: var(--nkzmp-color-text-muted); margin-top: var(--nkzmp-gap-sm); }
+.nkzmp-product-vendor a { color: var(--nkzmp-color-primary); text-decoration: none; font-weight: 500; }
+.nkzmp-product-vendor a:hover { text-decoration: underline; }
