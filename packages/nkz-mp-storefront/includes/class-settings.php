@@ -60,10 +60,11 @@ final class Settings {
 		}
 
 		add_action( 'admin_menu', function () {
+			$parent = defined( 'NKZMP_ADMIN_MENU_SLUG' ) ? NKZMP_ADMIN_MENU_SLUG : 'woocommerce';
 			add_submenu_page(
-				'woocommerce',
-				__( 'NKZ Storefront', 'nkz-mp-storefront' ),
-				__( 'NKZ Storefront', 'nkz-mp-storefront' ),
+				$parent,
+				__( 'Storefront', 'nkz-mp-storefront' ),
+				__( 'Storefront', 'nkz-mp-storefront' ),
 				'manage_woocommerce',
 				'nkz-mp-storefront',
 				[ $this, 'render_page' ]

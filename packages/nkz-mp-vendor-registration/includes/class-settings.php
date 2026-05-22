@@ -92,10 +92,11 @@ final class Settings {
 	}
 
 	public function register_menu(): void {
+		$parent = defined( 'NKZMP_ADMIN_MENU_SLUG' ) ? NKZMP_ADMIN_MENU_SLUG : 'woocommerce';
 		add_submenu_page(
-			'woocommerce',
-			__( 'NKZ Registrace', 'nkz-mp-vendor-registration' ),
-			__( 'NKZ Registrace', 'nkz-mp-vendor-registration' ),
+			$parent,
+			__( 'Registrace', 'nkz-mp-vendor-registration' ),
+			__( 'Registrace', 'nkz-mp-vendor-registration' ),
 			'manage_woocommerce',
 			'nkz-mp-vendor-registration',
 			[ $this, 'render_page' ]

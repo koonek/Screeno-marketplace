@@ -2,7 +2,7 @@
 /**
  * Plugin Name: NKZ Marketplace
  * Description: Marketplace jádro – vendor model, product ownership, allocation service, ledger, payout state machine. PSP integrace přes samostatné adaptéry (např. nkz-mp-stripe).
- * Version: 0.8.7-dev
+ * Version: 0.10.0-dev
  * Author: NKZ
  * Requires at least: 6.2
  * Requires PHP: 8.1
@@ -14,10 +14,14 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'NKZMP_VERSION', '0.8.7-dev' );
+define( 'NKZMP_VERSION', '0.10.0-dev' );
 define( 'NKZMP_PLUGIN_FILE', __FILE__ );
 define( 'NKZMP_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'NKZMP_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
+
+// Top-level admin menu slug. Sub-moduly (storefront, registration, …) ho
+// používají jako parent v add_submenu_page() místo 'woocommerce'.
+define( 'NKZMP_ADMIN_MENU_SLUG', 'nkz-marketplace' );
 
 // HPOS compatibility.
 add_action(

@@ -37,9 +37,9 @@ final class ToolsPage {
 
 	public function register_menu(): void {
 		add_submenu_page(
-			'woocommerce',
-			__( 'NKZ Marketplace Tools', 'nkz-marketplace' ),
-			__( 'NKZ Marketplace Tools', 'nkz-marketplace' ),
+			NKZMP_ADMIN_MENU_SLUG,
+			__( 'Tools', 'nkz-marketplace' ),
+			__( 'Tools', 'nkz-marketplace' ),
 			Capabilities::MANAGE_VENDORS,
 			'nkz-marketplace-tools',
 			[ $this, 'render' ]

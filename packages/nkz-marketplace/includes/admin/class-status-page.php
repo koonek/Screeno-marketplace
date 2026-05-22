@@ -35,9 +35,9 @@ final class StatusPage {
 
 	public function register_menu(): void {
 		add_submenu_page(
-			'woocommerce',
-			__( 'NKZ Marketplace', 'nkz-marketplace' ),
-			__( 'NKZ Marketplace', 'nkz-marketplace' ),
+			NKZMP_ADMIN_MENU_SLUG,
+			__( 'Status', 'nkz-marketplace' ),
+			__( 'Status', 'nkz-marketplace' ),
 			Capabilities::MANAGE_VENDORS,
 			'nkz-marketplace-status',
 			[ $this, 'render' ]

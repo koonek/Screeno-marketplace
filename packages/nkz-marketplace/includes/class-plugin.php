@@ -54,6 +54,7 @@ final class Plugin {
 			if ( ! function_exists( 'is_plugin_active' ) ) {
 				require_once ABSPATH . 'wp-admin/includes/plugin.php';
 			}
+			\NKZMP\Admin\Menu::instance()->init();
 			\NKZMP\Admin\StatusPage::instance()->init();
 			\NKZMP\Admin\ToolsPage::instance()->init();
 		}
