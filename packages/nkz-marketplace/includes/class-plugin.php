@@ -45,6 +45,7 @@ final class Plugin {
 				require_once ABSPATH . 'wp-admin/includes/plugin.php';
 			}
 			\NKZMP\Admin\StatusPage::instance()->init();
+			\NKZMP\Admin\ToolsPage::instance()->init();
 		}
 
 		if ( defined( 'WP_CLI' ) && WP_CLI ) {
@@ -53,6 +54,7 @@ final class Plugin {
 			\WP_CLI::add_command( 'nkzmp ledger', \NKZMP\CLI\LedgerCommand::class );
 			\WP_CLI::add_command( 'nkzmp reconcile', \NKZMP\CLI\ReconcileCommand::class );
 			\WP_CLI::add_command( 'nkzmp allocation', \NKZMP\CLI\AllocationCommand::class );
+			\WP_CLI::add_command( 'nkzmp migrate-vendors', \NKZMP\CLI\MigrateVendorsCommand::class );
 		}
 
 		// Shadow observer: paralelně píše do ledgeru z legacy Stripe hooků.

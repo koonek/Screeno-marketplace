@@ -6,7 +6,7 @@
 
 | Package | Verze | Stav |
 |---|---|---|
-| `nkz-marketplace` (core) | **0.7.1-dev** | dev — Fáze 0 in progress |
+| `nkz-marketplace` (core) | **0.8.0-dev** | dev — Fáze 0 téměř hotová |
 | `nkz-mp-stripe` (slug `nkz-woo-stripe-vendor-split`) | **0.6.7** | produkční pro Screeno |
 
 ## Fáze 0 — Refactor + rename + observability
@@ -28,7 +28,7 @@ Cíl: Screeno produkce funguje identicky, core paralelně zapisuje ledger/audit,
 | 6 | REST `nkzmp/v1/*` | ✅ | 0.5.0-dev | vendors/orders/ledger, OwnershipGuard |
 | 6b | WP-CLI `wp nkzmp ...` | ✅ | 0.5.0-dev + 0.6.0-dev | status, backfill, ledger, reconcile, +allocation |
 | 7 | Capabilities + role `nkzmp_vendor` | ✅ | 0.4.0-dev | Opt-in CPT přes `NKZMP_ENABLE_CORE_CPT` |
-| 8 | Migrace meta klíčů `_nkv_*` → `_nkzmp_*` | ⏳ | — | Read-shim hotov, write migration WP-CLI ještě ne |
+| 8 | Migrace meta klíčů `_nkv_*` → `_nkzmp_*` | ✅ | 0.8.0-dev | `wp nkzmp migrate-vendors` + admin UI Tools, idempotentní, legacy klíče ponechané |
 | 9 | Hook reference | 🟡 | — | Manuální `docs/hook-reference.md`, generátor z PHPDoc TBD |
 | 10 | GDPR exporter + eraser | ✅ | 0.5.0-dev | Vendor profile + ledger + payouts + audit |
 | 11 | Screeno staging upgrade → produkce | ⏳ | — | Po dokončení 5e + 8 |
@@ -50,7 +50,7 @@ Nezačne dokud Fáze 0 není na Screeno produkci.
 | Per-vendor paušální shipping | `nkz-mp-shipping` | TODO |
 | Vendor storefront `/vendor/<slug>` | `nkz-mp-storefront` | TODO |
 | Vendor backoffice lite (wp-admin scoped) | core | TODO |
-| Vendor StatusService + admin akce (approve/suspend/terminate) | core | TODO |
+| Vendor StatusService + admin akce (approve/suspend/terminate) | core | ✅ 0.8.0-dev (service + Tools UI). Frontend approve workflow je TODO ve Fázi 1 |
 | CZ překlad (.po) | core + add-ony | TODO |
 
 **Provozní rozhodnutí:** viz [`docs/staging-install.md`](staging-install.md) sekce "AOZ provozní".
