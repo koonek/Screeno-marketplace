@@ -21,5 +21,6 @@ final class Plugin {
 		Endpoints::instance()->init();
 		Redirect::instance()->init();
 		Assets::instance()->init();
+		AccountChrome::instance()->init();
 	}
 }

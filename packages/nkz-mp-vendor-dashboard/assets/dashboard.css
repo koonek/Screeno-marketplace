@@ -1,7 +1,149 @@
 /* NKZ Marketplace Vendor Dashboard – AOZ tokens.
  *
- * Vendor sekce v WC My Account. Mimikuje storefront/registration vzhled.
+ * Vendor sekce v WC My Account + branding nad celou /muj-ucet stránku.
+ * Vysoká specifita + !important kde potřeba, theme občas přebíjí.
  */
+
+/* ── WC My Account chrome override (jen na account stránce) ─── */
+
+body.nkzmp-account .woocommerce-account,
+body.nkzmp-account .woocommerce {
+	font-family: 'Fabio XM', 'Inter', system-ui, -apple-system, sans-serif !important;
+	color: #000;
+}
+
+body.nkzmp-account .woocommerce-account .entry-title,
+body.nkzmp-account .woocommerce-account h1.page-title,
+body.nkzmp-account .woocommerce-account h1 {
+	font-size: clamp(36px, 5vw, 56px) !important;
+	font-weight: 400 !important;
+	letter-spacing: -0.025em !important;
+	line-height: 1.05 !important;
+	color: #000 !important;
+	margin-bottom: 32px !important;
+}
+
+body.nkzmp-account .woocommerce-MyAccount-navigation {
+	font-family: inherit;
+}
+body.nkzmp-account .woocommerce-MyAccount-navigation ul {
+	list-style: none !important;
+	margin: 0 !important;
+	padding: 0 !important;
+	border-top: 1px solid rgba(0,0,0,0.12);
+}
+body.nkzmp-account .woocommerce-MyAccount-navigation ul li {
+	margin: 0 !important;
+	padding: 0 !important;
+	border-bottom: 1px solid rgba(0,0,0,0.08);
+	list-style: none !important;
+}
+body.nkzmp-account .woocommerce-MyAccount-navigation ul li a {
+	display: block;
+	padding: 14px 0 !important;
+	font-size: 15px !important;
+	font-weight: 500 !important;
+	letter-spacing: -0.005em;
+	color: #000 !important;
+	text-decoration: none !important;
+	border-bottom: none !important;
+	transition: color 0.15s ease, padding-left 0.15s ease;
+	position: relative;
+}
+body.nkzmp-account .woocommerce-MyAccount-navigation ul li a:hover {
+	color: #0060FF !important;
+	padding-left: 8px !important;
+}
+body.nkzmp-account .woocommerce-MyAccount-navigation ul li.is-active a,
+body.nkzmp-account .woocommerce-MyAccount-navigation ul li.woocommerce-MyAccount-navigation-link--is-active a {
+	color: #0060FF !important;
+}
+body.nkzmp-account .woocommerce-MyAccount-navigation ul li.is-active a::before,
+body.nkzmp-account .woocommerce-MyAccount-navigation ul li.woocommerce-MyAccount-navigation-link--is-active a::before {
+	content: '→ ';
+	color: #0060FF;
+	font-weight: 400;
+}
+
+/* Vendor section header — divider před první vendor položkou */
+body.nkzmp-account .woocommerce-MyAccount-navigation ul li.nkzmp-acc-nav-vendor-first {
+	border-top: 1px solid #000;
+	margin-top: 16px !important;
+	position: relative;
+}
+body.nkzmp-account .woocommerce-MyAccount-navigation ul li.nkzmp-acc-nav-vendor-first::before {
+	content: 'Prodejce';
+	display: block;
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: #0060FF;
+	padding-top: 16px;
+}
+body.nkzmp-account .woocommerce-MyAccount-navigation ul li.nkzmp-acc-nav-vendor a {
+	font-weight: 500 !important;
+}
+
+/* Brand header (vendor name above navigation) */
+.nkzmp-acc-brand {
+	padding-bottom: 24px;
+	margin-bottom: 24px;
+	border-bottom: 1px solid #000;
+}
+.nkzmp-acc-brand-kicker {
+	display: block;
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: #0060FF;
+	margin-bottom: 6px;
+}
+.nkzmp-acc-brand-name {
+	font-size: 20px;
+	font-weight: 500;
+	letter-spacing: -0.01em;
+	color: #000;
+	line-height: 1.2;
+}
+
+/* Content area (the right column with default dashboard text or our views) */
+body.nkzmp-account .woocommerce-MyAccount-content {
+	font-family: inherit !important;
+	color: #000;
+}
+body.nkzmp-account .woocommerce-MyAccount-content p {
+	font-size: 16px;
+	line-height: 1.6;
+	color: #000;
+}
+body.nkzmp-account .woocommerce-MyAccount-content a {
+	color: #0060FF !important;
+	text-decoration: none !important;
+	border-bottom: 1px solid currentColor !important;
+}
+body.nkzmp-account .woocommerce-MyAccount-content a:hover {
+	color: #000 !important;
+}
+body.nkzmp-account .woocommerce-MyAccount-content strong {
+	font-weight: 600;
+}
+
+/* Globální WC notice override pro account page */
+body.nkzmp-account .woocommerce-Message,
+body.nkzmp-account .woocommerce-message {
+	background: rgba(0, 96, 255, 0.08) !important;
+	border-top: 3px solid #0060FF !important;
+	color: #000 !important;
+	font-family: inherit !important;
+	padding: 16px 24px !important;
+	border-radius: 0 !important;
+}
+
+/* Vlastní dashboard content (uvnitř .woocommerce-MyAccount-content) */
+
+
 
 :root {
 	--nkzmp-vd-bg: #ffffff;
