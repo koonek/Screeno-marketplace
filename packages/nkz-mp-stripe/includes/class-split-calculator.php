@@ -35,9 +35,10 @@ final class Split_Calculator {
 
 		foreach ( $order->get_items( 'line_item' ) as $item_id => $item ) {
 			/** @var \WC_Order_Item_Product $item */
-			$product_id = $item->get_product_id();
-			$vendor_id  = (int) get_post_meta( $product_id, '_nkv_vendor_id', true );
-			$enabled    = get_post_meta( $product_id, '_nkv_vendor_split_enabled', true );
+			$product_id   = $item->get_product_id();
+			$variation_id = (int) $item->get_variation_id(); // 0 if not a variation
+			$vendor_id    = (int) get_post_meta( $product_id, '_nkv_vendor_id', true );
+			$enabled      = get_post_meta( $product_id, '_nkv_vendor_split_enabled', true );
 			if ( $vendor_id <= 0 || 'no' === $enabled ) {
 				continue;
 			}
@@ -57,6 +58,7 @@ final class Split_Calculator {
 			$by_vendor[ $vendor_id ]['items'][] = [
 				'order_item_id'       => $item_id,
 				'product_id'          => $product_id,
+				'variation_id'        => $variation_id,
 				'qty'                 => (float) $item->get_quantity(),
 				'line_subtotal_minor' => $subtotal_minor,
 				'line_total_minor'    => $total_minor,
@@ -86,8 +88,20 @@ final class Split_Calculator {
 			$fee_pct_override   = null;
 
 			foreach ( $agg['items'] as $it ) {
-				$fixed_ov  = get_post_meta( $it['product_id'], '_nkv_platform_fee_fixed_override', true );
-				$pct_ov    = get_post_meta( $it['product_id'], '_nkv_platform_fee_percent_override', true );
+				// Variation fee override beats parent product override.
+				$variation_id = (int) ( $it['variation_id'] ?? 0 );
+				$fixed_ov = '';
+				$pct_ov   = '';
+				if ( $variation_id > 0 ) {
+					$fixed_ov = get_post_meta( $variation_id, '_nkv_platform_fee_fixed_override', true );
+					$pct_ov   = get_post_meta( $variation_id, '_nkv_platform_fee_percent_override', true );
+				}
+				if ( '' === $fixed_ov || null === $fixed_ov ) {
+					$fixed_ov = get_post_meta( $it['product_id'], '_nkv_platform_fee_fixed_override', true );
+				}
+				if ( '' === $pct_ov || null === $pct_ov ) {
+					$pct_ov = get_post_meta( $it['product_id'], '_nkv_platform_fee_percent_override', true );
+				}
 				$line_base = (int) ( $deduct_coupons ? $it['line_total_minor'] : $it['line_subtotal_minor'] )
 					+ ( $include_tax ? (int) $it['line_tax_minor'] : 0 );
 

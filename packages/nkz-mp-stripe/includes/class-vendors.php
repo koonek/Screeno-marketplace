@@ -21,6 +21,9 @@ final class Vendors {
 		add_action( 'init', [ $this, 'register_public_meta' ] );
 		add_action( 'add_meta_boxes', [ $this, 'add_meta_box' ] );
 		add_action( 'save_post_' . self::POST_TYPE, [ $this, 'save' ], 10, 2 );
+		// Block direct front-end access to a single vendor — Elementor still queries the CPT
+		// via WP_Query, but no public URL renders the full vendor post.
+		add_action( 'template_redirect', [ $this, 'block_single_vendor' ] );
 	}
 
 	public function register_cpt(): void {
@@ -34,12 +37,14 @@ final class Vendors {
 					'add_new_item'  => __( 'Přidat prodejce', 'nkz-woo-stripe-vendor-split' ),
 					'edit_item'     => __( 'Upravit prodejce', 'nkz-woo-stripe-vendor-split' ),
 				],
-				// CPT must be queryable + show_in_rest so Elementor Loop Grid / Dynamic Tags can read it.
-				// `public => false` + these flags keep the admin UX private but allow public-fields output.
-				'public'              => false,
+				// `public => true` is required so Elementor Pro Loop Grid shows the CPT
+				// in its source dropdown. We disable URLs (rewrite + has_archive false)
+				// and 404 single requests in `block_single_vendor()` so no vendor data leaks.
+				'public'              => true,
 				'publicly_queryable'  => true,
 				'show_in_rest'        => true,
 				'exclude_from_search' => true,
+				'show_in_nav_menus'   => false,
 				'has_archive'         => false,
 				'rewrite'             => false,
 				'show_ui'             => true,
@@ -50,6 +55,18 @@ final class Vendors {
 				'map_meta_cap'        => true,
 			]
 		);
+	}
+
+	/**
+	 * 404 any direct front-end request for a single vendor post.
+	 */
+	public function block_single_vendor(): void {
+		if ( is_singular( self::POST_TYPE ) ) {
+			global $wp_query;
+			$wp_query->set_404();
+			status_header( 404 );
+			nocache_headers();
+		}
 	}
 
 	/**
@@ -133,6 +150,8 @@ final class Vendors {
 		$due_json   = (string) get_post_meta( $vendor_id, '_nkv_stripe_requirements_due', true );
 		$due        = $due_json ? (array) json_decode( $due_json, true ) : [];
 		$email      = (string) get_post_meta( $vendor_id, '_nkv_vendor_email', true );
+		$ico        = trim( (string) get_post_meta( $vendor_id, '_nkv_vendor_ico', true ) );
+		$has_ico    = '' !== $ico;
 
 		$flash = isset( $_GET['nkv_onboarding'] ) ? sanitize_text_field( wp_unslash( $_GET['nkv_onboarding'] ) ) : '';
 		$msg   = isset( $_GET['nkv_msg'] ) ? sanitize_text_field( wp_unslash( $_GET['nkv_msg'] ) ) : '';
@@ -185,6 +204,16 @@ final class Vendors {
 			}
 		} else {
 			echo '<p style="color:#50575e;">' . esc_html__( 'Prodejce ještě není připojený ke Stripe. Pošli mu níže uvedený odkaz — všechny údaje vyplní sám přímo u Stripe.', 'nkz-woo-stripe-vendor-split' ) . '</p>';
+		}
+
+		// Hard policy: vendors without IČO cannot be onboarded to Stripe.
+		// Show a clear admin message and suppress onboarding UI entirely until IČO is filled.
+		if ( ! $has_ico && '' === $account_id ) {
+			echo '<div class="notice notice-warning inline" style="margin:0;"><p>'
+				. esc_html__( 'Tento prodejce zatím nemá vyplněné IČO. Bez IČO ho nelze onboardovat na Stripe — vyplň IČO v polích níže a ulož, pak se objeví onboarding panel.', 'nkz-woo-stripe-vendor-split' )
+				. '</p></div>';
+			echo '</div>'; // close .nkv-onboarding wrapper
+			return;
 		}
 
 		// Onboarding section — only when account is missing or not yet fully enabled.

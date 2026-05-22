@@ -29,12 +29,24 @@ final class Plugin {
 		Webhook_Controller::instance()->init();
 		Checkout_Guard::instance()->init();
 		Cron_Sync::instance()->init();
+		Elementor_Integration::instance()->init();
 
 		// Domain / service layer hooks.
 		Transfer_Service::instance()->init();
 		Refund_Service::instance()->init();
 
 		load_plugin_textdomain( 'nkz-woo-stripe-vendor-split', false, dirname( plugin_basename( NKVSVS_PLUGIN_FILE ) ) . '/languages' );
+
+		// Reconciliation driver pro core (registruje se jen pokud je core přítomné).
+		if ( interface_exists( \NKZMP\Reconciliation\SourceDriver::class ) ) {
+			add_filter(
+				'nkzmp/v1/reconciliation/drivers',
+				static function ( array $drivers ): array {
+					$drivers[ Reconciliation_Driver::ADAPTER_NAME ] = new Reconciliation_Driver();
+					return $drivers;
+				}
+			);
+		}
 	}
 
 	/**

@@ -108,6 +108,37 @@ final class Stripe_Client {
 	}
 
 	/**
+	 * List Stripe transfers in a time window. Auto-paginated.
+	 *
+	 * @return array<int, array<string,mixed>> List of transfer objects.
+	 */
+	public function list_transfers( int $created_gte, int $created_lte, int $limit_per_page = 100 ): array {
+		$all          = [];
+		$starting_after = null;
+		do {
+			$params = [
+				'limit'          => $limit_per_page,
+				'created[gte]'   => $created_gte,
+				'created[lte]'   => $created_lte,
+			];
+			if ( $starting_after !== null ) {
+				$params['starting_after'] = $starting_after;
+			}
+			$res = $this->request( 'GET', 'transfers', $params );
+			if ( ! is_array( $res ) || ! isset( $res['data'] ) || ! is_array( $res['data'] ) ) {
+				break;
+			}
+			foreach ( $res['data'] as $tr ) {
+				$all[] = $tr;
+			}
+			$has_more = ! empty( $res['has_more'] );
+			$last     = end( $res['data'] );
+			$starting_after = $last && isset( $last['id'] ) ? (string) $last['id'] : null;
+		} while ( $has_more && $starting_after );
+		return $all;
+	}
+
+	/**
 	 * Reverse a Stripe Transfer.
 	 */
 	public function reverse_transfer( string $transfer_id, array $params, string $idempotency_key ): array {

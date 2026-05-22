@@ -75,6 +75,13 @@ final class Transfer_Service {
 
 			do_action( 'nkv_svs_after_calculate_split', $order, $calc );
 
+			// NKZ Marketplace core bridge: emit Allocation[] action pokud je core
+			// načtený. Action konzumují observer / ledger / external listeners.
+			if ( class_exists( \NKZMP\Allocation\Calculator::class ) ) {
+				$allocations = \NKZMP\Allocation\Calculator::from_legacy_calc( $calc, $order );
+				do_action( 'nkzmp/v1/allocation/calculated', $allocations, $order );
+			}
+
 			if ( empty( $calc['vendors'] ) ) {
 				$order->update_meta_data( '_nkv_split_status', 'none' );
 				$order->add_order_note( __( 'NKV: No vendor items, nothing to split.', 'nkz-woo-stripe-vendor-split' ) );
