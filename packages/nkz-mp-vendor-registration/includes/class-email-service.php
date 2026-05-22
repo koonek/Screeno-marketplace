@@ -108,6 +108,10 @@ final class EmailService {
 	/**
 	 * Pošle HTML e-mail zabalený v AOZ wrapperu. Tělo je v "plain-like"
 	 * formátu — wrapper auto-konvertuje odřádkování + linky.
+	 *
+	 * PHPMailer default CharSet je často ISO-8859-1 (záleží na serveru),
+	 * což rozbije diakritiku v subjektu i v From name. Vynucujeme UTF-8
+	 * + base64 transfer encoding přes phpmailer_init dočasným hookem.
 	 */
 	private static function send( string $to, string $subject, string $body ): void {
 		if ( ! is_email( $to ) ) {
@@ -115,13 +119,29 @@ final class EmailService {
 		}
 
 		$s        = Settings::get();
-		$from     = sprintf( '%s <%s>', $s['from_name'], get_option( 'admin_email' ) );
-		$html     = self::wrap_html( $body, $subject );
-		$headers  = [
+		$from_email = (string) get_option( 'admin_email' );
+		$from_name  = (string) $s['from_name'];
+		$html       = self::wrap_html( $body, $subject );
+		$headers    = [
 			'Content-Type: text/html; charset=UTF-8',
-			'From: ' . $from,
 		];
-		wp_mail( $to, $subject, $html, $headers );
+
+		$force_utf8 = static function ( $phpmailer ) use ( $from_email, $from_name ): void {
+			$phpmailer->CharSet  = 'UTF-8';
+			$phpmailer->Encoding = 'base64';
+			try {
+				$phpmailer->setFrom( $from_email, $from_name, false );
+			} catch ( \Throwable $e ) {
+				// Bude fallback na default From.
+			}
+		};
+		add_action( 'phpmailer_init', $force_utf8 );
+
+		try {
+			wp_mail( $to, $subject, $html, $headers );
+		} finally {
+			remove_action( 'phpmailer_init', $force_utf8 );
+		}
 	}
 
 	private static function wrap_html( string $body, string $subject ): string {
