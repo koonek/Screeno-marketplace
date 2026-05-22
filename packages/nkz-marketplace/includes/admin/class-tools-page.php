@@ -32,6 +32,7 @@ final class ToolsPage {
 		add_action( 'admin_post_nkzmp_migrate_vendors', [ $this, 'handle_migrate' ] );
 		add_action( 'admin_post_nkzmp_vendor_status', [ $this, 'handle_status' ] );
 		add_action( 'admin_post_nkzmp_run_reconcile', [ $this, 'handle_reconcile' ] );
+		add_action( 'admin_post_nkzmp_run_backfill', [ $this, 'handle_backfill' ] );
 	}
 
 	public function register_menu(): void {
@@ -66,8 +67,51 @@ final class ToolsPage {
 		echo '<hr style="margin:24px 0;">';
 		$this->render_status_section();
 		echo '<hr style="margin:24px 0;">';
+		$this->render_backfill_section();
+		echo '<hr style="margin:24px 0;">';
 		$this->render_reconcile_section();
 		echo '</div>';
+	}
+
+	private function render_backfill_section(): void {
+		echo '<h2>' . esc_html__( 'Backfill historických transferů', 'nkz-marketplace' ) . '</h2>';
+		echo '<p>' . esc_html__( 'Naimportuje legacy Stripe transfery z order meta _nkv_split_transfers do nového ledgeru. Idempotentní – opakované spuštění nevytvoří duplikáty.', 'nkz-marketplace' ) . '</p>';
+
+		$preview = \NKZMP\Integration\BackfillService::run( true, 0, null );
+		echo '<p><strong>' . esc_html__( 'Dry-run preview:', 'nkz-marketplace' ) . '</strong></p>';
+		echo '<ul>';
+		echo '<li>' . esc_html( sprintf( __( 'Orderů s legacy transfery: %d', 'nkz-marketplace' ), $preview['orders'] ) ) . '</li>';
+		echo '<li>' . esc_html( sprintf( __( 'Transfer records celkem: %d', 'nkz-marketplace' ), $preview['records'] ) ) . '</li>';
+		echo '<li>' . esc_html( sprintf( __( 'Completed (k importu): %d', 'nkz-marketplace' ), $preview['completed'] ) ) . '</li>';
+		echo '<li>' . esc_html( sprintf( __( 'Skipped (non-completed): %d', 'nkz-marketplace' ), $preview['skipped'] ) ) . '</li>';
+		echo '</ul>';
+
+		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+		echo '<input type="hidden" name="action" value="nkzmp_run_backfill" />';
+		wp_nonce_field( self::NONCE_ACTION );
+		echo '<button type="submit" class="button button-primary"' . ( $preview['completed'] > 0 ? '' : ' disabled' ) . '>'
+			. esc_html__( 'Spustit backfill (write)', 'nkz-marketplace' ) . '</button>';
+		echo '</form>';
+	}
+
+	public function handle_backfill(): void {
+		check_admin_referer( self::NONCE_ACTION );
+		if ( ! current_user_can( Capabilities::MANAGE_VENDORS ) ) {
+			wp_die( esc_html__( 'Nedostatečná oprávnění.', 'nkz-marketplace' ) );
+		}
+		$stats = \NKZMP\Integration\BackfillService::run( false, 0, null );
+
+		( new AuditRecorder() )->record(
+			action:      'ledger.backfill',
+			entity_type: 'system',
+			entity_id:   0,
+			summary:     sprintf( 'Backfill: %d orders, %d transfers imported, %d errors', $stats['orders'], $stats['completed'], $stats['errors'] ),
+			payload:     $stats,
+		);
+
+		$flash = $stats['errors'] > 0 ? 'err' : 'ok';
+		$msg   = sprintf( __( 'Backfill: %d orderů, %d transferů importováno, %d chyb.', 'nkz-marketplace' ), $stats['orders'], $stats['completed'], $stats['errors'] );
+		$this->redirect( $flash, $msg );
 	}
 
 	private function render_reconcile_section(): void {
