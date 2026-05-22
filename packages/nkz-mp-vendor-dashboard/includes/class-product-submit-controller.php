@@ -28,11 +28,18 @@ final class ProductSubmitController {
 	}
 
 	public function handle(): void {
+		// Diagnostic – uvidíš v debug.log že akce skutečně dorazila.
+		error_log( sprintf(
+			'[NKZMP] product submit invoked. user=%d, has_files=%s, post_keys=%s',
+			get_current_user_id(),
+			! empty( $_FILES ) ? 'yes' : 'no',
+			implode( ',', array_keys( $_POST ) )
+		) );
 		try {
 			$this->do_handle();
 		} catch ( \Throwable $e ) {
 			error_log( '[NKZMP] product submit fatal: ' . $e->getMessage() . ' @ ' . $e->getFile() . ':' . $e->getLine() );
-			$this->redirect_error( sprintf( __( 'Chyba při ukládání: %s', 'nkz-mp-vendor-dashboard' ), $e->getMessage() ) );
+			$this->redirect_error( sprintf( __( 'Chyba: %s', 'nkz-mp-vendor-dashboard' ), $e->getMessage() ) );
 		}
 	}
 
@@ -104,8 +111,10 @@ final class ProductSubmitController {
 
 		$product_id = $product->save();
 
+		error_log( sprintf( '[NKZMP] product->save() returned %d for vendor=%d', (int) $product_id, $vendor_id ) );
+
 		if ( ! $product_id ) {
-			error_log( '[NKZMP] product->save() returned 0 for vendor=' . $vendor_id . ' user=' . get_current_user_id() );
+			error_log( '[NKZMP] product->save() returned 0. Last DB error: ' . ( $GLOBALS['wpdb']->last_error ?? 'none' ) );
 			$this->redirect_error( __( 'Produkt se nepodařilo uložit. Zkontroluj prosím všechna pole nebo se ozvi na podporu.', 'nkz-mp-vendor-dashboard' ) );
 		}
 

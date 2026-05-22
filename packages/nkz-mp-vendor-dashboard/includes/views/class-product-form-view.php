@@ -34,6 +34,7 @@ final class ProductFormView {
 		}
 
 		$error = isset( $_GET['nkzmp_err'] ) ? sanitize_text_field( wp_unslash( $_GET['nkzmp_err'] ) ) : '';
+		$flash = isset( $_GET['nkzmp_msg'] ) ? sanitize_text_field( wp_unslash( $_GET['nkzmp_msg'] ) ) : '';
 
 		$title         = $product ? $product->get_name() : '';
 		$short_desc    = $product ? $product->get_short_description() : '';
@@ -60,7 +61,17 @@ final class ProductFormView {
 			</header>
 
 			<?php if ( $error ) : ?>
-				<div class="nkzmp-vd-form-error"><strong><?php esc_html_e( 'Něco chybí.', 'nkz-mp-vendor-dashboard' ); ?></strong> <?php echo esc_html( $error ); ?></div>
+				<div class="nkzmp-vd-form-error" role="alert">
+					<strong><?php esc_html_e( 'Něco chybí.', 'nkz-mp-vendor-dashboard' ); ?></strong>
+					<span><?php echo esc_html( $error ); ?></span>
+				</div>
+			<?php endif; ?>
+
+			<?php if ( $flash === 'debug' ) : ?>
+				<div class="nkzmp-vd-form-error" style="border-left-color:#dba617;background:rgba(219,166,23,0.06);">
+					<strong>Debug:</strong>
+					<span>Submit fired but no redirect. Check error_log for [NKZMP] entries.</span>
+				</div>
 			<?php endif; ?>
 
 			<form class="nkzmp-vd-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" enctype="multipart/form-data">
@@ -123,23 +134,23 @@ final class ProductFormView {
 				<section class="nkzmp-vd-form-section">
 					<header class="nkzmp-vd-form-shead"><span class="num">03</span><h2><?php esc_html_e( 'Fotografie', 'nkz-mp-vendor-dashboard' ); ?></h2></header>
 
-					<div class="nkzmp-vd-images">
-						<div class="nkzmp-vd-image-slot nkzmp-vd-image-featured">
-							<label><?php esc_html_e( 'Hlavní fotka', 'nkz-mp-vendor-dashboard' ); ?> <span class="req">*</span></label>
-							<?php if ( $featured_id ) : ?>
-								<div class="thumb"><?php echo wp_get_attachment_image( $featured_id, [ 240, 240 ], false, [ 'style' => 'object-fit:cover' ] ); ?></div>
-							<?php endif; ?>
-							<input type="file" name="featured_image" accept="image/*" <?php echo $featured_id ? '' : 'required'; ?> />
-							<?php if ( $featured_id ) : ?>
-								<small><?php esc_html_e( 'Pokud nahraješ novou, stará se přepíše.', 'nkz-mp-vendor-dashboard' ); ?></small>
-							<?php endif; ?>
-						</div>
+					<div class="nkzmp-vd-image-featured-wrap">
+						<label class="nkzmp-vd-img-label"><?php esc_html_e( 'Hlavní fotka', 'nkz-mp-vendor-dashboard' ); ?> <span class="req">*</span></label>
+						<?php if ( $featured_id ) : ?>
+							<div class="nkzmp-vd-img-thumb"><?php echo wp_get_attachment_image( $featured_id, [ 200, 200 ], false, [ 'style' => 'object-fit:cover;width:200px;height:200px;' ] ); ?></div>
+						<?php endif; ?>
+						<input type="file" name="featured_image" accept="image/*" <?php echo $featured_id ? '' : 'required'; ?> />
+						<?php if ( $featured_id ) : ?>
+							<small><?php esc_html_e( 'Pokud nahraješ novou, stará se přepíše.', 'nkz-mp-vendor-dashboard' ); ?></small>
+						<?php endif; ?>
+					</div>
 
+					<div class="nkzmp-vd-gallery-grid">
 						<?php for ( $i = 1; $i <= 4; $i++ ) : ?>
-							<div class="nkzmp-vd-image-slot">
-								<label><?php echo esc_html( sprintf( __( 'Galerie %d', 'nkz-mp-vendor-dashboard' ), $i ) ); ?></label>
+							<div class="nkzmp-vd-gallery-slot">
+								<label class="nkzmp-vd-img-label"><?php echo esc_html( sprintf( __( 'Galerie %d', 'nkz-mp-vendor-dashboard' ), $i ) ); ?></label>
 								<?php $g = $gallery_ids[ $i - 1 ] ?? 0; if ( $g ) : ?>
-									<div class="thumb"><?php echo wp_get_attachment_image( $g, [ 160, 160 ] ); ?></div>
+									<div class="nkzmp-vd-img-thumb"><?php echo wp_get_attachment_image( $g, [ 100, 100 ] ); ?></div>
 								<?php endif; ?>
 								<input type="file" name="gallery_<?php echo $i; ?>" accept="image/*" />
 							</div>
