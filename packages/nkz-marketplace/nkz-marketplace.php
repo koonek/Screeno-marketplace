@@ -53,6 +53,7 @@ register_activation_hook(
 	static function (): void {
 		\NKZMP\Vendor\Registry::install_role();
 		\NKZMP\Ledger\Schema::install();
+		\NKZMP\Payout\Schema::install();
 		flush_rewrite_rules();
 	}
 );

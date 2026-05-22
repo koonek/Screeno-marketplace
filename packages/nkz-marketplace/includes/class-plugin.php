@@ -20,10 +20,13 @@ final class Plugin {
 	public function init(): void {
 		load_plugin_textdomain( 'nkz-marketplace', false, dirname( plugin_basename( NKZMP_PLUGIN_FILE ) ) . '/languages' );
 
-		// Lazy install ledgeru – pro případ, že aktivace neproběhla (např.
-		// must-use load) nebo schema potřebuje upgrade.
+		// Lazy install ledgeru / payouts – pro případ, že aktivace neproběhla
+		// (např. must-use load) nebo schema potřebuje upgrade.
 		if ( \NKZMP\Ledger\Schema::needs_install() ) {
 			\NKZMP\Ledger\Schema::install();
+		}
+		if ( \NKZMP\Payout\Schema::needs_install() ) {
+			\NKZMP\Payout\Schema::install();
 		}
 
 		// Vendor CPT + role aktivace je opt-in během Fáze 0, aby Screeno
