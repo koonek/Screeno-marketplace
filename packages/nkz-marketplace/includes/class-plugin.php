@@ -52,6 +52,7 @@ final class Plugin {
 			\WP_CLI::add_command( 'nkzmp backfill', \NKZMP\CLI\BackfillCommand::class );
 			\WP_CLI::add_command( 'nkzmp ledger', \NKZMP\CLI\LedgerCommand::class );
 			\WP_CLI::add_command( 'nkzmp reconcile', \NKZMP\CLI\ReconcileCommand::class );
+			\WP_CLI::add_command( 'nkzmp allocation', \NKZMP\CLI\AllocationCommand::class );
 		}
 
 		// Shadow observer: paralelně píše do ledgeru z legacy Stripe hooků.
