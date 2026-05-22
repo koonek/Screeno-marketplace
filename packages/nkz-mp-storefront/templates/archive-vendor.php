@@ -1,8 +1,9 @@
 <?php
 /**
- * Archive vendor template – /vendors.
+ * Archive vendor template – plugin fallback.
  *
- * @var array $vendors { items: WP_Post[], total, pages, paged, per_page }.
+ * Vyvolá se z template_include POUZE pokud theme ani Elementor Theme Builder
+ * Archive template neexistuje pro nkv_vendor / nkzmp_vendor.
  *
  * @package NKZMP\Storefront
  */
@@ -11,7 +12,18 @@ defined( 'ABSPATH' ) || exit;
 
 use NKZMP\Storefront\Settings;
 
-$single_slug = Settings::get()['single_slug'];
+$single_slug  = Settings::get()['single_slug'];
+$archive_slug = Settings::get()['archive_slug'];
+
+global $wp_query;
+$vendors = [
+	'items' => $wp_query->posts,
+	'total' => (int) $wp_query->found_posts,
+	'pages' => (int) $wp_query->max_num_pages,
+	'paged' => max( 1, (int) get_query_var( 'paged' ) ),
+];
+
+get_header();
 ?>
 
 <div class="nkzmp-vendor-page">
@@ -25,20 +37,20 @@ $single_slug = Settings::get()['single_slug'];
 		<p><em><?php esc_html_e( 'Žádní prodejci nejsou aktuálně k dispozici.', 'nkz-mp-storefront' ); ?></em></p>
 	<?php else : ?>
 		<div class="nkzmp-vendor-archive">
-			<?php foreach ( $vendors['items'] as $post ) :
-				$bio_key = get_post_meta( $post->ID, '_nkzmp_vendor_bio', true );
+			<?php foreach ( $vendors['items'] as $vendor_post ) :
+				$bio_key = get_post_meta( $vendor_post->ID, '_nkzmp_vendor_bio', true );
 				if ( $bio_key === '' ) {
-					$bio_key = get_post_meta( $post->ID, '_nkv_vendor_bio', true );
+					$bio_key = get_post_meta( $vendor_post->ID, '_nkv_vendor_bio', true );
 				}
-				$url = home_url( '/' . $single_slug . '/' . $post->post_name );
+				$url = home_url( '/' . $single_slug . '/' . $vendor_post->post_name );
 				?>
 				<article class="nkzmp-vendor-card">
-					<?php if ( has_post_thumbnail( $post ) ) : ?>
+					<?php if ( has_post_thumbnail( $vendor_post ) ) : ?>
 						<a href="<?php echo esc_url( $url ); ?>" style="display:block;margin-bottom:12px;">
-							<?php echo get_the_post_thumbnail( $post, 'medium', [ 'style' => 'width:100%;height:160px;object-fit:cover;border-radius:6px;' ] ); ?>
+							<?php echo get_the_post_thumbnail( $vendor_post, 'medium', [ 'style' => 'width:100%;aspect-ratio:1/1;object-fit:cover;display:block;' ] ); ?>
 						</a>
 					<?php endif; ?>
-					<h2><a href="<?php echo esc_url( $url ); ?>"><?php echo esc_html( $post->post_title ); ?></a></h2>
+					<h2><a href="<?php echo esc_url( $url ); ?>"><?php echo esc_html( $vendor_post->post_title ); ?></a></h2>
 					<?php if ( $bio_key ) : ?>
 						<div class="bio"><?php echo esc_html( wp_trim_words( wp_strip_all_tags( (string) $bio_key ), 22 ) ); ?></div>
 					<?php endif; ?>
@@ -49,7 +61,6 @@ $single_slug = Settings::get()['single_slug'];
 		<?php if ( $vendors['pages'] > 1 ) : ?>
 			<nav class="nkzmp-pagination">
 				<?php
-				$archive_slug = Settings::get()['archive_slug'];
 				echo paginate_links( [
 					'base'      => home_url( '/' . $archive_slug . '/page/%#%' ),
 					'format'    => '',
@@ -64,3 +75,6 @@ $single_slug = Settings::get()['single_slug'];
 	<?php endif; ?>
 
 </div>
+
+<?php
+get_footer();

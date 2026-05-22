@@ -1,6 +1,6 @@
 <?php
 /**
- * Archive `/vendors` – list všech active vendorů.
+ * Archive `/vendors` – stejný hybrid pattern jako VendorPage.
  *
  * @package NKZMP\Storefront
  */
@@ -20,55 +20,56 @@ final class ArchivePage {
 	}
 
 	public function init(): void {
-		add_action( 'template_redirect', [ $this, 'maybe_render' ] );
+		add_action( 'pre_get_posts', [ $this, 'intercept_query' ] );
+		add_filter( 'template_include', [ $this, 'fallback_template' ], 99 );
+		add_filter( 'pre_get_document_title', [ $this, 'maybe_title' ] );
 	}
 
-	public function maybe_render(): void {
-		if ( ! get_query_var( 'nkzmp_vendor_archive' ) ) {
+	public function intercept_query( \WP_Query $q ): void {
+		if ( is_admin() || ! $q->is_main_query() ) {
+			return;
+		}
+		if ( ! $q->get( 'nkzmp_vendor_archive' ) ) {
 			return;
 		}
 
-		$paged = (int) ( get_query_var( 'paged' ) ?: 1 );
-
-		add_filter( 'pre_get_document_title', fn() => __( 'Prodejci', 'nkz-mp-storefront' ) . ' – ' . get_bloginfo( 'name' ) );
-		status_header( 200 );
-
-		get_header();
-		Templates::render( 'archive-vendor.php', [
-			'vendors' => $this->fetch_vendors( $paged ),
+		$q->set( 'post_type', [ 'nkzmp_vendor', 'nkv_vendor' ] );
+		$q->set( 'posts_per_page', 24 );
+		$q->set( 'orderby', 'title' );
+		$q->set( 'order', 'ASC' );
+		$q->set( 'meta_query', [
+			'relation' => 'OR',
+			[ 'key' => VendorMeta::STATUS, 'value' => 'active', 'compare' => '=' ],
+			[ 'key' => VendorMeta::STATUS, 'compare' => 'NOT EXISTS' ],
+			[ 'key' => '_nkv_vendor_status', 'value' => 'active', 'compare' => '=' ],
+			[ 'key' => '_nkv_vendor_status', 'compare' => 'NOT EXISTS' ],
 		] );
-		get_footer();
-		exit;
+
+		$q->is_404               = false;
+		$q->is_home              = false;
+		$q->is_archive           = true;
+		$q->is_post_type_archive = true;
 	}
 
-	private function fetch_vendors( int $paged ): array {
-		$per_page = 24;
+	public function fallback_template( string $template ): string {
+		if ( ! get_query_var( 'nkzmp_vendor_archive' ) ) {
+			return $template;
+		}
 
-		// Najdi všechny vendory; preferuj active. Pokud status meta není
-		// vyplněn (legacy data), vendor je zahrnut.
-		$args = [
-			'post_type'      => [ 'nkzmp_vendor', 'nkv_vendor' ],
-			'post_status'    => 'publish',
-			'posts_per_page' => $per_page,
-			'paged'          => $paged,
-			'orderby'        => 'title',
-			'order'          => 'ASC',
-			'meta_query'     => [
-				'relation' => 'OR',
-				[ 'key' => VendorMeta::STATUS, 'value' => 'active', 'compare' => '=' ],
-				[ 'key' => VendorMeta::STATUS, 'compare' => 'NOT EXISTS' ],
-				[ 'key' => '_nkv_vendor_status', 'value' => 'active', 'compare' => '=' ],
-				[ 'key' => '_nkv_vendor_status', 'compare' => 'NOT EXISTS' ],
-			],
-		];
+		$basename = basename( $template );
+		$generic  = in_array( $basename, [ 'index.php', '404.php', '' ], true );
+		if ( ! $generic ) {
+			return $template;
+		}
 
-		$query = new \WP_Query( $args );
-		return [
-			'items'    => $query->posts,
-			'total'    => (int) $query->found_posts,
-			'pages'    => (int) $query->max_num_pages,
-			'paged'    => $paged,
-			'per_page' => $per_page,
-		];
+		$fallback = Templates::locate( 'archive-vendor.php' );
+		return $fallback ?: $template;
+	}
+
+	public function maybe_title( $title ) {
+		if ( get_query_var( 'nkzmp_vendor_archive' ) ) {
+			return __( 'Prodejci', 'nkz-mp-storefront' ) . ' – ' . get_bloginfo( 'name' );
+		}
+		return $title;
 	}
 }
