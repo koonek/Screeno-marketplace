@@ -1,0 +1,260 @@
+/* NKZ Marketplace Vendor Dashboard – AOZ tokens.
+ *
+ * Vendor sekce v WC My Account. Mimikuje storefront/registration vzhled.
+ */
+
+:root {
+	--nkzmp-vd-bg: #ffffff;
+	--nkzmp-vd-text: #000000;
+	--nkzmp-vd-muted: rgba(0, 0, 0, 0.55);
+	--nkzmp-vd-line: rgba(0, 0, 0, 0.12);
+	--nkzmp-vd-line-bold: #000000;
+	--nkzmp-vd-accent: #0060FF;
+	--nkzmp-vd-accent-soft: rgba(0, 96, 255, 0.08);
+	--nkzmp-vd-success: #007a30;
+	--nkzmp-vd-error: #b00020;
+	--nkzmp-vd-warn: #c97300;
+	--nkzmp-vd-font: 'Fabio XM', 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.nkzmp-vd {
+	font-family: var(--nkzmp-vd-font);
+	color: var(--nkzmp-vd-text);
+	font-size: 16px;
+	line-height: 1.5;
+	-webkit-font-smoothing: antialiased;
+}
+
+/* ── Hero / section heads ─────────────────────────────────────── */
+
+.nkzmp-vd-hero {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-end;
+	padding-bottom: 24px;
+	margin-bottom: 32px;
+	border-bottom: 1px solid var(--nkzmp-vd-line-bold);
+	gap: 24px;
+}
+.nkzmp-vd-kicker {
+	display: block;
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: var(--nkzmp-vd-accent);
+	margin-bottom: 8px;
+}
+.nkzmp-vd-hero h1 {
+	margin: 0;
+	font-size: clamp(28px, 4vw, 44px);
+	font-weight: 400;
+	line-height: 1.05;
+	letter-spacing: -0.02em;
+}
+
+.nkzmp-vd-section-head {
+	padding-bottom: 16px;
+	margin-bottom: 32px;
+	border-bottom: 1px solid var(--nkzmp-vd-line-bold);
+}
+.nkzmp-vd-section-head h1 {
+	margin: 0 0 4px;
+	font-size: clamp(24px, 3vw, 36px);
+	font-weight: 400;
+	letter-spacing: -0.015em;
+}
+.nkzmp-vd-meta { margin: 0; color: var(--nkzmp-vd-muted); font-size: 14px; }
+
+/* ── Status badge ─────────────────────────────────────────────── */
+
+.nkzmp-vd-status {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	padding: 8px 16px;
+	font-size: 12px;
+	font-weight: 600;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	background: var(--nkzmp-vd-text);
+	color: var(--nkzmp-vd-bg);
+	white-space: nowrap;
+}
+.nkzmp-vd-status--success { background: var(--nkzmp-vd-success); }
+.nkzmp-vd-status--accent  { background: var(--nkzmp-vd-accent); }
+.nkzmp-vd-status--error   { background: var(--nkzmp-vd-error); }
+.nkzmp-vd-status--muted   { background: var(--nkzmp-vd-muted); }
+
+/* ── Stats grid ───────────────────────────────────────────────── */
+
+.nkzmp-vd-stats {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+	gap: 1px;
+	background: var(--nkzmp-vd-line-bold);
+	border: 1px solid var(--nkzmp-vd-line-bold);
+	margin-bottom: 32px;
+}
+.nkzmp-vd-stat {
+	background: var(--nkzmp-vd-bg);
+	padding: 20px 24px;
+}
+.nkzmp-vd-stat-label {
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var(--nkzmp-vd-muted);
+	margin-bottom: 10px;
+}
+.nkzmp-vd-stat-value {
+	font-size: 32px;
+	font-weight: 400;
+	line-height: 1;
+	letter-spacing: -0.02em;
+	font-variant-numeric: tabular-nums;
+}
+.nkzmp-vd-stat-hint {
+	font-size: 12px;
+	color: var(--nkzmp-vd-muted);
+	margin-top: 6px;
+}
+
+/* ── Quick actions ────────────────────────────────────────────── */
+
+.nkzmp-vd-actions {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+	gap: 1px;
+	background: var(--nkzmp-vd-line-bold);
+	border: 1px solid var(--nkzmp-vd-line-bold);
+	margin-bottom: 32px;
+}
+.nkzmp-vd-action {
+	background: var(--nkzmp-vd-bg);
+	padding: 20px 24px;
+	text-decoration: none !important;
+	color: var(--nkzmp-vd-text) !important;
+	transition: background 0.15s ease, color 0.15s ease;
+}
+.nkzmp-vd-action:hover {
+	background: var(--nkzmp-vd-text) !important;
+	color: var(--nkzmp-vd-bg) !important;
+}
+.nkzmp-vd-action:hover span { color: rgba(255, 255, 255, 0.7); }
+.nkzmp-vd-action strong { display: block; font-size: 16px; font-weight: 500; }
+.nkzmp-vd-action span { display: block; font-size: 12px; color: var(--nkzmp-vd-muted); margin-top: 4px; letter-spacing: 0.02em; }
+
+/* ── Callout (KYC waiting etc.) ───────────────────────────────── */
+
+.nkzmp-vd-callout {
+	background: var(--nkzmp-vd-accent-soft);
+	border-left: 4px solid var(--nkzmp-vd-accent);
+	padding: 20px 24px;
+	margin-bottom: 32px;
+}
+.nkzmp-vd-callout h3 { margin: 0 0 8px; font-size: 18px; font-weight: 500; }
+.nkzmp-vd-callout p { margin: 0 0 16px; color: var(--nkzmp-vd-text); }
+.nkzmp-vd-cta {
+	display: inline-flex;
+	gap: 8px;
+	padding: 12px 24px;
+	background: var(--nkzmp-vd-text);
+	color: var(--nkzmp-vd-bg) !important;
+	font-size: 14px;
+	font-weight: 500;
+	text-decoration: none !important;
+	transition: background 0.15s ease;
+}
+.nkzmp-vd-cta:hover { background: var(--nkzmp-vd-accent); }
+
+/* ── Table ────────────────────────────────────────────────────── */
+
+.nkzmp-vd-table {
+	width: 100%;
+	border-collapse: collapse;
+	margin-bottom: 16px;
+}
+.nkzmp-vd-table thead th {
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--nkzmp-vd-muted);
+	text-align: left;
+	padding: 12px 12px 12px 0;
+	border-bottom: 1px solid var(--nkzmp-vd-line-bold);
+}
+.nkzmp-vd-table tbody td {
+	padding: 16px 12px 16px 0;
+	border-bottom: 1px solid var(--nkzmp-vd-line);
+	font-size: 14px;
+	vertical-align: middle;
+}
+.nkzmp-vd-table .col-img { width: 64px; }
+.nkzmp-vd-table .col-img img { display: block; }
+.nkzmp-vd-table .col-num { text-align: right; font-variant-numeric: tabular-nums; }
+.nkzmp-vd-table .col-num.is-credit { color: var(--nkzmp-vd-success); font-weight: 500; }
+.nkzmp-vd-table .col-num.is-debit { color: var(--nkzmp-vd-text); }
+.nkzmp-vd-table .col-action { text-align: right; }
+.nkzmp-vd-product-name { color: var(--nkzmp-vd-text); font-weight: 500; text-decoration: none; }
+.nkzmp-vd-product-name:hover { color: var(--nkzmp-vd-accent); }
+.nkzmp-vd-edit-link {
+	color: var(--nkzmp-vd-accent);
+	text-decoration: none;
+	border-bottom: 1px solid currentColor;
+	font-size: 13px;
+}
+.nkzmp-vd-muted { color: var(--nkzmp-vd-muted); font-size: 13px; }
+
+.nkzmp-vd-pill {
+	display: inline-block;
+	padding: 2px 10px;
+	font-size: 11px;
+	font-weight: 500;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	background: rgba(0, 0, 0, 0.08);
+	color: var(--nkzmp-vd-text);
+}
+.nkzmp-vd-pill--publish { background: var(--nkzmp-vd-success); color: #fff; }
+.nkzmp-vd-pill--draft   { background: rgba(0, 0, 0, 0.08); }
+.nkzmp-vd-pill--pending { background: var(--nkzmp-vd-warn); color: #fff; }
+.nkzmp-vd-pill--type-payout              { background: var(--nkzmp-vd-text); color: #fff; }
+.nkzmp-vd-pill--type-order_credit        { background: var(--nkzmp-vd-accent); color: #fff; }
+.nkzmp-vd-pill--type-platform_commission { background: rgba(0, 0, 0, 0.08); }
+.nkzmp-vd-pill--type-reversal,
+.nkzmp-vd-pill--type-refund_debit        { background: var(--nkzmp-vd-error); color: #fff; }
+
+.nkzmp-vd-note {
+	color: var(--nkzmp-vd-muted);
+	font-size: 13px;
+	font-style: italic;
+}
+.nkzmp-vd-empty-msg {
+	padding: 32px 0;
+	text-align: center;
+	color: var(--nkzmp-vd-muted);
+	font-style: italic;
+}
+
+/* ── Empty / not-vendor state ─────────────────────────────────── */
+
+.nkzmp-vd-empty {
+	max-width: 480px;
+	margin: 0 auto;
+	text-align: center;
+	padding: 48px 16px;
+	font-family: var(--nkzmp-vd-font);
+}
+.nkzmp-vd-empty h2 {
+	font-size: 24px;
+	font-weight: 400;
+	letter-spacing: -0.01em;
+	margin: 0 0 12px;
+}
+.nkzmp-vd-empty p {
+	color: var(--nkzmp-vd-muted);
+	margin: 0;
+}

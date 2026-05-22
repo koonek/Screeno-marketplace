@@ -36,10 +36,11 @@ rm -f "$DIST_DIR/nkz-marketplace-aoz-"*.zip
 AOZ_DIR="$BUILD_DIR/nkz-marketplace-aoz"
 mkdir -p "$AOZ_DIR/modules"
 
-cp -r "$PACKAGES_DIR/nkz-marketplace"           "$AOZ_DIR/modules/nkz-marketplace"
-cp -r "$PACKAGES_DIR/nkz-mp-stripe"             "$AOZ_DIR/modules/nkz-woo-stripe-vendor-split"
-cp -r "$PACKAGES_DIR/nkz-mp-storefront"         "$AOZ_DIR/modules/nkz-mp-storefront"
+cp -r "$PACKAGES_DIR/nkz-marketplace"            "$AOZ_DIR/modules/nkz-marketplace"
+cp -r "$PACKAGES_DIR/nkz-mp-stripe"              "$AOZ_DIR/modules/nkz-woo-stripe-vendor-split"
+cp -r "$PACKAGES_DIR/nkz-mp-storefront"          "$AOZ_DIR/modules/nkz-mp-storefront"
 cp -r "$PACKAGES_DIR/nkz-mp-vendor-registration" "$AOZ_DIR/modules/nkz-mp-vendor-registration"
+cp -r "$PACKAGES_DIR/nkz-mp-vendor-dashboard"    "$AOZ_DIR/modules/nkz-mp-vendor-dashboard"
 cp     "$PACKAGES_DIR/nkz-mp-aoz-bundle/nkz-mp-aoz-bundle.php" "$AOZ_DIR/"
 cp     "$PACKAGES_DIR/nkz-mp-aoz-bundle/README.md"             "$AOZ_DIR/"
 
