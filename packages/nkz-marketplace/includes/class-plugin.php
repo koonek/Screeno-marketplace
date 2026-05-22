@@ -31,6 +31,9 @@ final class Plugin {
 		if ( \NKZMP\Audit\Schema::needs_install() ) {
 			\NKZMP\Audit\Schema::install();
 		}
+		if ( ! get_option( 'nkzmp_reconcile_baseline_ts' ) ) {
+			update_option( 'nkzmp_reconcile_baseline_ts', time(), false );
+		}
 
 		// Vendor CPT + role aktivace je opt-in během Fáze 0, aby Screeno
 		// produkce (která jede na `nkv_vendor` v Stripe adapteru) nedostala

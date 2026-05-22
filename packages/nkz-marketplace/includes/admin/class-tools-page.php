@@ -115,8 +115,13 @@ final class ToolsPage {
 	}
 
 	private function render_reconcile_section(): void {
+		$baseline = (int) get_option( 'nkzmp_reconcile_baseline_ts', 0 );
+
 		echo '<h2>' . esc_html__( 'Reconciliation', 'nkz-marketplace' ) . '</h2>';
 		echo '<p>' . esc_html__( 'Porovná ledger PAYOUT řádky se Stripe transfery ve zvoleném časovém okně. Drift se zaloguje do auditu.', 'nkz-marketplace' ) . '</p>';
+		if ( $baseline > 0 ) {
+			echo '<p style="font-size:12px;color:#777;">' . esc_html( sprintf( __( 'Baseline: ignorují se PSP transfery před %s (fresh install ochrana).', 'nkz-marketplace' ), gmdate( 'Y-m-d H:i', $baseline ) . ' UTC' ) ) . '</p>';
+		}
 
 		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
 		echo '<input type="hidden" name="action" value="nkzmp_run_reconcile" />';

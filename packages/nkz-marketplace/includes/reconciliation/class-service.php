@@ -29,6 +29,13 @@ final class Service {
 	 * @param SourceDriver $driver
 	 */
 	public function run( SourceDriver $driver, int $from_ts, int $to_ts ): Report {
+		// Posuň from_ts dopředu na install baseline – plugin neodpovídá za to,
+		// co se ve Stripe stalo před jeho instalací (fresh install ochrana).
+		$baseline = (int) get_option( 'nkzmp_reconcile_baseline_ts', 0 );
+		if ( $baseline > 0 && $from_ts < $baseline ) {
+			$from_ts = $baseline;
+		}
+
 		$report = new Report( $driver->name(), $from_ts, $to_ts );
 
 		$source_records = $driver->fetch( $from_ts, $to_ts );
