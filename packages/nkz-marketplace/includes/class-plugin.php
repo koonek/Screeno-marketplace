@@ -46,6 +46,8 @@ final class Plugin {
 
 		if ( defined( 'WP_CLI' ) && WP_CLI ) {
 			\WP_CLI::add_command( 'nkzmp status', \NKZMP\CLI\StatusCommand::class );
+			\WP_CLI::add_command( 'nkzmp backfill', \NKZMP\CLI\BackfillCommand::class );
+			\WP_CLI::add_command( 'nkzmp ledger', \NKZMP\CLI\LedgerCommand::class );
 		}
 
 		// Shadow observer: paralelně píše do ledgeru z legacy Stripe hooků.

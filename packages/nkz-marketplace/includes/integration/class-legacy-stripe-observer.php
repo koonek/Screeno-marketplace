@@ -62,6 +62,18 @@ final class LegacyStripeObserver {
 		}
 	}
 
+	/**
+	 * Veřejný entrypoint pro backfill – přijímá WC_Order a transfer record
+	 * v původním tvaru z meta `_nkv_split_transfers`. Bezpečné volat opakovaně.
+	 */
+	public function backfill_transfer( \WC_Order $order, array $record ): void {
+		try {
+			$this->record_transfer( $order, $record );
+		} catch ( \Throwable $e ) {
+			error_log( '[NKZMP] backfill error: ' . $e->getMessage() . ' for order #' . $order->get_id() );
+		}
+	}
+
 	private function record_transfer( \WC_Order $order, array $record ): void {
 		if ( ( $record['status'] ?? '' ) !== 'completed' ) {
 			return;
