@@ -42,9 +42,25 @@ final class ProductsView {
 			<?php
 			$flash = isset( $_GET['nkzmp_msg'] ) ? sanitize_text_field( wp_unslash( $_GET['nkzmp_msg'] ) ) : '';
 			if ( $flash === 'submitted' ) :
-				?><div class="nkzmp-vd-flash"><strong><?php esc_html_e( 'Hotovo.', 'nkz-mp-vendor-dashboard' ); ?></strong> <?php esc_html_e( 'Produkt jsme dostali. Projdeme ho a publikujeme.', 'nkz-mp-vendor-dashboard' ); ?></div><?php
+				?>
+				<div class="nkzmp-vd-flash nkzmp-vd-flash--success">
+					<div class="icon">✓</div>
+					<div>
+						<strong><?php esc_html_e( 'Produkt jsme dostali.', 'nkz-mp-vendor-dashboard' ); ?></strong>
+						<p><?php esc_html_e( 'Projdeme ho v týmu a publikujeme. Mezitím ho najdeš níže ve stavu „Čeká schválení". Potvrzovací e-mail je v tvojí schránce.', 'nkz-mp-vendor-dashboard' ); ?></p>
+					</div>
+				</div>
+				<?php
 			elseif ( $flash === 'updated' ) :
-				?><div class="nkzmp-vd-flash"><strong><?php esc_html_e( 'Uloženo.', 'nkz-mp-vendor-dashboard' ); ?></strong> <?php esc_html_e( 'Produkt jde znovu na schválení.', 'nkz-mp-vendor-dashboard' ); ?></div><?php
+				?>
+				<div class="nkzmp-vd-flash nkzmp-vd-flash--success">
+					<div class="icon">✓</div>
+					<div>
+						<strong><?php esc_html_e( 'Úpravu jsme uložili.', 'nkz-mp-vendor-dashboard' ); ?></strong>
+						<p><?php esc_html_e( 'Produkt jde znovu na schválení. Stav „Čeká schválení" trvá, dokud ho znovu nepublikujeme.', 'nkz-mp-vendor-dashboard' ); ?></p>
+					</div>
+				</div>
+				<?php
 			endif;
 			?>
 

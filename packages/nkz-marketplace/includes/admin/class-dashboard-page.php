@@ -758,17 +758,14 @@ final class DashboardPage {
 		if ( ! function_exists( 'wc_get_product' ) ) {
 			return [];
 		}
+		// Vše co je pending — i bez vendor meta zobrazit aby admin viděl
+		// neúplné submise. Filter na vendor meta jen označí v listu.
 		$q = new \WP_Query( [
 			'post_type'      => 'product',
 			'post_status'    => 'pending',
 			'posts_per_page' => 10,
 			'orderby'        => 'date',
 			'order'          => 'DESC',
-			'meta_query'     => [
-				'relation' => 'OR',
-				[ 'key' => '_nkzmp_vendor_id', 'compare' => 'EXISTS' ],
-				[ 'key' => '_nkv_vendor_id', 'compare' => 'EXISTS' ],
-			],
 		] );
 		$out = [];
 		foreach ( $q->posts as $post ) {

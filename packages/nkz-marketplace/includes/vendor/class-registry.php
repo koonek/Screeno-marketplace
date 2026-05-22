@@ -86,12 +86,21 @@ final class Registry {
 	}
 
 	/**
-	 * Instalace role a admin caps. Volá se z aktivace pluginu.
+	 * Instalace + sync caps. Bezpečně volatelné opakovaně.
+	 *
+	 * Pokud role existuje (např. z dřívější verze pluginu), všechny caps
+	 * z aktuální vendor_caps() definice se na ni add_cap-nou (idempotentní).
+	 * Tím se zachová zpětná kompatibilita při upgradu, který přidá nový cap.
 	 */
 	public static function install_role(): void {
-		if ( ! get_role( Capabilities::ROLE_VENDOR ) ) {
+		$role = get_role( Capabilities::ROLE_VENDOR );
+		if ( ! $role ) {
 			$caps = array_fill_keys( Capabilities::vendor_caps(), true );
 			add_role( Capabilities::ROLE_VENDOR, __( 'Vendor (NKZ)', 'nkz-marketplace' ), $caps );
+		} else {
+			foreach ( Capabilities::vendor_caps() as $cap ) {
+				$role->add_cap( $cap );
+			}
 		}
 
 		$admin = get_role( 'administrator' );

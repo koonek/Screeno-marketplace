@@ -165,9 +165,9 @@ final class ProductFormView {
 				</section>
 
 				<div class="nkzmp-vd-form-foot">
-					<button type="submit" class="nkzmp-vd-submit">
+					<button type="submit" name="nkzmp_submit" value="1" class="nkzmp-vd-submit" style="background:#000 !important;color:#fff !important;border:0 !important;border-radius:0 !important;padding:16px 32px !important;font-weight:500 !important;font-size:15px !important;display:inline-flex !important;align-items:center !important;gap:12px !important;cursor:pointer !important;">
 						<span><?php echo $is_edit ? esc_html__( 'Uložit a poslat na schválení', 'nkz-mp-vendor-dashboard' ) : esc_html__( 'Poslat na schválení', 'nkz-mp-vendor-dashboard' ); ?></span>
-						<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+						<svg viewBox="0 0 24 24" width="18" height="18" fill="none" aria-hidden="true" style="flex-shrink:0;"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
 					</button>
 					<a class="nkzmp-vd-cancel" href="<?php echo esc_url( wc_get_account_endpoint_url( 'vendor-products' ) ); ?>"><?php esc_html_e( 'Zrušit', 'nkz-mp-vendor-dashboard' ); ?></a>
 				</div>

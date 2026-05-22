@@ -28,6 +28,15 @@ final class ProductSubmitController {
 	}
 
 	public function handle(): void {
+		try {
+			$this->do_handle();
+		} catch ( \Throwable $e ) {
+			error_log( '[NKZMP] product submit fatal: ' . $e->getMessage() . ' @ ' . $e->getFile() . ':' . $e->getLine() );
+			$this->redirect_error( sprintf( __( 'Chyba při ukládání: %s', 'nkz-mp-vendor-dashboard' ), $e->getMessage() ) );
+		}
+	}
+
+	private function do_handle(): void {
 		check_admin_referer( self::NONCE );
 
 		if ( ! is_user_logged_in() || ! VendorContext::user_is_vendor() ) {
@@ -87,10 +96,17 @@ final class ProductSubmitController {
 		$product->set_category_ids( $cats );
 		// Vendor podmínky: vždy pending dokud admin nepublikuje.
 		$product->set_status( 'pending' );
+
+		// Vendor jako post_author aby WP věděl kdo to napsal (pro list filtering).
+		if ( ! $is_edit ) {
+			$product->set_props( [ 'author' => get_current_user_id() ] );
+		}
+
 		$product_id = $product->save();
 
 		if ( ! $product_id ) {
-			$this->redirect_error( __( 'Něco se pokazilo při ukládání.', 'nkz-mp-vendor-dashboard' ) );
+			error_log( '[NKZMP] product->save() returned 0 for vendor=' . $vendor_id . ' user=' . get_current_user_id() );
+			$this->redirect_error( __( 'Produkt se nepodařilo uložit. Zkontroluj prosím všechna pole nebo se ozvi na podporu.', 'nkz-mp-vendor-dashboard' ) );
 		}
 
 		// Vendor ownership meta (both mirrors).
@@ -104,7 +120,9 @@ final class ProductSubmitController {
 
 		if ( ! empty( $_FILES['featured_image']['name'] ) ) {
 			$att_id = media_handle_upload( 'featured_image', $product_id );
-			if ( ! is_wp_error( $att_id ) ) {
+			if ( is_wp_error( $att_id ) ) {
+				error_log( '[NKZMP] featured image upload failed: ' . $att_id->get_error_message() );
+			} else {
 				set_post_thumbnail( $product_id, $att_id );
 			}
 		}
@@ -114,7 +132,9 @@ final class ProductSubmitController {
 			$field = 'gallery_' . $i;
 			if ( ! empty( $_FILES[ $field ]['name'] ) ) {
 				$att_id = media_handle_upload( $field, $product_id );
-				if ( ! is_wp_error( $att_id ) ) {
+				if ( is_wp_error( $att_id ) ) {
+					error_log( '[NKZMP] gallery ' . $i . ' upload failed: ' . $att_id->get_error_message() );
+				} else {
 					$gallery_ids[] = (int) $att_id;
 				}
 			}
@@ -138,6 +158,9 @@ final class ProductSubmitController {
 			);
 		}
 		do_action( 'nkzmp/v1/dashboard/product_submitted', $product_id, $vendor_id, $is_edit );
+
+		// E-maily vendor + admin.
+		ProductEmails::on_submitted( $product_id, $vendor_id, $is_edit );
 
 		wp_safe_redirect( add_query_arg(
 			[ 'nkzmp_msg' => $is_edit ? 'updated' : 'submitted' ],

@@ -35,11 +35,13 @@ final class Plugin {
 			update_option( 'nkzmp_reconcile_baseline_ts', time(), false );
 		}
 
-		// Idempotentní zajištění admin caps – pokud activation hook neproběhl
-		// (např. plugin loaded jako submodul přes bundle), doplníme je v init.
-		$admin = get_role( 'administrator' );
-		if ( $admin && ! $admin->has_cap( \NKZMP\Support\Capabilities::MANAGE_VENDORS ) ) {
+		// Idempotentní sync rolí + caps. Při upgrade se přidají nové caps
+		// (např. upload_files / edit_products přidané v 0.10.3-dev pro
+		// frontend product editor) i pro existující role.
+		$caps_version_key = 'nkzmp_caps_version';
+		if ( get_option( $caps_version_key ) !== NKZMP_VERSION ) {
 			\NKZMP\Vendor\Registry::install_role();
+			update_option( $caps_version_key, NKZMP_VERSION, false );
 		}
 
 		// Vendor CPT + role aktivace je opt-in během Fáze 0, aby Screeno
