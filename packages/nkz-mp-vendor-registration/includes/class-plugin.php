@@ -23,6 +23,7 @@ final class Plugin {
 		FormHandler::instance()->init();
 		Listener::instance()->init();
 		MetaWatcher::instance()->init();
+		StatusPage::instance()->init();
 		Assets::instance()->init();
 	}
 }

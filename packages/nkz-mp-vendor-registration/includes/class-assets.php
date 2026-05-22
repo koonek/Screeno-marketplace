@@ -23,7 +23,11 @@ final class Assets {
 
 	public function enqueue(): void {
 		global $post;
-		if ( ! $post || ! has_shortcode( (string) $post->post_content, Shortcode::SLUG ) ) {
+		if ( ! $post instanceof \WP_Post ) {
+			return;
+		}
+		$content = (string) $post->post_content;
+		if ( ! has_shortcode( $content, Shortcode::SLUG ) && ! has_shortcode( $content, StatusPage::SHORTCODE ) ) {
 			return;
 		}
 		wp_enqueue_style(

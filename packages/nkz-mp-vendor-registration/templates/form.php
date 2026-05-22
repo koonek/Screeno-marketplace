@@ -1,9 +1,10 @@
 <?php
 /**
- * Registration form template (AOZ design + tone-of-voice).
+ * Registration form template — AOZ brand polish.
  *
  * @var string $error_msg
  * @var string $terms_url
+ * @var string $lead
  *
  * @package NKZMP\Registration
  */
@@ -13,73 +14,122 @@ defined( 'ABSPATH' ) || exit;
 
 <div class="nkzmp-reg-form-wrap">
 
+	<header class="nkzmp-reg-hero">
+		<span class="nkzmp-reg-kicker"><?php esc_html_e( 'Pro tvůrce', 'nkz-mp-vendor-registration' ); ?></span>
+		<h1 class="nkzmp-reg-title"><?php esc_html_e( 'Přihláška do Art of život', 'nkz-mp-vendor-registration' ); ?></h1>
+		<?php if ( ! empty( $lead ) ) : ?>
+			<p class="nkzmp-reg-lead"><?php echo esc_html( $lead ); ?></p>
+		<?php endif; ?>
+	</header>
+
 	<?php if ( $error_msg !== '' ) : ?>
-		<div class="nkzmp-reg-error"><?php echo esc_html( $error_msg ); ?></div>
+		<div class="nkzmp-reg-error" role="alert">
+			<strong><?php esc_html_e( 'Něco chybí.', 'nkz-mp-vendor-registration' ); ?></strong>
+			<span><?php echo esc_html( $error_msg ); ?></span>
+		</div>
 	<?php endif; ?>
 
-	<p class="nkzmp-reg-lead">
-		<?php esc_html_e( 'Prodávat umění, vlastní tvorbu, je v pořádku. A představit ji osobně ještě víc. Vyplň přihlášku — projdeme si ji a ozveme se.', 'nkz-mp-vendor-registration' ); ?>
-	</p>
-
-	<form class="nkzmp-reg-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+	<form class="nkzmp-reg-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" novalidate>
 		<input type="hidden" name="action" value="<?php echo esc_attr( \NKZMP\Registration\FormHandler::ACTION ); ?>" />
 		<?php wp_nonce_field( \NKZMP\Registration\FormHandler::NONCE ); ?>
 
-		<div class="nkzmp-reg-field">
-			<label for="nkzmp_name"><?php esc_html_e( 'Jméno nebo název studia', 'nkz-mp-vendor-registration' ); ?> *</label>
-			<input id="nkzmp_name" type="text" name="name" required maxlength="120" />
+		<section class="nkzmp-reg-section">
+			<header class="nkzmp-reg-section-head">
+				<span class="nkzmp-reg-num">01</span>
+				<h2><?php esc_html_e( 'O tobě', 'nkz-mp-vendor-registration' ); ?></h2>
+			</header>
+
+			<div class="nkzmp-reg-grid nkzmp-reg-grid--2">
+				<div class="nkzmp-reg-field">
+					<label for="nkzmp_name"><?php esc_html_e( 'Jméno nebo název studia', 'nkz-mp-vendor-registration' ); ?> <span class="req">*</span></label>
+					<input id="nkzmp_name" type="text" name="name" required maxlength="120" autocomplete="name" />
+				</div>
+				<div class="nkzmp-reg-field">
+					<label for="nkzmp_email"><?php esc_html_e( 'E-mail', 'nkz-mp-vendor-registration' ); ?> <span class="req">*</span></label>
+					<input id="nkzmp_email" type="email" name="email" required autocomplete="email" />
+				</div>
+			</div>
+
+			<div class="nkzmp-reg-grid nkzmp-reg-grid--2">
+				<div class="nkzmp-reg-field">
+					<label for="nkzmp_ico"><?php esc_html_e( 'IČO', 'nkz-mp-vendor-registration' ); ?> <span class="req">*</span></label>
+					<input id="nkzmp_ico" type="text" name="ico" required maxlength="20" inputmode="numeric" />
+					<small><?php esc_html_e( 'Bez IČO ti Stripe neumí vyplácet. Pokud podnikáš jinak, ozvi se nám.', 'nkz-mp-vendor-registration' ); ?></small>
+				</div>
+				<div class="nkzmp-reg-field">
+					<label for="nkzmp_website"><?php esc_html_e( 'Web nebo Instagram', 'nkz-mp-vendor-registration' ); ?></label>
+					<input id="nkzmp_website" type="url" name="website" placeholder="https://" autocomplete="url" />
+				</div>
+			</div>
+		</section>
+
+		<section class="nkzmp-reg-section">
+			<header class="nkzmp-reg-section-head">
+				<span class="nkzmp-reg-num">02</span>
+				<h2><?php esc_html_e( 'Tvá tvorba', 'nkz-mp-vendor-registration' ); ?></h2>
+			</header>
+
+			<div class="nkzmp-reg-field">
+				<label for="nkzmp_bio"><?php esc_html_e( 'Pár vět o tom, co děláš', 'nkz-mp-vendor-registration' ); ?> <span class="req">*</span></label>
+				<textarea id="nkzmp_bio" name="bio" required rows="6" maxlength="1000" data-counter></textarea>
+				<small class="nkzmp-reg-counter">
+					<span><?php esc_html_e( 'Co děláš, čím to je tvé, koho to může bavit. 3–6 vět stačí.', 'nkz-mp-vendor-registration' ); ?></span>
+					<span class="nkzmp-reg-charcount"><span data-count>0</span>/1000</span>
+				</small>
+			</div>
+		</section>
+
+		<section class="nkzmp-reg-section">
+			<header class="nkzmp-reg-section-head">
+				<span class="nkzmp-reg-num">03</span>
+				<h2><?php esc_html_e( 'Souhlasy', 'nkz-mp-vendor-registration' ); ?></h2>
+			</header>
+
+			<div class="nkzmp-reg-checkboxes">
+				<label class="nkzmp-reg-check">
+					<input type="checkbox" name="terms" value="1" required />
+					<span>
+						<?php if ( $terms_url ) : ?>
+							<?php
+							printf(
+								/* translators: %s: URL podmínek */
+								esc_html__( 'Přečetl(a) jsem si %s a souhlasím s nimi.', 'nkz-mp-vendor-registration' ),
+								'<a href="' . esc_url( $terms_url ) . '" target="_blank" rel="noopener">' . esc_html__( 'podmínky platformy', 'nkz-mp-vendor-registration' ) . '</a>'
+							);
+							?>
+						<?php else : ?>
+							<?php esc_html_e( 'Souhlasím s podmínkami platformy.', 'nkz-mp-vendor-registration' ); ?>
+						<?php endif; ?>
+					</span>
+				</label>
+				<label class="nkzmp-reg-check">
+					<input type="checkbox" name="gdpr" value="1" required />
+					<span><?php esc_html_e( 'Souhlasím se zpracováním osobních údajů za účelem vyřízení této přihlášky.', 'nkz-mp-vendor-registration' ); ?></span>
+				</label>
+			</div>
+		</section>
+
+		<input type="text" name="nkzmp_hp" tabindex="-1" autocomplete="off" class="nkzmp-reg-hp" />
+
+		<div class="nkzmp-reg-submit-row">
+			<button type="submit" class="nkzmp-reg-submit">
+				<span><?php esc_html_e( 'Odeslat přihlášku', 'nkz-mp-vendor-registration' ); ?></span>
+				<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+			</button>
+			<p class="nkzmp-reg-foot"><?php esc_html_e( 'Není to automat. Každou přihlášku si projdeme osobně.', 'nkz-mp-vendor-registration' ); ?></p>
 		</div>
-
-		<div class="nkzmp-reg-field">
-			<label for="nkzmp_email"><?php esc_html_e( 'E-mail', 'nkz-mp-vendor-registration' ); ?> *</label>
-			<input id="nkzmp_email" type="email" name="email" required />
-		</div>
-
-		<div class="nkzmp-reg-field">
-			<label for="nkzmp_ico"><?php esc_html_e( 'IČO', 'nkz-mp-vendor-registration' ); ?> *</label>
-			<input id="nkzmp_ico" type="text" name="ico" required maxlength="20" />
-			<small><?php esc_html_e( 'IČO je nutné pro registraci do platebního systému. Pokud podnikáš pod jiným identifikátorem, ozvi se nám.', 'nkz-mp-vendor-registration' ); ?></small>
-		</div>
-
-		<div class="nkzmp-reg-field">
-			<label for="nkzmp_website"><?php esc_html_e( 'Web (volitelné)', 'nkz-mp-vendor-registration' ); ?></label>
-			<input id="nkzmp_website" type="url" name="website" placeholder="https://" />
-		</div>
-
-		<div class="nkzmp-reg-field">
-			<label for="nkzmp_bio"><?php esc_html_e( 'Pár vět o tvojí tvorbě', 'nkz-mp-vendor-registration' ); ?> *</label>
-			<textarea id="nkzmp_bio" name="bio" required rows="5" maxlength="1000"></textarea>
-			<small><?php esc_html_e( 'Co děláš, čím to je tvé, koho to může bavit. 3–6 vět stačí.', 'nkz-mp-vendor-registration' ); ?></small>
-		</div>
-
-		<div class="nkzmp-reg-checkboxes">
-			<label>
-				<input type="checkbox" name="terms" value="1" required />
-				<?php if ( $terms_url ) : ?>
-					<?php
-					printf(
-						/* translators: %s: URL podmínek */
-						esc_html__( 'Přečetl(a) jsem si %s a souhlasím s nimi.', 'nkz-mp-vendor-registration' ),
-						'<a href="' . esc_url( $terms_url ) . '" target="_blank" rel="noopener">' . esc_html__( 'podmínky platformy', 'nkz-mp-vendor-registration' ) . '</a>'
-					);
-					?>
-				<?php else : ?>
-					<?php esc_html_e( 'Souhlasím s podmínkami platformy.', 'nkz-mp-vendor-registration' ); ?>
-				<?php endif; ?>
-			</label>
-			<label>
-				<input type="checkbox" name="gdpr" value="1" required />
-				<?php esc_html_e( 'Souhlasím se zpracováním osobních údajů za účelem vyřízení této přihlášky.', 'nkz-mp-vendor-registration' ); ?>
-			</label>
-		</div>
-
-		<input type="text" name="nkzmp_hp" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px;" />
-
-		<button type="submit" class="nkzmp-reg-submit">
-			<?php esc_html_e( 'Odeslat přihlášku', 'nkz-mp-vendor-registration' ); ?>
-		</button>
-
-		<p class="nkzmp-reg-foot"><?php esc_html_e( 'Není to automat. Každou přihlášku si projdeme osobně.', 'nkz-mp-vendor-registration' ); ?></p>
 	</form>
 
 </div>
+
+<script>
+(function(){
+	var bio = document.getElementById('nkzmp_bio');
+	if (!bio) return;
+	var count = document.querySelector('[data-count]');
+	if (!count) return;
+	var update = function(){ count.textContent = bio.value.length; };
+	bio.addEventListener('input', update);
+	update();
+})();
+</script>

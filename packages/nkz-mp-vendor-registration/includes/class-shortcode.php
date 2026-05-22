@@ -30,16 +30,17 @@ final class Shortcode {
 
 		if ( 'ok' === $flash ) {
 			echo '<div class="nkzmp-reg-success">';
-			echo '<p>' . esc_html( Settings::get()['success_message'] ) . '</p>';
+			echo wpautop( esc_html( Settings::get()['form_success'] ) ); // phpcs:ignore
 			echo '</div>';
 			return (string) ob_get_clean();
 		}
 
 		$error_msg = isset( $_GET['nkzmp_err'] ) ? sanitize_text_field( wp_unslash( $_GET['nkzmp_err'] ) ) : '';
+		$lead      = Settings::get()['form_lead'];
+		$terms_url = Settings::get()['terms_url'];
 
 		$file = NKZMP_REGISTRATION_DIR . 'templates/form.php';
 		if ( is_readable( $file ) ) {
-			$terms_url = Settings::get()['terms_url'];
 			include $file;
 		}
 		return (string) ob_get_clean();

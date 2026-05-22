@@ -1,10 +1,7 @@
 <?php
 /**
- * E-mailové zprávy v AOZ tone-of-voice (Komunikační manuál).
- *
- *  - Suchý inteligentní humor, přirozená autorita, podporují, inspirující, upřímná.
- *  - "Art of život" vždy s velkým A, neskloňuje se.
- *  - 3. osoba jednotného čísla pro značku, 1. osoba množného pro mluvčí.
+ * EmailService – načítá šablony ze Settings, vykresluje placeholdery,
+ * baluje do HTML wrapperu v AOZ stylu.
  *
  * @package NKZMP\Registration
  */
@@ -20,15 +17,10 @@ final class EmailService {
 		if ( ! $vendor ) {
 			return;
 		}
-		$subject = __( 'Tvoji přihlášku jsme dostali — Art of život', 'nkz-mp-vendor-registration' );
-		$body    = sprintf(
-			"Ahoj %s,\n\n" .
-			"přihlášku jsme přijali a otevřeli. Projdeme ji v týmu Art of život a vrátíme se ti.\n\n" .
-			"Není to automat. Každou tvorbu si projdeme osobně — proto to může chvíli trvat.\n\n" .
-			"Mezitím se klidně podívej, kdo všechno už u Art of život je.\n\n" .
-			"Tým Art of život",
-			$vendor['name']
-		);
+		$s        = Settings::get();
+		$vars     = self::base_vars( $vendor_id, $vendor );
+		$subject  = self::interpolate( $s['email_applicant_pending_subject'], $vars );
+		$body     = self::interpolate( $s['email_applicant_pending_body'], $vars );
 		self::send( $vendor['email'], $subject, $body );
 	}
 
@@ -37,24 +29,11 @@ final class EmailService {
 		if ( ! $vendor ) {
 			return;
 		}
-		$to      = Settings::get()['admin_notification_email'];
-		$subject = sprintf( '[Art of život] Nová přihláška: %s', $vendor['name'] );
-		$edit    = get_edit_post_link( $vendor_id, '' );
-		$body    = sprintf(
-			"Nová přihláška na Art of život.\n\n" .
-			"Jméno: %s\n" .
-			"E-mail: %s\n" .
-			"IČO: %s\n" .
-			"Web: %s\n\n" .
-			"Popis tvorby:\n%s\n\n" .
-			"Schválit nebo zamítnout v adminu:\n%s\n",
-			$vendor['name'],
-			$vendor['email'],
-			get_post_meta( $vendor_id, '_nkv_vendor_ico', true ),
-			get_post_meta( $vendor_id, '_nkv_vendor_website', true ),
-			$vendor['bio'],
-			$edit
-		);
+		$s       = Settings::get();
+		$to      = $s['admin_notification_email'];
+		$vars    = self::base_vars( $vendor_id, $vendor );
+		$subject = self::interpolate( $s['email_admin_pending_subject'], $vars );
+		$body    = self::interpolate( $s['email_admin_pending_body'], $vars );
 		self::send( $to, $subject, $body );
 	}
 
@@ -63,24 +42,10 @@ final class EmailService {
 		if ( ! $vendor ) {
 			return;
 		}
-
-		$stripe_link = '';
-		if ( class_exists( \NKVSVS\Onboarding_Controller::class ) ) {
-			$stripe_link = \NKVSVS\Onboarding_Controller::vendor_start_url( $vendor_id );
-		}
-
-		$subject = __( 'Jsi v Art of život. Zbývá jeden krok.', 'nkz-mp-vendor-registration' );
-		$body    = sprintf(
-			"Ahoj %s,\n\n" .
-			"vybrali jsme tě. Tvoje práce do Art of život patří.\n\n" .
-			"Než se to spustí, musí proběhnout jedna formalita: registrace platby přes Stripe. " .
-			"Trvá to pár minut, vyplníš všechno přímo u nich, my k tomu nemáme přístup.\n\n" .
-			"Tady je tvůj odkaz (jen pro tebe):\n%s\n\n" .
-			"Až to dokončíš, dáme ti vědět a tvoje produkty pustíme do prodeje.\n\n" .
-			"Tým Art of život",
-			$vendor['name'],
-			$stripe_link ?: __( '(Stripe link bude doplněn ručně — kontaktuj nás.)', 'nkz-mp-vendor-registration' )
-		);
+		$s       = Settings::get();
+		$vars    = self::base_vars( $vendor_id, $vendor );
+		$subject = self::interpolate( $s['email_approved_subject'], $vars );
+		$body    = self::interpolate( $s['email_approved_body'], $vars );
 		self::send( $vendor['email'], $subject, $body );
 	}
 
@@ -89,19 +54,10 @@ final class EmailService {
 		if ( ! $vendor ) {
 			return;
 		}
-		$slug      = get_post( $vendor_id ) ? get_post( $vendor_id )->post_name : '';
-		$profile   = $slug ? home_url( '/vendor/' . $slug ) : home_url( '/vendors' );
-		$subject   = __( 'Vítej v Art of život. Můžeš prodávat.', 'nkz-mp-vendor-registration' );
-		$body      = sprintf(
-			"Ahoj %s,\n\n" .
-			"je to oficiální — tvůj profil v Art of život je živý a tvoje produkty se mohou prodávat.\n\n" .
-			"Tvůj profil:\n%s\n\n" .
-			"V adminu si můžeš přidávat produkty, upravit popis a nahrát obrázek. " .
-			"S čímkoli se ozvi, jsme tady.\n\n" .
-			"Tým Art of život",
-			$vendor['name'],
-			$profile
-		);
+		$s       = Settings::get();
+		$vars    = self::base_vars( $vendor_id, $vendor );
+		$subject = self::interpolate( $s['email_active_subject'], $vars );
+		$body    = self::interpolate( $s['email_active_body'], $vars );
 		self::send( $vendor['email'], $subject, $body );
 	}
 
@@ -110,28 +66,138 @@ final class EmailService {
 		if ( ! $vendor ) {
 			return;
 		}
-		$subject = __( 'Tvoje přihláška — Art of život', 'nkz-mp-vendor-registration' );
-		$body    = sprintf(
-			"Ahoj %s,\n\n" .
-			"děkujeme za přihlášku a důvěru. Letošní ročník jsme koncipovali jiným směrem a do výběru jsme tě tentokrát nezařadili.\n\n" .
-			"Tvorby je víc než prostoru, a to je vlastně dobrá zpráva.\n\n" .
-			"%s" .
-			"Tým Art of život",
-			$vendor['name'],
-			$reason ? sprintf( "Pro úplnost: %s\n\n", $reason ) : ''
-		);
+		$s       = Settings::get();
+		$vars    = self::base_vars( $vendor_id, $vendor );
+		$vars['reason_block'] = $reason !== '' ? sprintf( "Pro úplnost: %s\n\n", $reason ) : '';
+		$subject = self::interpolate( $s['email_rejected_subject'], $vars );
+		$body    = self::interpolate( $s['email_rejected_body'], $vars );
 		self::send( $vendor['email'], $subject, $body );
 	}
 
+	private static function base_vars( int $vendor_id, array $vendor ): array {
+		$stripe_link = '';
+		if ( class_exists( \NKVSVS\Onboarding_Controller::class ) ) {
+			$stripe_link = \NKVSVS\Onboarding_Controller::vendor_start_url( $vendor_id );
+		}
+		$post        = get_post( $vendor_id );
+		$slug        = $post ? $post->post_name : '';
+		$profile_url = $slug ? home_url( '/vendor/' . $slug ) : '';
+		$status_url  = StatusPage::url_for( $vendor_id );
+
+		return [
+			'name'        => (string) $vendor['name'],
+			'email'       => (string) $vendor['email'],
+			'ico'         => (string) get_post_meta( $vendor_id, '_nkv_vendor_ico', true ),
+			'website'     => (string) get_post_meta( $vendor_id, '_nkv_vendor_website', true ),
+			'bio'         => (string) $vendor['bio'],
+			'stripe_link' => $stripe_link,
+			'profile_url' => $profile_url,
+			'status_url'  => $status_url,
+			'edit_url'    => (string) get_edit_post_link( $vendor_id, '' ),
+			'site_name'   => (string) get_bloginfo( 'name' ),
+			'site_url'    => (string) home_url( '/' ),
+		];
+	}
+
+	private static function interpolate( string $template, array $vars ): string {
+		$keys   = array_map( static fn( $k ) => '{' . $k . '}', array_keys( $vars ) );
+		$values = array_values( $vars );
+		return str_replace( $keys, $values, $template );
+	}
+
+	/**
+	 * Pošle HTML e-mail zabalený v AOZ wrapperu. Tělo je v "plain-like"
+	 * formátu — wrapper auto-konvertuje odřádkování + linky.
+	 */
 	private static function send( string $to, string $subject, string $body ): void {
 		if ( ! is_email( $to ) ) {
 			return;
 		}
-		$headers = [
-			'Content-Type: text/plain; charset=UTF-8',
-			'From: ' . sprintf( 'Art of život <%s>', get_option( 'admin_email' ) ),
+
+		$s        = Settings::get();
+		$from     = sprintf( '%s <%s>', $s['from_name'], get_option( 'admin_email' ) );
+		$html     = self::wrap_html( $body, $subject );
+		$headers  = [
+			'Content-Type: text/html; charset=UTF-8',
+			'From: ' . $from,
 		];
-		wp_mail( $to, $subject, $body, $headers );
+		wp_mail( $to, $subject, $html, $headers );
+	}
+
+	private static function wrap_html( string $body, string $subject ): string {
+		$site_name = (string) get_bloginfo( 'name' );
+		$site_url  = (string) home_url( '/' );
+
+		// Konvertuj plain text na HTML:
+		//  - URLs → <a>
+		//  - newlines → <br>
+		//  - dvojité newlines = <p>
+		$html_body = self::text_to_html( $body );
+
+		ob_start();
+		?>
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<title><?php echo esc_html( $subject ); ?></title>
+<style>
+  body { margin:0; padding:0; background:#f5f5f5; font-family:'Fabio XM','Inter',Helvetica,Arial,sans-serif; color:#000; }
+  .wrapper { max-width:600px; margin:0 auto; background:#fff; }
+  .header { padding:32px 32px 0; }
+  .header h1 { margin:0; font-size:20px; font-weight:400; letter-spacing:-0.01em; }
+  .accent { color:#0060FF; }
+  .content { padding:24px 32px 32px; font-size:16px; line-height:1.6; }
+  .content p { margin:0 0 16px; }
+  .content a { color:#0060FF; border-bottom:1px solid #0060FF; text-decoration:none; }
+  .button { display:inline-block; margin:8px 0; padding:14px 24px; background:#000; color:#fff !important; text-decoration:none; font-weight:500; border:none; }
+  .footer { padding:24px 32px; border-top:1px solid #000; font-size:13px; color:rgba(0,0,0,0.6); }
+  .footer a { color:rgba(0,0,0,0.6); }
+</style>
+</head>
+<body>
+<div class="wrapper">
+  <div class="header">
+    <h1><?php echo esc_html( $site_name ); ?></h1>
+  </div>
+  <div class="content">
+    <?php echo $html_body; // phpcs:ignore – pre-sanitized via text_to_html ?>
+  </div>
+  <div class="footer">
+    <a href="<?php echo esc_url( $site_url ); ?>"><?php echo esc_html( $site_url ); ?></a>
+  </div>
+</div>
+</body>
+</html>
+		<?php
+		return (string) ob_get_clean();
+	}
+
+	/**
+	 * Bezpečná konverze plain-text-with-URLs na HTML.
+	 */
+	private static function text_to_html( string $text ): string {
+		$escaped = esc_html( $text );
+
+		// Linkify URLs (http/https) i jen-doménové linky (artofzivot.cz).
+		$escaped = preg_replace_callback(
+			'#(https?://[^\s<]+)#i',
+			static fn( $m ) => '<a href="' . esc_url( $m[1] ) . '">' . esc_html( $m[1] ) . '</a>',
+			$escaped
+		);
+
+		// Bloky oddělené prázdným řádkem = <p>; samostatné newliny = <br>.
+		$blocks = preg_split( '/\n{2,}/', $escaped );
+		$html   = '';
+		foreach ( $blocks as $block ) {
+			$block = trim( $block );
+			if ( $block === '' ) {
+				continue;
+			}
+			$block = nl2br( $block, false );
+			$html .= '<p>' . $block . '</p>' . "\n";
+		}
+		return $html;
 	}
 
 	private static function vendor( int $vendor_id ): ?array {

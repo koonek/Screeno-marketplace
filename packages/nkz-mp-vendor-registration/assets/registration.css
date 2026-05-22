@@ -1,90 +1,385 @@
-/* NKZ vendor registration — AOZ tokens (re-used z storefront, ale local override).
- * Theme by měl mít vytaženou rodinu Fabio XM @font-face.
+/* NKZ vendor registration — AOZ brand polish.
+ *
+ * Paleta:  bílá (45 %) + černá (45 %) + accent #0060FF (10 %).
+ * Font:    Fabio XM Regular (theme načítá @font-face), fallback Inter / system.
+ * Tonalita: kurátorský klid, generous whitespace, žádné radius.
  */
 
 :root {
-	--nkzmp-reg-bg: #ffffff;
-	--nkzmp-reg-text: #000000;
-	--nkzmp-reg-muted: rgba(0, 0, 0, 0.6);
-	--nkzmp-reg-border: #000000;
-	--nkzmp-reg-accent: #0060FF;
-	--nkzmp-reg-error: #b00020;
+	--nkzmp-bg:        #ffffff;
+	--nkzmp-text:      #000000;
+	--nkzmp-muted:     rgba(0, 0, 0, 0.55);
+	--nkzmp-line:      rgba(0, 0, 0, 0.15);
+	--nkzmp-line-bold: #000000;
+	--nkzmp-accent:    #0060FF;
+	--nkzmp-accent-soft: rgba(0, 96, 255, 0.08);
+	--nkzmp-error:     #b00020;
+
+	--nkzmp-font: 'Fabio XM', 'Inter', system-ui, -apple-system, Helvetica, Arial, sans-serif;
+
+	--nkzmp-gap-xs: 4px;
+	--nkzmp-gap-sm: 8px;
+	--nkzmp-gap-md: 16px;
+	--nkzmp-gap-lg: 32px;
+	--nkzmp-gap-xl: 64px;
 }
 
+/* ── Wrapper & hero ─────────────────────────────────────────────── */
+
 .nkzmp-reg-form-wrap {
-	max-width: 560px;
+	max-width: 720px;
 	margin: 0 auto;
-	font-family: 'Fabio XM', 'Inter', system-ui, -apple-system, sans-serif;
-	color: var(--nkzmp-reg-text);
-	background: var(--nkzmp-reg-bg);
+	padding: var(--nkzmp-gap-xl) var(--nkzmp-gap-md);
+	font-family: var(--nkzmp-font);
+	color: var(--nkzmp-text);
+	background: var(--nkzmp-bg);
+	-webkit-font-smoothing: antialiased;
+}
+
+.nkzmp-reg-hero {
+	margin-bottom: var(--nkzmp-gap-xl);
+	padding-bottom: var(--nkzmp-gap-lg);
+	border-bottom: 1px solid var(--nkzmp-line-bold);
+}
+
+.nkzmp-reg-kicker {
+	display: inline-block;
+	font-size: 12px;
+	font-weight: 500;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var(--nkzmp-accent);
+	margin-bottom: var(--nkzmp-gap-md);
+}
+
+.nkzmp-reg-title {
+	font-size: clamp(36px, 6vw, 64px);
+	font-weight: 400;
+	line-height: 1.05;
+	letter-spacing: -0.025em;
+	margin: 0 0 var(--nkzmp-gap-md);
 }
 
 .nkzmp-reg-lead {
 	font-size: 18px;
-	line-height: 1.5;
-	margin: 0 0 32px;
+	line-height: 1.55;
+	margin: 0;
+	color: var(--nkzmp-muted);
+	max-width: 56ch;
 }
+
+/* ── Error / success ───────────────────────────────────────────── */
 
 .nkzmp-reg-error {
-	background: var(--nkzmp-reg-error);
-	color: #fff;
-	padding: 12px 16px;
-	margin-bottom: 24px;
+	border-left: 4px solid var(--nkzmp-error);
+	background: rgba(176, 0, 32, 0.04);
+	padding: var(--nkzmp-gap-md);
+	margin-bottom: var(--nkzmp-gap-lg);
 	font-size: 15px;
+	display: flex;
+	gap: var(--nkzmp-gap-sm);
+	align-items: baseline;
 }
+.nkzmp-reg-error strong { color: var(--nkzmp-error); }
 
 .nkzmp-reg-success {
-	border: 1px solid var(--nkzmp-reg-border);
-	padding: 24px;
-	font-size: 18px;
+	border-top: 1px solid var(--nkzmp-line-bold);
+	border-bottom: 1px solid var(--nkzmp-line-bold);
+	padding: var(--nkzmp-gap-xl) 0;
+	font-size: 20px;
 	line-height: 1.5;
 }
+.nkzmp-reg-success p { margin: 0 0 var(--nkzmp-gap-md); }
+.nkzmp-reg-success p:last-child { margin-bottom: 0; }
 
-.nkzmp-reg-form { display: flex; flex-direction: column; gap: 24px; }
+/* ── Form layout ──────────────────────────────────────────────── */
+
+.nkzmp-reg-form {
+	display: flex;
+	flex-direction: column;
+	gap: var(--nkzmp-gap-xl);
+}
+
+.nkzmp-reg-section { display: flex; flex-direction: column; gap: var(--nkzmp-gap-lg); }
+.nkzmp-reg-section-head {
+	display: flex;
+	align-items: baseline;
+	gap: var(--nkzmp-gap-md);
+}
+.nkzmp-reg-num {
+	font-size: 13px;
+	font-weight: 500;
+	letter-spacing: 0.08em;
+	color: var(--nkzmp-muted);
+	font-variant-numeric: tabular-nums;
+}
+.nkzmp-reg-section-head h2 {
+	margin: 0;
+	font-size: 22px;
+	font-weight: 400;
+	letter-spacing: -0.01em;
+}
+
+.nkzmp-reg-grid {
+	display: grid;
+	gap: var(--nkzmp-gap-lg);
+}
+.nkzmp-reg-grid--2 { grid-template-columns: 1fr 1fr; }
+
+@media (max-width: 600px) {
+	.nkzmp-reg-grid--2 { grid-template-columns: 1fr; }
+}
+
+/* ── Field ────────────────────────────────────────────────────── */
 
 .nkzmp-reg-field { display: flex; flex-direction: column; gap: 6px; }
-.nkzmp-reg-field label { font-size: 14px; font-weight: 500; }
+
+.nkzmp-reg-field label {
+	font-size: 14px;
+	font-weight: 500;
+	letter-spacing: 0.005em;
+}
+.nkzmp-reg-field label .req {
+	color: var(--nkzmp-accent);
+	margin-left: 2px;
+}
+
 .nkzmp-reg-field input[type="text"],
 .nkzmp-reg-field input[type="email"],
 .nkzmp-reg-field input[type="url"],
 .nkzmp-reg-field textarea {
-	border: none;
-	border-bottom: 1px solid var(--nkzmp-reg-border);
+	width: 100%;
+	box-sizing: border-box;
 	background: transparent;
-	padding: 8px 0;
-	font-family: inherit;
-	font-size: 16px;
-	color: inherit;
-	outline: none;
+	border: none;
+	border-bottom: 1px solid var(--nkzmp-line-bold);
 	border-radius: 0;
+	padding: 12px 0;
+	font-family: inherit;
+	font-size: 17px;
+	color: var(--nkzmp-text);
+	outline: none;
+	transition: border-color 0.15s ease, background 0.15s ease;
+	-webkit-appearance: none;
+	appearance: none;
+}
+.nkzmp-reg-field input:hover,
+.nkzmp-reg-field textarea:hover {
+	border-bottom-color: var(--nkzmp-accent);
 }
 .nkzmp-reg-field input:focus,
-.nkzmp-reg-field textarea:focus { border-bottom-color: var(--nkzmp-reg-accent); }
-.nkzmp-reg-field small { color: var(--nkzmp-reg-muted); font-size: 13px; }
+.nkzmp-reg-field textarea:focus {
+	border-bottom-color: var(--nkzmp-accent);
+	background: var(--nkzmp-accent-soft);
+	padding-left: var(--nkzmp-gap-sm);
+	padding-right: var(--nkzmp-gap-sm);
+}
 
-.nkzmp-reg-checkboxes { display: flex; flex-direction: column; gap: 12px; }
-.nkzmp-reg-checkboxes label { font-size: 14px; line-height: 1.4; cursor: pointer; }
-.nkzmp-reg-checkboxes input { margin-right: 8px; }
-.nkzmp-reg-checkboxes a { color: var(--nkzmp-reg-accent); border-bottom: 1px solid currentColor; text-decoration: none; }
+.nkzmp-reg-field textarea { resize: vertical; min-height: 120px; line-height: 1.5; }
+
+.nkzmp-reg-field small {
+	color: var(--nkzmp-muted);
+	font-size: 13px;
+	line-height: 1.45;
+}
+
+.nkzmp-reg-counter {
+	display: flex;
+	justify-content: space-between;
+	gap: var(--nkzmp-gap-md);
+	flex-wrap: wrap;
+}
+.nkzmp-reg-charcount {
+	font-variant-numeric: tabular-nums;
+	color: var(--nkzmp-muted);
+}
+
+/* ── Checkboxes ──────────────────────────────────────────────── */
+
+.nkzmp-reg-checkboxes {
+	display: flex;
+	flex-direction: column;
+	gap: var(--nkzmp-gap-md);
+}
+
+.nkzmp-reg-check {
+	display: flex;
+	gap: var(--nkzmp-gap-sm);
+	align-items: flex-start;
+	font-size: 15px;
+	line-height: 1.5;
+	cursor: pointer;
+	padding: 12px var(--nkzmp-gap-md);
+	border: 1px solid var(--nkzmp-line);
+	transition: border-color 0.15s ease, background 0.15s ease;
+}
+.nkzmp-reg-check:hover {
+	border-color: var(--nkzmp-line-bold);
+}
+.nkzmp-reg-check input[type="checkbox"] {
+	margin: 4px 0 0;
+	flex-shrink: 0;
+	accent-color: var(--nkzmp-accent);
+	width: 18px;
+	height: 18px;
+}
+.nkzmp-reg-check a {
+	color: var(--nkzmp-accent);
+	text-decoration: none;
+	border-bottom: 1px solid currentColor;
+}
+.nkzmp-reg-check a:hover { color: var(--nkzmp-text); }
+
+/* ── Submit ──────────────────────────────────────────────────── */
+
+.nkzmp-reg-submit-row {
+	display: flex;
+	flex-direction: column;
+	gap: var(--nkzmp-gap-md);
+	margin-top: var(--nkzmp-gap-md);
+}
 
 .nkzmp-reg-submit {
-	background: var(--nkzmp-reg-text);
-	color: var(--nkzmp-reg-bg);
+	display: inline-flex;
+	align-items: center;
+	gap: 12px;
+	background: var(--nkzmp-text);
+	color: var(--nkzmp-bg);
 	border: none;
-	padding: 14px 32px;
+	padding: 18px 40px;
 	font-family: inherit;
-	font-size: 15px;
+	font-size: 16px;
 	font-weight: 500;
+	letter-spacing: 0.005em;
 	cursor: pointer;
 	border-radius: 0;
-	transition: opacity 0.15s ease;
+	transition: gap 0.2s ease, background 0.15s ease;
 	align-self: flex-start;
 }
-.nkzmp-reg-submit:hover { opacity: 0.85; }
+.nkzmp-reg-submit svg {
+	width: 18px;
+	height: 18px;
+	transition: transform 0.2s ease;
+}
+.nkzmp-reg-submit:hover {
+	gap: 16px;
+	background: var(--nkzmp-accent);
+}
+.nkzmp-reg-submit:hover svg {
+	transform: translateX(4px);
+}
 
 .nkzmp-reg-foot {
-	color: var(--nkzmp-reg-muted);
-	font-size: 13px;
-	font-style: italic;
+	color: var(--nkzmp-muted);
+	font-size: 14px;
 	margin: 0;
+	font-style: italic;
 }
+
+.nkzmp-reg-hp {
+	position: absolute;
+	left: -9999px;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+}
+
+/* ── Status page ─────────────────────────────────────────────── */
+
+.nkzmp-status-wrap {
+	max-width: 720px;
+	margin: 0 auto;
+	padding: var(--nkzmp-gap-xl) var(--nkzmp-gap-md);
+	font-family: var(--nkzmp-font);
+	color: var(--nkzmp-text);
+}
+
+.nkzmp-status-badge {
+	display: inline-block;
+	padding: 6px 14px;
+	font-size: 12px;
+	font-weight: 500;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	background: var(--nkzmp-text);
+	color: var(--nkzmp-bg);
+	margin-bottom: var(--nkzmp-gap-lg);
+}
+.nkzmp-status--active                { background: var(--nkzmp-accent); }
+.nkzmp-status--rejected,
+.nkzmp-status--terminated            { background: var(--nkzmp-muted); }
+.nkzmp-status--suspended             { background: var(--nkzmp-error); }
+
+.nkzmp-status-name {
+	font-size: clamp(32px, 5vw, 48px);
+	font-weight: 400;
+	letter-spacing: -0.025em;
+	line-height: 1.05;
+	margin: 0 0 var(--nkzmp-gap-md);
+}
+
+.nkzmp-status-headline {
+	font-size: 22px;
+	line-height: 1.3;
+	margin: 0 0 var(--nkzmp-gap-md);
+	max-width: 50ch;
+}
+
+.nkzmp-status-body {
+	font-size: 16px;
+	line-height: 1.6;
+	color: var(--nkzmp-muted);
+	margin: 0 0 var(--nkzmp-gap-lg);
+	max-width: 50ch;
+}
+
+.nkzmp-status-cta {
+	display: inline-flex;
+	align-items: center;
+	gap: 12px;
+	background: var(--nkzmp-text);
+	color: var(--nkzmp-bg);
+	padding: 16px 32px;
+	font-size: 15px;
+	font-weight: 500;
+	text-decoration: none;
+	margin-bottom: var(--nkzmp-gap-xl);
+	transition: gap 0.2s ease, background 0.15s ease;
+}
+.nkzmp-status-cta:hover {
+	gap: 16px;
+	background: var(--nkzmp-accent);
+	color: var(--nkzmp-bg);
+}
+
+.nkzmp-status-timeline {
+	list-style: none;
+	padding: var(--nkzmp-gap-lg) 0 0;
+	margin: var(--nkzmp-gap-lg) 0 0;
+	border-top: 1px solid var(--nkzmp-line-bold);
+	display: flex;
+	gap: var(--nkzmp-gap-lg);
+	flex-wrap: wrap;
+	counter-reset: step;
+}
+.nkzmp-step {
+	font-size: 14px;
+	color: var(--nkzmp-muted);
+	position: relative;
+	padding-left: 28px;
+	counter-increment: step;
+}
+.nkzmp-step::before {
+	content: counter(step, decimal-leading-zero);
+	position: absolute;
+	left: 0;
+	top: 0;
+	font-size: 11px;
+	font-weight: 500;
+	letter-spacing: 0.08em;
+	color: var(--nkzmp-muted);
+}
+.nkzmp-step.is-done       { color: var(--nkzmp-text); }
+.nkzmp-step.is-done::before { color: var(--nkzmp-text); }
+.nkzmp-step.is-current    { color: var(--nkzmp-accent); font-weight: 500; }
+.nkzmp-step.is-current::before { color: var(--nkzmp-accent); }
