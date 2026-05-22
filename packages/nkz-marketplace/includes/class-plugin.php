@@ -35,6 +35,13 @@ final class Plugin {
 			update_option( 'nkzmp_reconcile_baseline_ts', time(), false );
 		}
 
+		// Idempotentní zajištění admin caps – pokud activation hook neproběhl
+		// (např. plugin loaded jako submodul přes bundle), doplníme je v init.
+		$admin = get_role( 'administrator' );
+		if ( $admin && ! $admin->has_cap( \NKZMP\Support\Capabilities::MANAGE_VENDORS ) ) {
+			\NKZMP\Vendor\Registry::install_role();
+		}
+
 		// Vendor CPT + role aktivace je opt-in během Fáze 0, aby Screeno
 		// produkce (která jede na `nkv_vendor` v Stripe adapteru) nedostala
 		// dvě CPT registrace najednou. Po `wp nkzmp migrate-vendors` se
