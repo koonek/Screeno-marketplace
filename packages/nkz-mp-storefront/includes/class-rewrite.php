@@ -27,6 +27,25 @@ final class Rewrite {
 	public function init(): void {
 		add_action( 'init', [ self::class, 'register_rules' ] );
 		add_filter( 'query_vars', [ $this, 'register_query_vars' ] );
+		add_filter( 'post_type_link', [ $this, 'filter_vendor_permalink' ], 10, 2 );
+	}
+
+	/**
+	 * Přepiš permalink vendor CPT na /vendor/<slug>, aby admin "View" a
+	 * frontend odkazy vedly na storefront URL místo ?nkv_vendor=… query.
+	 *
+	 * @param string  $url
+	 * @param \WP_Post $post
+	 */
+	public function filter_vendor_permalink( string $url, \WP_Post $post ): string {
+		if ( ! in_array( $post->post_type, [ 'nkzmp_vendor', 'nkv_vendor' ], true ) ) {
+			return $url;
+		}
+		$s = Settings::get();
+		if ( 'yes' !== $s['enable_single'] ) {
+			return $url;
+		}
+		return home_url( '/' . $s['single_slug'] . '/' . $post->post_name );
 	}
 
 	public static function register_rules(): void {
