@@ -41,12 +41,15 @@ final class LegacyStripeObserver {
 		if ( ! apply_filters( 'nkzmp/v1/integration/legacy_observer_enabled', true ) ) {
 			return;
 		}
-		// Plugin file: nkz-woo-stripe-vendor-split/nkz-woo-stripe-vendor-split.php
-		// (path zůstává původní; přesun do packages/ je jen v repo, ne v WP).
+		// Stripe adapter může být buď samostatný plugin (Screeno) nebo modul
+		// načtený přes AOZ bundle. Klíčové je, že jeho třídy + hooky jsou
+		// dostupné v PHP runtime.
 		if ( ! function_exists( 'is_plugin_active' ) ) {
 			require_once ABSPATH . 'wp-admin/includes/plugin.php';
 		}
-		if ( ! is_plugin_active( 'nkz-woo-stripe-vendor-split/nkz-woo-stripe-vendor-split.php' ) ) {
+		$adapter_loaded = is_plugin_active( 'nkz-woo-stripe-vendor-split/nkz-woo-stripe-vendor-split.php' )
+			|| class_exists( \NKVSVS\Plugin::class );
+		if ( ! $adapter_loaded ) {
 			return;
 		}
 
