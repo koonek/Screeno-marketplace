@@ -64,8 +64,40 @@ Pokud cokoli vadí:
 - [ ] Smazání pluginu odstraní obě DB tabulky a obě role.
 - [ ] V `wp-content/debug.log` po hodině provozu nepřibyly chyby z namespace `NKZMP\` nebo source `nkzmp`.
 
+## Backfill historických dat (volitelné)
+
+Po instalaci je ledger prázdný. Aby ses dostal k historickým datům všech existujících Stripe transferů, spusť backfill:
+
+```bash
+# Dry run – jen napočítá, nezapisuje
+wp nkzmp backfill --dry-run
+
+# Reálný import všech historických transferů
+wp nkzmp backfill
+
+# Jen ordery od 1.1.2024
+wp nkzmp backfill --since=2024-01-01
+```
+
+Backfill je **idempotentní** – opakované spuštění nevytváří duplikáty díky deterministickým idempotency keys. Bezpečné spustit kdykoliv.
+
+Po backfillu uvidíš v `wp nkzmp ledger list` nebo na admin status page reálnou historii všech Screeno Stripe transferů.
+
+## CLI příkazy
+
+```bash
+wp nkzmp status                              # Health check
+wp nkzmp status --format=json                # Strojový output
+wp nkzmp ledger list                         # 20 posledních záznamů
+wp nkzmp ledger list --vendor=42             # Filtr na vendora
+wp nkzmp ledger list --order=1234            # Filtr na order
+wp nkzmp ledger balance 42 --currency=CZK    # Balance vendora
+wp nkzmp backfill --dry-run                  # Spočítat historické transfery
+wp nkzmp backfill                            # Importovat historické transfery
+```
+
 ## Co tato verze **neumí**
 
 - Žádný frontend / vendor registrace / subscription billing / per-vendor shipping. Tyhle add-ony přijdou ve Fázi 1.
 - Stripe adapter zatím nečte z nového ledgeru a nezapisuje do něj – wireup proběhne v dalším PR.
-- Migrace dat (`wp nkzmp migrate-vendors`) zatím neexistuje. Bude přidána před první ostrou produkční aktivací CPT.
+- Migrace dat vendorů (`wp nkzmp migrate-vendors`) zatím neexistuje. Bude přidána před první ostrou produkční aktivací CPT.

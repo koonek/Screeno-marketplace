@@ -51,6 +51,28 @@ final class LegacyStripeObserver {
 		}
 
 		add_action( 'nkv_svs_after_create_transfer', [ $this, 'on_transfer_complete' ], 50, 2 );
+		// Run after legacy Refund_Service (priority 10) to capture any
+		// freshly added reversals on the order's records.
+		add_action( 'woocommerce_order_refunded', [ $this, 'on_order_refunded' ], 100, 2 );
+	}
+
+	public function on_order_refunded( int $order_id, int $refund_id ): void {
+		try {
+			$order = wc_get_order( $order_id );
+			if ( ! $order instanceof \WC_Order ) {
+				return;
+			}
+			$raw = $order->get_meta( '_nkv_split_transfers' );
+			$records = is_string( $raw ) && '' !== $raw ? json_decode( $raw, true ) : ( is_array( $raw ) ? $raw : [] );
+			if ( ! is_array( $records ) ) {
+				return;
+			}
+			foreach ( $records as $record ) {
+				$this->record_transfer( $order, $record );
+			}
+		} catch ( \Throwable $e ) {
+			error_log( '[NKZMP] observer refund error: ' . $e->getMessage() . ' for order #' . $order_id );
+		}
 	}
 
 	public function on_transfer_complete( \WC_Order $order, array $record ): void {
@@ -149,7 +171,7 @@ final class LegacyStripeObserver {
 			$payout = $payouts->transition( $payout->id, PayoutState::PAYABLE );
 		}
 		if ( $payout->state === PayoutState::PAYABLE ) {
-			$payouts->transition(
+			$payout = $payouts->transition(
 				$payout->id,
 				PayoutState::PAID,
 				[
@@ -157,6 +179,70 @@ final class LegacyStripeObserver {
 					'completed_at' => $occurred_at,
 				]
 			);
+		}
+
+		$this->record_reversals( $record, $vendor_id, $order_id, $transfer_id, $currency, $ledger, $payouts, $payout );
+	}
+
+	/**
+	 * Pro každý reversal v $record['reversals'] zapíše REVERSAL ledger
+	 * entry (a pokud je payout PAID → REVERSED).
+	 */
+	private function record_reversals(
+		array $record,
+		int $vendor_id,
+		int $order_id,
+		string $transfer_id,
+		string $currency,
+		LedgerRepository $ledger,
+		PayoutRepository $payouts,
+		$payout
+	): void {
+		$reversals = (array) ( $record['reversals'] ?? [] );
+		if ( empty( $reversals ) ) {
+			return;
+		}
+
+		$original_credit_key = "legacy_observe:order_credit:order_{$order_id}:vendor_{$vendor_id}";
+		$original_credit     = $ledger->find_by_idempotency_key( $original_credit_key );
+		$reverses_id         = $original_credit ? $original_credit->id : null;
+
+		$total_reversed = 0;
+		foreach ( $reversals as $r ) {
+			$amount      = (int) ( $r['amount_minor'] ?? 0 );
+			$reversal_id = (string) ( $r['reversal_id'] ?? '' );
+			$created_at  = (int) ( $r['created_at'] ?? time() );
+			if ( $amount <= 0 || $reversal_id === '' ) {
+				continue;
+			}
+
+			$ledger->record( $this->entry(
+				$vendor_id,
+				EntryType::REVERSAL,
+				-$amount,
+				$currency,
+				$order_id,
+				$reversal_id,
+				"legacy_observe:reversal:order_{$order_id}:vendor_{$vendor_id}:reversal_{$reversal_id}",
+				$created_at,
+				[
+					'reverses_transfer' => $transfer_id,
+					'reverses_entry_id' => $reverses_id,
+				]
+			) );
+
+			$total_reversed += $amount;
+		}
+
+		// Pokud byl payout PAID a celá částka je nyní reversed → přechod do REVERSED.
+		if ( $payout && $payout->state === PayoutState::PAID && $total_reversed >= $payout->amount_minor ) {
+			try {
+				$payouts->transition( $payout->id, PayoutState::REVERSED, [
+					'meta' => [ 'reversed_total_minor' => $total_reversed ],
+				] );
+			} catch ( \InvalidArgumentException $e ) {
+				// Already reversed – ignore.
+			}
 		}
 	}
 
