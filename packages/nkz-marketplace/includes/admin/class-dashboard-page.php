@@ -31,6 +31,38 @@ final class DashboardPage {
 
 	public function init(): void {
 		add_action( 'admin_post_nkzmp_dashboard_quick_approve', [ $this, 'handle_quick_approve' ] );
+		add_action( 'admin_post_nkzmp_dashboard_publish_product', [ $this, 'handle_publish_product' ] );
+	}
+
+	public function handle_publish_product(): void {
+		$product_id = isset( $_POST['product_id'] ) ? (int) $_POST['product_id'] : 0;
+		check_admin_referer( 'nkzmp_dashboard_publish_product_' . $product_id );
+		if ( ! current_user_can( 'edit_product', $product_id ) && ! current_user_can( 'manage_woocommerce' ) ) {
+			wp_die( esc_html__( 'Nedostatečná oprávnění.', 'nkz-marketplace' ) );
+		}
+		$product = function_exists( 'wc_get_product' ) ? wc_get_product( $product_id ) : null;
+		$msg     = '';
+		if ( ! $product ) {
+			$msg = __( 'Produkt nenalezen.', 'nkz-marketplace' );
+		} else {
+			$product->set_status( 'publish' );
+			$product->save();
+			if ( class_exists( \NKZMP\Audit\Recorder::class ) ) {
+				( new \NKZMP\Audit\Recorder() )->record(
+					action:      'product.published',
+					entity_type: 'product',
+					entity_id:   $product_id,
+					summary:     sprintf( 'Published: %s', $product->get_name() ),
+					payload:     [ 'vendor_id' => (int) get_post_meta( $product_id, '_nkzmp_vendor_id', true ) ?: (int) get_post_meta( $product_id, '_nkv_vendor_id', true ) ],
+				);
+			}
+			$msg = sprintf( __( 'Produkt #%d publikován.', 'nkz-marketplace' ), $product_id );
+		}
+		wp_safe_redirect( add_query_arg(
+			[ 'page' => NKZMP_ADMIN_MENU_SLUG, 'nkzmp_approve_msg' => rawurlencode( $msg ) ],
+			admin_url( 'admin.php' )
+		) );
+		exit;
 	}
 
 	public function handle_quick_approve(): void {
@@ -66,10 +98,11 @@ final class DashboardPage {
 			wp_die( esc_html__( 'Nedostatečná oprávnění.', 'nkz-marketplace' ) );
 		}
 
-		$stats   = $this->stats();
-		$audit   = $this->recent_audit( 8 );
-		$health  = $this->health();
-		$pending = $this->pending_vendors();
+		$stats          = $this->stats();
+		$audit          = $this->recent_audit( 8 );
+		$health         = $this->health();
+		$pending        = $this->pending_vendors();
+		$pending_prods  = $this->pending_products();
 
 		$flash_msg = isset( $_GET['nkzmp_approve_msg'] ) ? sanitize_text_field( wp_unslash( $_GET['nkzmp_approve_msg'] ) ) : '';
 
@@ -106,6 +139,51 @@ final class DashboardPage {
 					</a>
 				<?php endforeach; ?>
 			</section>
+
+			<?php if ( ! empty( $pending_prods ) ) : ?>
+				<section class="nkzmp-dash-block nkzmp-dash-pending">
+					<header class="nkzmp-dash-block-head">
+						<h2>
+							<?php esc_html_e( 'Čekající produkty', 'nkz-marketplace' ); ?>
+							<span class="nkzmp-dash-pending-count"><?php echo (int) count( $pending_prods ); ?></span>
+						</h2>
+						<a href="<?php echo esc_url( admin_url( 'edit.php?post_status=pending&post_type=product' ) ); ?>"><?php esc_html_e( 'Vše', 'nkz-marketplace' ); ?> →</a>
+					</header>
+					<ul class="nkzmp-dash-pending-list">
+						<?php foreach ( $pending_prods as $p ) : ?>
+							<li>
+								<div class="nkzmp-pend-product-img">
+									<?php if ( $p['thumb'] ) : echo $p['thumb']; // phpcs:ignore
+									else : echo '<span class="nkzmp-pend-noimg">—</span>'; endif; ?>
+								</div>
+								<div class="nkzmp-pend-body">
+									<div class="nkzmp-pend-name"><?php echo esc_html( $p['name'] ); ?></div>
+									<div class="nkzmp-pend-meta">
+										<?php if ( $p['vendor_name'] ) : ?>
+											<?php echo esc_html( sprintf( __( 'od %s', 'nkz-marketplace' ), $p['vendor_name'] ) ); ?>
+											<span class="dot">·</span>
+										<?php endif; ?>
+										<?php echo esc_html( $p['price_html'] ?: '—' ); ?>
+										<span class="dot">·</span>
+										<?php echo esc_html( sprintf( __( 'před %s', 'nkz-marketplace' ), human_time_diff( $p['submitted_at'], time() ) ) ); ?>
+									</div>
+								</div>
+								<div class="nkzmp-pend-actions">
+									<a class="nkzmp-pend-btn nkzmp-pend-btn--view" href="<?php echo esc_url( $p['edit_url'] ); ?>"><?php esc_html_e( 'Detail', 'nkz-marketplace' ); ?></a>
+									<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline;">
+										<input type="hidden" name="action" value="nkzmp_dashboard_publish_product" />
+										<input type="hidden" name="product_id" value="<?php echo (int) $p['id']; ?>" />
+										<?php wp_nonce_field( 'nkzmp_dashboard_publish_product_' . $p['id'] ); ?>
+										<button type="submit" class="nkzmp-pend-btn nkzmp-pend-btn--approve">
+											<?php esc_html_e( 'Publikovat', 'nkz-marketplace' ); ?> →
+										</button>
+									</form>
+								</div>
+							</li>
+						<?php endforeach; ?>
+					</ul>
+				</section>
+			<?php endif; ?>
 
 			<?php if ( ! empty( $pending ) ) : ?>
 				<section class="nkzmp-dash-block nkzmp-dash-pending">
@@ -541,6 +619,20 @@ final class DashboardPage {
 				color: #fff !important;
 			}
 
+			.nkzmp-pend-product-img {
+				width: 56px;
+				height: 56px;
+				flex-shrink: 0;
+				border: 1px solid #0a0a0a;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				background: #f5f5f5;
+				overflow: hidden;
+			}
+			.nkzmp-pend-product-img img { width: 56px; height: 56px; object-fit: cover; display: block; }
+			.nkzmp-pend-noimg { color: rgba(10,10,10,0.3); font-size: 24px; }
+
 			/* Quick actions */
 			.nkzmp-dash-actions {
 				display: grid;
@@ -659,6 +751,49 @@ final class DashboardPage {
 	/**
 	 * @return \NKZMP\Audit\Event[]
 	 */
+	/**
+	 * @return array<int, array{id:int,name:string,price_html:string,thumb:string,vendor_name:string,submitted_at:int,edit_url:string}>
+	 */
+	private function pending_products(): array {
+		if ( ! function_exists( 'wc_get_product' ) ) {
+			return [];
+		}
+		$q = new \WP_Query( [
+			'post_type'      => 'product',
+			'post_status'    => 'pending',
+			'posts_per_page' => 10,
+			'orderby'        => 'date',
+			'order'          => 'DESC',
+			'meta_query'     => [
+				'relation' => 'OR',
+				[ 'key' => '_nkzmp_vendor_id', 'compare' => 'EXISTS' ],
+				[ 'key' => '_nkv_vendor_id', 'compare' => 'EXISTS' ],
+			],
+		] );
+		$out = [];
+		foreach ( $q->posts as $post ) {
+			$product = wc_get_product( $post->ID );
+			if ( ! $product ) {
+				continue;
+			}
+			$vid = (int) get_post_meta( $post->ID, '_nkzmp_vendor_id', true );
+			if ( $vid <= 0 ) {
+				$vid = (int) get_post_meta( $post->ID, '_nkv_vendor_id', true );
+			}
+			$vendor_post = $vid ? get_post( $vid ) : null;
+			$out[] = [
+				'id'           => $post->ID,
+				'name'         => $product->get_name(),
+				'price_html'   => wp_strip_all_tags( (string) $product->get_price_html() ),
+				'thumb'        => $product->get_image( [ 56, 56 ] ),
+				'vendor_name'  => $vendor_post ? $vendor_post->post_title : '',
+				'submitted_at' => (int) get_post_time( 'U', true, $post ),
+				'edit_url'     => (string) get_edit_post_link( $post->ID, '' ),
+			];
+		}
+		return $out;
+	}
+
 	/**
 	 * @return array<int, array{id:int,name:string,email:string,ico:string,bio:string,submitted_at:int,edit_url:string,initials:string}>
 	 */

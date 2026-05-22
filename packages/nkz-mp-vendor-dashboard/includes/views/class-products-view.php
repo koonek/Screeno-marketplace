@@ -29,10 +29,24 @@ final class ProductsView {
 		?>
 		<div class="nkzmp-vd nkzmp-vd-products">
 
-			<header class="nkzmp-vd-section-head">
-				<h1><?php esc_html_e( 'Moje produkty', 'nkz-mp-vendor-dashboard' ); ?></h1>
-				<p class="nkzmp-vd-meta"><?php echo esc_html( sprintf( __( '%d produktů', 'nkz-mp-vendor-dashboard' ), (int) $query->found_posts ) ); ?></p>
+			<header class="nkzmp-vd-section-head" style="display:flex;justify-content:space-between;align-items:flex-end;gap:24px;">
+				<div>
+					<h1><?php esc_html_e( 'Moje produkty', 'nkz-mp-vendor-dashboard' ); ?></h1>
+					<p class="nkzmp-vd-meta"><?php echo esc_html( sprintf( __( '%d produktů', 'nkz-mp-vendor-dashboard' ), (int) $query->found_posts ) ); ?></p>
+				</div>
+				<a class="nkzmp-vd-cta-new" href="<?php echo esc_url( add_query_arg( 'new', '1', wc_get_account_endpoint_url( 'vendor-products' ) ) ); ?>">
+					<?php esc_html_e( 'Nový produkt', 'nkz-mp-vendor-dashboard' ); ?> <span>+</span>
+				</a>
 			</header>
+
+			<?php
+			$flash = isset( $_GET['nkzmp_msg'] ) ? sanitize_text_field( wp_unslash( $_GET['nkzmp_msg'] ) ) : '';
+			if ( $flash === 'submitted' ) :
+				?><div class="nkzmp-vd-flash"><strong><?php esc_html_e( 'Hotovo.', 'nkz-mp-vendor-dashboard' ); ?></strong> <?php esc_html_e( 'Produkt jsme dostali. Projdeme ho a publikujeme.', 'nkz-mp-vendor-dashboard' ); ?></div><?php
+			elseif ( $flash === 'updated' ) :
+				?><div class="nkzmp-vd-flash"><strong><?php esc_html_e( 'Uloženo.', 'nkz-mp-vendor-dashboard' ); ?></strong> <?php esc_html_e( 'Produkt jde znovu na schválení.', 'nkz-mp-vendor-dashboard' ); ?></div><?php
+			endif;
+			?>
 
 			<?php if ( ! $query->have_posts() ) : ?>
 				<p class="nkzmp-vd-empty-msg"><?php esc_html_e( 'Zatím nemáš žádné produkty. Ozvi se nám a založíme ti je.', 'nkz-mp-vendor-dashboard' ); ?></p>
@@ -65,10 +79,11 @@ final class ProductsView {
 									endif; ?>
 								</td>
 								<td class="col-action">
-									<?php if ( current_user_can( 'edit_post', get_the_ID() ) ) : ?>
-										<a href="<?php echo esc_url( get_edit_post_link() ); ?>" class="nkzmp-vd-edit-link"><?php esc_html_e( 'Upravit', 'nkz-mp-vendor-dashboard' ); ?></a>
+									<?php $can_edit = in_array( get_post_status(), [ 'pending', 'draft', 'private' ], true ); ?>
+									<?php if ( $can_edit ) : ?>
+										<a href="<?php echo esc_url( add_query_arg( 'edit', get_the_ID(), wc_get_account_endpoint_url( 'vendor-products' ) ) ); ?>" class="nkzmp-vd-edit-link"><?php esc_html_e( 'Upravit', 'nkz-mp-vendor-dashboard' ); ?></a>
 									<?php else : ?>
-										<span class="nkzmp-vd-muted"><?php esc_html_e( 'Read-only', 'nkz-mp-vendor-dashboard' ); ?></span>
+										<span class="nkzmp-vd-muted"><?php esc_html_e( 'Publikováno', 'nkz-mp-vendor-dashboard' ); ?></span>
 									<?php endif; ?>
 								</td>
 							</tr>
@@ -78,7 +93,7 @@ final class ProductsView {
 			<?php endif; ?>
 
 			<p class="nkzmp-vd-note">
-				<?php esc_html_e( 'Pro úpravu produktů ti rozšíříme oprávnění do wp-adminu. Ozvi se na podporu.', 'nkz-mp-vendor-dashboard' ); ?>
+				<?php esc_html_e( 'Publikované produkty už neměníš přes panel. Pokud potřebuješ úpravu, ozvi se nám.', 'nkz-mp-vendor-dashboard' ); ?>
 			</p>
 
 		</div>

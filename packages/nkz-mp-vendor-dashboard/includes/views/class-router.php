@@ -26,7 +26,17 @@ final class Router {
 		}
 		switch ( $slug ) {
 			case 'vendor':          DashboardView::render( $vendor ); return;
-			case 'vendor-products': ProductsView::render( $vendor ); return;
+			case 'vendor-products':
+				if ( ! empty( $_GET['new'] ) ) {
+					ProductFormView::render( $vendor, null );
+					return;
+				}
+				if ( ! empty( $_GET['edit'] ) ) {
+					ProductFormView::render( $vendor, (int) $_GET['edit'] );
+					return;
+				}
+				ProductsView::render( $vendor );
+				return;
 			case 'vendor-payouts':  PayoutsView::render( $vendor ); return;
 			default: DashboardView::render( $vendor );
 		}
