@@ -200,6 +200,16 @@ final class StatusPage {
 			'detail' => sprintf( '<code>%s</code> – %d záznamů', esc_html( $payouts_table ), $payouts_count ),
 		];
 
+		// Audit table.
+		$audit_table = \NKZMP\Audit\Schema::table_name();
+		$audit_ok    = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $audit_table ) ) === $audit_table;
+		$audit_count = $audit_ok ? (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$audit_table}" ) : 0; // phpcs:ignore
+		$rows[]      = [
+			'label'  => __( 'Tabulka audit', 'nkz-marketplace' ),
+			'state'  => $audit_ok ? 'ok' : 'fail',
+			'detail' => sprintf( '<code>%s</code> – %d záznamů', esc_html( $audit_table ), $audit_count ),
+		];
+
 		// Vendor role.
 		$role = get_role( Capabilities::ROLE_VENDOR );
 		$rows[] = [

@@ -16,6 +16,7 @@ global $wpdb;
 $tables = [
 	$wpdb->prefix . 'nkzmp_ledger',
 	$wpdb->prefix . 'nkzmp_payouts',
+	$wpdb->prefix . 'nkzmp_audit',
 ];
 foreach ( $tables as $table ) {
 	$wpdb->query( "DROP TABLE IF EXISTS {$table}" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
@@ -24,6 +25,7 @@ foreach ( $tables as $table ) {
 // Remove schema version options.
 delete_option( 'nkzmp_ledger_schema_version' );
 delete_option( 'nkzmp_payout_schema_version' );
+delete_option( 'nkzmp_audit_schema_version' );
 
 // Remove role.
 if ( get_role( 'nkzmp_vendor' ) ) {

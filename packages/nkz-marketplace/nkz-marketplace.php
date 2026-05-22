@@ -54,6 +54,7 @@ register_activation_hook(
 		\NKZMP\Vendor\Registry::install_role();
 		\NKZMP\Ledger\Schema::install();
 		\NKZMP\Payout\Schema::install();
+		\NKZMP\Audit\Schema::install();
 		flush_rewrite_rules();
 	}
 );

@@ -38,6 +38,7 @@ final class StatusCommand {
 
 		$ledger_table  = LedgerSchema::table_name();
 		$payouts_table = PayoutSchema::table_name();
+		$audit_table   = \NKZMP\Audit\Schema::table_name();
 
 		$data = [
 			'version'         => defined( 'NKZMP_VERSION' ) ? NKZMP_VERSION : 'unknown',
@@ -49,6 +50,9 @@ final class StatusCommand {
 			'payouts_table'   => $payouts_table,
 			'payouts_exists'  => $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $payouts_table ) ) === $payouts_table,
 			'payouts_count'   => 0,
+			'audit_table'     => $audit_table,
+			'audit_exists'    => $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $audit_table ) ) === $audit_table,
+			'audit_count'     => 0,
 			'vendor_role'     => (bool) get_role( Capabilities::ROLE_VENDOR ),
 			'core_cpt_active' => defined( 'NKZMP_ENABLE_CORE_CPT' ) && NKZMP_ENABLE_CORE_CPT,
 			'legacy_active'   => is_plugin_active( 'nkz-woo-stripe-vendor-split/nkz-woo-stripe-vendor-split.php' ),
@@ -59,6 +63,9 @@ final class StatusCommand {
 		}
 		if ( $data['payouts_exists'] ) {
 			$data['payouts_count'] = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$payouts_table}" ); // phpcs:ignore
+		}
+		if ( $data['audit_exists'] ) {
+			$data['audit_count'] = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$audit_table}" ); // phpcs:ignore
 		}
 
 		$format = $assoc_args['format'] ?? 'table';
@@ -78,7 +85,7 @@ final class StatusCommand {
 		}
 		\WP_CLI::line( '' );
 
-		$fatal = ! $data['ledger_exists'] || ! $data['payouts_exists'] || ! $data['vendor_role'];
+		$fatal = ! $data['ledger_exists'] || ! $data['payouts_exists'] || ! $data['audit_exists'] || ! $data['vendor_role'];
 		if ( $fatal ) {
 			\WP_CLI::warning( 'Some core install steps are missing. Try deactivate + activate.' );
 		} else {

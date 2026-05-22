@@ -23,7 +23,7 @@ Veřejný API kontrakt. Všechny hooky core jsou prefixované `nkzmp/v1/*`. Add-
 |---|---|---|---|
 | `nkzmp/v1/allocation/calculate` | filter | `Allocation[] $allocations, WC_Order $order` | Po výpočtu, před zápisem do ledgeru. Adapter může upravit. *(planned)* |
 | `nkzmp/v1/allocation/calculated` | action | `Allocation[] $allocations, WC_Order $order` | Po definitivní alokaci. *(planned)* |
-| `nkzmp/v1/ledger/entry_recorded` | action | `LedgerEntry $entry` | Po zápisu do `wp_nkzmp_ledger`. *(planned)* |
+| `nkzmp/v1/ledger/entry_recorded` | action | `Ledger\Entry $entry` | Po zápisu do `wp_nkzmp_ledger`. |
 | `nkzmp/v1/ledger/reconciliation` | action | `array $drift` | Cron reconciliation report. *(planned)* |
 
 ## Shipping
@@ -37,8 +37,27 @@ Veřejný API kontrakt. Všechny hooky core jsou prefixované `nkzmp/v1/*`. Add-
 
 | Hook | Typ | Args | Kdy |
 |---|---|---|---|
-| `nkzmp/v1/payout/transition` | action | `int $payout_id, State $from, State $to, array $context` | Při každé změně stavu. *(planned)* |
+| `nkzmp/v1/payout/transition` | action | `int $payout_id, State $from, State $to, array $context` | Při každé změně stavu. |
 | `nkzmp/v1/payout/adapter` | filter | `?PayoutAdapter $adapter, int $vendor_id` | Výběr payout adaptéru per vendor. *(planned)* |
+
+## Audit log
+
+| Hook | Typ | Args | Kdy |
+|---|---|---|---|
+| `nkzmp/v1/audit/event_recorded` | action | `Audit\Event $event` | Po zápisu do `wp_nkzmp_audit`. |
+| `nkzmp/v1/vendor/status_changed` | action | `int $vendor_id, string $from, string $to` | Listener z toho generuje audit event. Volá ho `Vendor\StatusService` *(planned)*. |
+
+## REST API (`/wp-json/nkzmp/v1/*`)
+
+| Endpoint | Method | Capability | Popis |
+|---|---|---|---|
+| `/vendors/{id}` | GET | self nebo `nkzmp_manage_vendors` | Vendor profile (interní pole skryté pro self) |
+| `/vendors/{id}/balance?currency=CZK` | GET | self+`view_own_payouts` nebo `manage_payouts` | Ledger součet pro vendora |
+| `/vendors/{id}/payouts` | GET | self+`view_own_payouts` nebo `manage_payouts` | Seznam výplat |
+| `/orders/{id}/ledger` | GET | admin nebo vendor-self pro vlastní řádky | Ledger řádky pro objednávku |
+| `/ledger` | GET | `manage_payouts` | Obecný ledger query (filtry vendor/order/type/currency) |
+
+OwnershipGuard (`NKZMP\Vendor\OwnershipGuard`) je zdroj pravdy pro „čí je co"; admin akce vrstvy nad ním nepoužívají capability check sám o sobě.
 
 ## Subscription (vendor billing)
 

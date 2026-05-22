@@ -28,6 +28,9 @@ final class Plugin {
 		if ( \NKZMP\Payout\Schema::needs_install() ) {
 			\NKZMP\Payout\Schema::install();
 		}
+		if ( \NKZMP\Audit\Schema::needs_install() ) {
+			\NKZMP\Audit\Schema::install();
+		}
 
 		// Vendor CPT + role aktivace je opt-in během Fáze 0, aby Screeno
 		// produkce (která jede na `nkv_vendor` v Stripe adapteru) nedostala
@@ -54,14 +57,19 @@ final class Plugin {
 		// Bez jakékoli interakce se samotným transferem.
 		\NKZMP\Integration\LegacyStripeObserver::instance()->init();
 
+		// Audit log – posluchač doménových hooků.
+		\NKZMP\Audit\Listener::instance()->init();
+
+		// REST API nkzmp/v1/*.
+		\NKZMP\Rest\Router::instance()->init();
+
+		// GDPR exporter / eraser.
+		\NKZMP\Gdpr\Registrar::instance()->init();
+
 		// TODO Phase 0:
 		// - Product\Ownership admin UI panel + capability guard
 		// - Allocation\Service (Order → Allocation[])
-		// - Payout\StateMachine
-		// - Audit\Log
-		// - REST routes nkzmp/v1/*
-		// - WP-CLI: wp nkzmp ...
-		// - GDPR exporter/eraser hooks
+		// - Payout\StateMachine wire-up se Stripe adapterem
 		// - Reconciliation cron (ledger ↔ Stripe balance_transaction)
 	}
 }
