@@ -74,6 +74,14 @@ final class EmailService {
 		self::send( $vendor['email'], $subject, $body );
 	}
 
+	/**
+	 * Veřejný entrypoint pro plaintext e-mail bez settings šablony.
+	 * Použito např. pro password setup po auto-create WP usera.
+	 */
+	public static function send_raw( string $to, string $subject, string $body ): void {
+		self::send( $to, $subject, $body );
+	}
+
 	private static function base_vars( int $vendor_id, array $vendor ): array {
 		$stripe_link = '';
 		if ( class_exists( \NKVSVS\Onboarding_Controller::class ) ) {

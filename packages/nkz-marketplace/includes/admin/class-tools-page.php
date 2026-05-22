@@ -33,7 +33,21 @@ final class ToolsPage {
 		add_action( 'admin_post_nkzmp_vendor_status', [ $this, 'handle_status' ] );
 		add_action( 'admin_post_nkzmp_run_reconcile', [ $this, 'handle_reconcile' ] );
 		add_action( 'admin_post_nkzmp_run_backfill', [ $this, 'handle_backfill' ] );
+		add_action( 'admin_post_nkzmp_cleanup_roles', [ $this, 'handle_cleanup_roles' ] );
 	}
+
+	private const LEGACY_ROLES = [
+		'vendor',
+		'wcfm_vendor',
+		'dc_vendor',
+		'seller',
+		'wcv_vendor',
+		'store_owner',
+		'rejected_vendor',
+		'pending_vendor',
+		'dokan_vendor',
+		'wcmp_vendor',
+	];
 
 	public function register_menu(): void {
 		add_submenu_page(
@@ -70,7 +84,86 @@ final class ToolsPage {
 		$this->render_backfill_section();
 		echo '<hr style="margin:24px 0;">';
 		$this->render_reconcile_section();
+		echo '<hr style="margin:24px 0;">';
+		$this->render_cleanup_roles_section();
 		echo '</div>';
+	}
+
+	private function render_cleanup_roles_section(): void {
+		echo '<h2>' . esc_html__( 'Smazat staré vendor role (Dokan / WC Vendors / WCFM …)', 'nkz-marketplace' ) . '</h2>';
+		echo '<p>' . esc_html__( 'Najde role, které zbyly po předchozích marketplace pluginech. Smaže jen ty s 0 uživateli — bezpečné.', 'nkz-marketplace' ) . '</p>';
+
+		$found = [];
+		foreach ( self::LEGACY_ROLES as $role_slug ) {
+			$role = get_role( $role_slug );
+			if ( ! $role ) {
+				continue;
+			}
+			$users = get_users( [ 'role' => $role_slug, 'number' => 1, 'fields' => 'ID' ] );
+			$count = count( get_users( [ 'role' => $role_slug, 'fields' => 'ID' ] ) );
+			$found[] = [ 'slug' => $role_slug, 'count' => $count ];
+		}
+
+		if ( empty( $found ) ) {
+			echo '<p><em>' . esc_html__( 'Žádné staré role nenalezeny. Čisto.', 'nkz-marketplace' ) . '</em></p>';
+			return;
+		}
+
+		echo '<table class="widefat striped" style="max-width:600px;margin-bottom:12px;"><thead><tr>';
+		echo '<th>' . esc_html__( 'Role', 'nkz-marketplace' ) . '</th>';
+		echo '<th>' . esc_html__( 'Uživatelů', 'nkz-marketplace' ) . '</th>';
+		echo '<th>' . esc_html__( 'Stav', 'nkz-marketplace' ) . '</th>';
+		echo '</tr></thead><tbody>';
+		foreach ( $found as $r ) {
+			$safe = $r['count'] === 0;
+			echo '<tr>';
+			echo '<td><code>' . esc_html( $r['slug'] ) . '</code></td>';
+			echo '<td>' . (int) $r['count'] . '</td>';
+			echo '<td style="color:' . ( $safe ? '#46b450' : '#dc3232' ) . ';">' . esc_html( $safe ? __( 'lze smazat', 'nkz-marketplace' ) : __( 'NE — má uživatele', 'nkz-marketplace' ) ) . '</td>';
+			echo '</tr>';
+		}
+		echo '</tbody></table>';
+
+		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+		echo '<input type="hidden" name="action" value="nkzmp_cleanup_roles" />';
+		wp_nonce_field( self::NONCE_ACTION );
+		echo '<button type="submit" class="button button-primary">' . esc_html__( 'Smazat prázdné role', 'nkz-marketplace' ) . '</button>';
+		echo '</form>';
+	}
+
+	public function handle_cleanup_roles(): void {
+		check_admin_referer( self::NONCE_ACTION );
+		if ( ! current_user_can( Capabilities::MANAGE_VENDORS ) ) {
+			wp_die( esc_html__( 'Nedostatečná oprávnění.', 'nkz-marketplace' ) );
+		}
+		$removed = [];
+		$skipped = [];
+		foreach ( self::LEGACY_ROLES as $role_slug ) {
+			if ( ! get_role( $role_slug ) ) {
+				continue;
+			}
+			$user_count = count( get_users( [ 'role' => $role_slug, 'fields' => 'ID' ] ) );
+			if ( $user_count > 0 ) {
+				$skipped[] = $role_slug;
+				continue;
+			}
+			remove_role( $role_slug );
+			$removed[] = $role_slug;
+		}
+
+		if ( class_exists( \NKZMP\Audit\Recorder::class ) ) {
+			( new \NKZMP\Audit\Recorder() )->record(
+				action:      'roles.cleanup',
+				entity_type: 'system',
+				entity_id:   0,
+				summary:     sprintf( 'Removed %d legacy roles, %d skipped (non-empty)', count( $removed ), count( $skipped ) ),
+				payload:     [ 'removed' => $removed, 'skipped' => $skipped ],
+			);
+		}
+
+		$flash = empty( $skipped ) ? 'ok' : ( empty( $removed ) ? 'err' : 'ok' );
+		$msg   = sprintf( __( 'Smazáno: %d. Přeskočeno (mají uživatele): %d.', 'nkz-marketplace' ), count( $removed ), count( $skipped ) );
+		$this->redirect( $flash, $msg );
 	}
 
 	private function render_backfill_section(): void {
