@@ -6,7 +6,7 @@
 
 | Package | Verze | Stav |
 |---|---|---|
-| `nkz-marketplace` (core) | **0.8.0-dev** | dev — Fáze 0 téměř hotová |
+| `nkz-marketplace` (core) | **0.8.1-dev** | dev — Fáze 0 téměř hotová |
 | `nkz-mp-stripe` (slug `nkz-woo-stripe-vendor-split`) | **0.6.7** | produkční pro Screeno |
 
 ## Fáze 0 — Refactor + rename + observability
