@@ -48,6 +48,21 @@ spl_autoload_register(
 
 require_once NKZMP_PLUGIN_DIR . 'includes/helpers.php';
 
+register_activation_hook(
+	__FILE__,
+	static function (): void {
+		\NKZMP\Vendor\Registry::install_role();
+		flush_rewrite_rules();
+	}
+);
+
+register_deactivation_hook(
+	__FILE__,
+	static function (): void {
+		flush_rewrite_rules();
+	}
+);
+
 add_action(
 	'plugins_loaded',
 	static function (): void {
