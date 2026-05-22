@@ -52,6 +52,7 @@ register_activation_hook(
 	__FILE__,
 	static function (): void {
 		\NKZMP\Vendor\Registry::install_role();
+		\NKZMP\Ledger\Schema::install();
 		flush_rewrite_rules();
 	}
 );

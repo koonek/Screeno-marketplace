@@ -20,6 +20,12 @@ final class Plugin {
 	public function init(): void {
 		load_plugin_textdomain( 'nkz-marketplace', false, dirname( plugin_basename( NKZMP_PLUGIN_FILE ) ) . '/languages' );
 
+		// Lazy install ledgeru – pro případ, že aktivace neproběhla (např.
+		// must-use load) nebo schema potřebuje upgrade.
+		if ( \NKZMP\Ledger\Schema::needs_install() ) {
+			\NKZMP\Ledger\Schema::install();
+		}
+
 		// Vendor CPT + role aktivace je opt-in během Fáze 0, aby Screeno
 		// produkce (která jede na `nkv_vendor` v Stripe adapteru) nedostala
 		// dvě CPT registrace najednou. Po `wp nkzmp migrate-vendors` se
@@ -29,13 +35,13 @@ final class Plugin {
 		}
 
 		// TODO Phase 0:
-		// - Product\Ownership (meta UI panel, capability guard)
+		// - Product\Ownership admin UI panel + capability guard
 		// - Allocation\Service (Order → Allocation[])
-		// - Ledger (append-only DB table)
 		// - Payout\StateMachine
 		// - Audit\Log
 		// - REST routes nkzmp/v1/*
 		// - WP-CLI: wp nkzmp ...
 		// - GDPR exporter/eraser hooks
+		// - Reconciliation cron (ledger ↔ Stripe balance_transaction)
 	}
 }
