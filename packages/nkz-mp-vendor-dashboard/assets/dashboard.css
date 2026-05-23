@@ -504,21 +504,28 @@ body.nkzmp-account .woocommerce-message {
 
 /* ── New product CTA + flash ─────────────────────────────────── */
 
-.nkzmp-vd-cta-new {
-	display: inline-flex;
-	align-items: center;
-	gap: 8px;
-	padding: 12px 22px;
-	background: var(--nkzmp-vd-text);
-	color: var(--nkzmp-vd-bg) !important;
-	font-size: 14px;
-	font-weight: 500;
+.nkzmp-vd-cta-new,
+a.nkzmp-vd-cta-new {
+	display: inline-flex !important;
+	align-items: center !important;
+	gap: 8px !important;
+	padding: 12px 22px !important;
+	background: #0060FF !important;
+	background-color: #0060FF !important;
+	color: #fff !important;
+	font-size: 14px !important;
+	font-weight: 500 !important;
 	text-decoration: none !important;
-	transition: background 0.15s ease;
-	border: 1px solid var(--nkzmp-vd-text);
+	border: 1px solid #0060FF !important;
+	border-radius: 0 !important;
+	box-shadow: none !important;
+	transition: background 0.15s ease, border-color 0.15s ease !important;
 }
-.nkzmp-vd-cta-new:hover { background: var(--nkzmp-vd-accent); border-color: var(--nkzmp-vd-accent); }
-.nkzmp-vd-cta-new span { font-size: 18px; line-height: 1; }
+.nkzmp-vd-cta-new *,
+a.nkzmp-vd-cta-new * { color: #fff !important; }
+.nkzmp-vd-cta-new:hover,
+a.nkzmp-vd-cta-new:hover { background: #0050d6 !important; background-color: #0050d6 !important; border-color: #0050d6 !important; color: #fff !important; }
+.nkzmp-vd-cta-new span { font-size: 18px !important; line-height: 1 !important; }
 
 .nkzmp-vd-flash {
 	display: flex;
@@ -722,8 +729,8 @@ button.nkzmp-vd-submit[type="submit"] {
 	align-items: center !important;
 	gap: 12px !important;
 	padding: 16px 32px !important;
-	background: #000 !important;
-	background-color: #000 !important;
+	background: #0060FF !important;
+	background-color: #0060FF !important;
 	background-image: none !important;
 	color: #fff !important;
 	font-family: inherit !important;
@@ -742,12 +749,14 @@ button.nkzmp-vd-submit[type="submit"] {
 	text-shadow: none !important;
 	min-height: 0 !important;
 }
-body.nkzmp-account .nkzmp-vd button.nkzmp-vd-submit svg { width: 18px !important; height: 18px !important; transition: transform 0.2s ease !important; flex-shrink: 0 !important; }
+body.nkzmp-account .nkzmp-vd button.nkzmp-vd-submit svg { width: 18px !important; height: 18px !important; transition: transform 0.2s ease !important; flex-shrink: 0 !important; color: #fff !important; }
+body.nkzmp-account .nkzmp-vd button.nkzmp-vd-submit span,
+.nkzmp-vd button.nkzmp-vd-submit span { color: #fff !important; }
 body.nkzmp-account .nkzmp-vd button.nkzmp-vd-submit:hover,
 .nkzmp-vd .nkzmp-vd-form button.nkzmp-vd-submit:hover {
 	gap: 16px !important;
-	background: #0060FF !important;
-	background-color: #0060FF !important;
+	background: #0050d6 !important;
+	background-color: #0050d6 !important;
 	color: #fff !important;
 }
 body.nkzmp-account .nkzmp-vd button.nkzmp-vd-submit:hover svg { transform: translateX(4px) !important; }
