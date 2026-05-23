@@ -91,6 +91,10 @@ final class StripeApi {
 		return $this->get( 'subscriptions/' . $subscription_id );
 	}
 
+	public function get_checkout_session( string $session_id ): ?array {
+		return $this->get( 'checkout/sessions/' . $session_id );
+	}
+
 	private function get( string $path ): ?array {
 		return $this->request( 'GET', $path, [] );
 	}

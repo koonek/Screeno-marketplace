@@ -47,11 +47,15 @@ final class Checkout {
 			$this->bail( __( 'Nepodařilo se připravit předplatné.', 'nkz-mp-vendor-billing' ) );
 		}
 
-		$return = wc_get_account_endpoint_url( 'vendor-billing' );
+		$return  = wc_get_account_endpoint_url( 'vendor-billing' );
+		// {CHECKOUT_SESSION_ID} doplní Stripe; na návratu ho ověříme přímo
+		// (nezávisle na webhooku, který nemusí být ještě nastavený).
+		$success = add_query_arg( 'nkzmp_billing', 'success', $return );
+		$success .= ( strpos( $success, '?' ) !== false ? '&' : '?' ) . 'session_id={CHECKOUT_SESSION_ID}';
 		$session = $api->create_subscription_checkout(
 			$customer,
 			$price_id,
-			add_query_arg( 'nkzmp_billing', 'success', $return ),
+			$success,
 			add_query_arg( 'nkzmp_billing', 'cancel', $return ),
 			[ 'vendor_id' => (string) $vendor_id ]
 		);
