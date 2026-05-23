@@ -23,5 +23,6 @@ final class Plugin {
 		Enforcement::instance()->init();
 		AccountSection::instance()->init();
 		Checkout::instance()->init();
+		AdminOverview::instance()->init();
 	}
 }

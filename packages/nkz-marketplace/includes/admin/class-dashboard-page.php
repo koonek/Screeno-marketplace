@@ -311,6 +311,11 @@ final class DashboardPage {
 				</aside>
 
 			</div>
+
+			<?php
+			/** Místo pro doplňkové sekce z modulů (billing přehled atd.). */
+			do_action( 'nkzmp/v1/admin/dashboard/after', $this );
+			?>
 		</div>
 
 		<style>
