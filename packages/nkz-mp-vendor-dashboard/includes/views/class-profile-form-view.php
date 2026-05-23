@@ -1,0 +1,114 @@
+<?php
+/**
+ * ProfileFormView – vendor self-service editace profilu.
+ *
+ * Pole: display name, bio, web, featured image, shipping paušál (pokud
+ * shipping modul aktivní). Změny se ukládají rovnou (bez schvalování).
+ *
+ * @package NKZMP\Dashboard
+ */
+
+namespace NKZMP\Dashboard\Views;
+
+defined( 'ABSPATH' ) || exit;
+
+final class ProfileFormView {
+
+	public static function render( array $vendor ): void {
+		$vendor_id = (int) $vendor['id'];
+
+		$flash = isset( $_GET['nkzmp_msg'] ) ? sanitize_text_field( wp_unslash( $_GET['nkzmp_msg'] ) ) : '';
+		$error = isset( $_GET['nkzmp_err'] ) ? sanitize_text_field( wp_unslash( $_GET['nkzmp_err'] ) ) : '';
+
+		$name      = (string) $vendor['name'];
+		$bio       = (string) $vendor['bio'];
+		$website   = (string) $vendor['website'];
+		$thumb_id  = get_post_thumbnail_id( $vendor_id );
+
+		$shipping_active = defined( 'NKZMP_SHIPPING_VENDOR_RATE_META' );
+		$shipping_rate   = $shipping_active ? get_post_meta( $vendor_id, NKZMP_SHIPPING_VENDOR_RATE_META, true ) : '';
+
+		?>
+		<div class="nkzmp-vd nkzmp-vd-profile-form">
+
+			<header class="nkzmp-vd-section-head">
+				<h1><?php esc_html_e( 'Můj profil', 'nkz-mp-vendor-dashboard' ); ?></h1>
+				<p class="nkzmp-vd-meta"><?php esc_html_e( 'Jak tě uvidí zákazníci na tvojí veřejné stránce.', 'nkz-mp-vendor-dashboard' ); ?></p>
+			</header>
+
+			<?php if ( $flash === 'profile_saved' ) : ?>
+				<div class="nkzmp-vd-flash nkzmp-vd-flash--success">
+					<div class="icon">✓</div>
+					<div><strong><?php esc_html_e( 'Profil uložen.', 'nkz-mp-vendor-dashboard' ); ?></strong></div>
+				</div>
+			<?php endif; ?>
+			<?php if ( $error ) : ?>
+				<div class="nkzmp-vd-form-error"><strong><?php esc_html_e( 'Chyba.', 'nkz-mp-vendor-dashboard' ); ?></strong> <?php echo esc_html( $error ); ?></div>
+			<?php endif; ?>
+
+			<form class="nkzmp-vd-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" enctype="multipart/form-data">
+				<input type="hidden" name="action" value="nkzmp_vd_profile_submit" />
+				<?php wp_nonce_field( 'nkzmp_vd_profile_submit' ); ?>
+
+				<section class="nkzmp-vd-form-section">
+					<header class="nkzmp-vd-form-shead"><span class="num">01</span><h2><?php esc_html_e( 'Veřejné info', 'nkz-mp-vendor-dashboard' ); ?></h2></header>
+
+					<div class="nkzmp-vd-field">
+						<label for="vp_name"><?php esc_html_e( 'Název / jméno', 'nkz-mp-vendor-dashboard' ); ?> <span class="req">*</span></label>
+						<input id="vp_name" type="text" name="name" required maxlength="120" value="<?php echo esc_attr( $name ); ?>" />
+					</div>
+
+					<div class="nkzmp-vd-field">
+						<label for="vp_web"><?php esc_html_e( 'Web / Instagram', 'nkz-mp-vendor-dashboard' ); ?></label>
+						<input id="vp_web" type="url" name="website" placeholder="https://" value="<?php echo esc_attr( $website ); ?>" />
+					</div>
+
+					<div class="nkzmp-vd-field">
+						<label for="vp_bio"><?php esc_html_e( 'O tobě / o tvojí tvorbě', 'nkz-mp-vendor-dashboard' ); ?></label>
+						<textarea id="vp_bio" name="bio" rows="6" maxlength="2000"><?php echo esc_textarea( $bio ); ?></textarea>
+					</div>
+				</section>
+
+				<section class="nkzmp-vd-form-section">
+					<header class="nkzmp-vd-form-shead"><span class="num">02</span><h2><?php esc_html_e( 'Profilová fotka', 'nkz-mp-vendor-dashboard' ); ?></h2></header>
+
+					<div class="nkzmp-vd-image-featured-wrap">
+						<label class="nkzmp-vd-img-label"><?php esc_html_e( 'Hlavní obrázek profilu', 'nkz-mp-vendor-dashboard' ); ?></label>
+						<?php if ( $thumb_id ) : ?>
+							<div class="nkzmp-vd-img-thumb"><?php echo wp_get_attachment_image( $thumb_id, [ 200, 200 ], false, [ 'style' => 'object-fit:cover;width:200px;height:200px;' ] ); ?></div>
+						<?php endif; ?>
+						<input type="file" name="profile_image" accept="image/*" />
+						<small><?php esc_html_e( 'Logo nebo fotka tvojí tvorby. Čtvercová vychází nejlíp.', 'nkz-mp-vendor-dashboard' ); ?></small>
+					</div>
+				</section>
+
+				<?php if ( $shipping_active ) : ?>
+					<section class="nkzmp-vd-form-section">
+						<header class="nkzmp-vd-form-shead"><span class="num">03</span><h2><?php esc_html_e( 'Doprava', 'nkz-mp-vendor-dashboard' ); ?></h2></header>
+
+						<div class="nkzmp-vd-field" style="max-width:280px;">
+							<label for="vp_ship"><?php esc_html_e( 'Paušál za dopravu (Kč)', 'nkz-mp-vendor-dashboard' ); ?></label>
+							<input id="vp_ship" type="number" min="0" step="1" name="shipping_flat" value="<?php echo esc_attr( (string) $shipping_rate ); ?>" placeholder="<?php echo esc_attr( sprintf( __( 'výchozí %s', 'nkz-mp-vendor-dashboard' ), \NKZMP\Shipping\Rate::default_flat() ) ); ?>" />
+							<small><?php esc_html_e( 'Účtuje se jednou za objednávku, pokud má zákazník v košíku tvůj fyzický produkt. Prázdné = použít výchozí sazbu platformy.', 'nkz-mp-vendor-dashboard' ); ?></small>
+						</div>
+					</section>
+				<?php endif; ?>
+
+				<div class="nkzmp-vd-form-foot">
+					<button type="submit" class="nkzmp-vd-submit" style="background:#0060FF !important;background-color:#0060FF !important;color:#fff !important;border:0 !important;border-radius:0 !important;padding:16px 32px !important;font-weight:500 !important;font-size:15px !important;display:inline-flex !important;align-items:center !important;gap:12px !important;cursor:pointer !important;">
+						<span style="color:#fff !important;"><?php esc_html_e( 'Uložit profil', 'nkz-mp-vendor-dashboard' ); ?></span>
+						<svg viewBox="0 0 24 24" width="18" height="18" fill="none" aria-hidden="true" style="flex-shrink:0;color:#fff;"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+					</button>
+					<?php
+					$post = get_post( $vendor_id );
+					$slug = $post ? $post->post_name : '';
+					if ( $slug ) : ?>
+						<a class="nkzmp-vd-cancel" href="<?php echo esc_url( home_url( '/vendor/' . $slug ) ); ?>" target="_blank"><?php esc_html_e( 'Zobrazit veřejný profil', 'nkz-mp-vendor-dashboard' ); ?> →</a>
+					<?php endif; ?>
+				</div>
+			</form>
+
+		</div>
+		<?php
+	}
+}

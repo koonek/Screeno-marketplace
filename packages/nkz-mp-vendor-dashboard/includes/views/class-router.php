@@ -38,6 +38,8 @@ final class Router {
 				ProductsView::render( $vendor );
 				return;
 			case 'vendor-payouts':  PayoutsView::render( $vendor ); return;
+			case 'vendor-orders':   OrdersView::render( $vendor ); return;
+			case 'vendor-profile':  ProfileFormView::render( $vendor ); return;
 			default: DashboardView::render( $vendor );
 		}
 	}
@@ -46,7 +48,9 @@ final class Router {
 		switch ( self::current_slug() ) {
 			case 'vendor':          return __( 'Přehled', 'nkz-mp-vendor-dashboard' );
 			case 'vendor-products': return __( 'Moje produkty', 'nkz-mp-vendor-dashboard' );
+			case 'vendor-orders':   return __( 'Moje objednávky', 'nkz-mp-vendor-dashboard' );
 			case 'vendor-payouts':  return __( 'Moje výplaty', 'nkz-mp-vendor-dashboard' );
+			case 'vendor-profile':  return __( 'Můj profil', 'nkz-mp-vendor-dashboard' );
 		}
 		return $title;
 	}
@@ -56,7 +60,7 @@ final class Router {
 		if ( ! $wp instanceof \WP ) {
 			return '';
 		}
-		foreach ( [ 'vendor', 'vendor-products', 'vendor-payouts' ] as $slug ) {
+		foreach ( [ 'vendor', 'vendor-products', 'vendor-orders', 'vendor-payouts', 'vendor-profile' ] as $slug ) {
 			if ( isset( $wp->query_vars[ $slug ] ) ) {
 				return $slug;
 			}

@@ -23,5 +23,6 @@ final class Plugin {
 		Assets::instance()->init();
 		AccountChrome::instance()->init();
 		ProductSubmitController::instance()->init();
+		ProfileSubmitController::instance()->init();
 	}
 }

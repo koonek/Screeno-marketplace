@@ -18,7 +18,7 @@ defined( 'ABSPATH' ) || exit;
 
 final class Endpoints {
 
-	public const SLUGS = [ 'vendor', 'vendor-products', 'vendor-payouts' ];
+	public const SLUGS = [ 'vendor', 'vendor-products', 'vendor-orders', 'vendor-payouts', 'vendor-profile' ];
 
 	private static ?Endpoints $instance = null;
 
@@ -61,7 +61,9 @@ final class Endpoints {
 		$vendor_items = [
 			'vendor'          => __( 'Vendor: Přehled', 'nkz-mp-vendor-dashboard' ),
 			'vendor-products' => __( 'Vendor: Produkty', 'nkz-mp-vendor-dashboard' ),
+			'vendor-orders'   => __( 'Vendor: Objednávky', 'nkz-mp-vendor-dashboard' ),
 			'vendor-payouts'  => __( 'Vendor: Výplaty', 'nkz-mp-vendor-dashboard' ),
+			'vendor-profile'  => __( 'Vendor: Profil', 'nkz-mp-vendor-dashboard' ),
 		];
 
 		// Vlož vendor položky hned po Dashboard.
