@@ -29,6 +29,14 @@ final class Redirect {
 		if ( wp_doing_ajax() || wp_doing_cron() ) {
 			return;
 		}
+		// CRITICAL: nesmíme redirectovat z admin-post.php (kde běží naše
+		// formulářové akce typu nkzmp_vd_product_submit) ani z admin-ajax.php.
+		// Když by tu redirect proběhl před admin_post_* hookem, form data se
+		// zahodí a vendor skončí na dashboardu místo zpracování submitu.
+		$pagenow = $GLOBALS['pagenow'] ?? '';
+		if ( in_array( $pagenow, [ 'admin-post.php', 'admin-ajax.php', 'async-upload.php' ], true ) ) {
+			return;
+		}
 		if ( ! is_user_logged_in() ) {
 			return;
 		}
