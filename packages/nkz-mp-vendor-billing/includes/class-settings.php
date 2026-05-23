@@ -26,11 +26,12 @@ final class Settings {
 
 	public static function get(): array {
 		$defaults = [
-			'enabled'       => 'no',
-			'amount'        => 250,      // CZK / měsíc
-			'currency'      => 'CZK',
-			'grace_days'    => 7,
-			'product_name'  => 'Členství prodejce – Art of život',
+			'enabled'        => 'no',
+			'amount'         => 250,      // CZK / měsíc
+			'currency'       => 'CZK',
+			'grace_days'     => 7,
+			'product_name'   => 'Členství prodejce – Art of život',
+			'webhook_secret' => '',       // whsec_... ze Stripe webhook endpointu
 		];
 		$saved = get_option( self::OPTION, [] );
 		return array_merge( $defaults, is_array( $saved ) ? $saved : [] );
@@ -82,8 +83,10 @@ final class Settings {
 		$this->text_row( 'currency', __( 'Měna', 'nkz-mp-vendor-billing' ), $s['currency'] );
 		$this->text_row( 'grace_days', __( 'Grace period (dny po neúspěšné platbě)', 'nkz-mp-vendor-billing' ), $s['grace_days'], 'number' );
 		$this->text_row( 'product_name', __( 'Název položky na faktuře', 'nkz-mp-vendor-billing' ), $s['product_name'] );
+		$this->text_row( 'webhook_secret', __( 'Webhook signing secret (whsec_…)', 'nkz-mp-vendor-billing' ), $s['webhook_secret'] );
 
 		echo '</table>';
+		echo '<p class="description" style="max-width:640px;">' . esc_html__( 'Signing secret najdeš v Stripe Dashboard → Developers → Webhooks → tvůj endpoint → "Signing secret". Bez něj se webhooky NEOVĚŘUJÍ (OK pro test, NUTNÉ pro produkci s reálnými penězi).', 'nkz-mp-vendor-billing' ) . '</p>';
 		submit_button();
 		echo '</form></div>';
 	}

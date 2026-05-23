@@ -44,7 +44,20 @@ final class WebhookController {
 	}
 
 	public function handle( \WP_REST_Request $req ) {
-		$event = json_decode( $req->get_body(), true );
+		$payload = $req->get_body();
+
+		// Signature verification. Pokud je v Settings signing secret, podpis se
+		// VYŽADUJE (jinak 400). Bez secretu projde (dev/staging bez webhook secretu).
+		$secret = (string) Settings::get()['webhook_secret'];
+		if ( $secret !== '' ) {
+			$sig = (string) $req->get_header( 'stripe_signature' );
+			if ( ! Signature::verify( $payload, $sig, $secret ) ) {
+				error_log( '[NKZMP Billing] webhook signature mismatch' );
+				return new \WP_REST_Response( [ 'ok' => false, 'error' => 'invalid signature' ], 400 );
+			}
+		}
+
+		$event = json_decode( $payload, true );
 		if ( ! is_array( $event ) || empty( $event['type'] ) ) {
 			return new \WP_REST_Response( [ 'ok' => false ], 400 );
 		}
