@@ -42,6 +42,7 @@ cp -r "$PACKAGES_DIR/nkz-mp-storefront"          "$AOZ_DIR/modules/nkz-mp-storef
 cp -r "$PACKAGES_DIR/nkz-mp-vendor-registration" "$AOZ_DIR/modules/nkz-mp-vendor-registration"
 cp -r "$PACKAGES_DIR/nkz-mp-vendor-dashboard"    "$AOZ_DIR/modules/nkz-mp-vendor-dashboard"
 cp -r "$PACKAGES_DIR/nkz-mp-shipping"            "$AOZ_DIR/modules/nkz-mp-shipping"
+cp -r "$PACKAGES_DIR/nkz-mp-vendor-billing"      "$AOZ_DIR/modules/nkz-mp-vendor-billing"
 cp     "$PACKAGES_DIR/nkz-mp-aoz-bundle/nkz-mp-aoz-bundle.php" "$AOZ_DIR/"
 cp     "$PACKAGES_DIR/nkz-mp-aoz-bundle/README.md"             "$AOZ_DIR/"
 
