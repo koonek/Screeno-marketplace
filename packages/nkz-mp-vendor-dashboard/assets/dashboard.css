@@ -381,6 +381,127 @@ body.nkzmp-account .woocommerce-message {
 	font-style: italic;
 }
 
+/* ── Product card grid ───────────────────────────────────────── */
+
+.nkzmp-vd-product-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+	gap: 24px;
+	margin-bottom: 16px;
+}
+
+.nkzmp-vd-card {
+	display: flex;
+	flex-direction: column;
+	background: var(--nkzmp-vd-bg);
+	border: 1px solid var(--nkzmp-vd-line-bold);
+	transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.nkzmp-vd-card:hover {
+	transform: translateY(-2px);
+	box-shadow: 6px 6px 0 0 var(--nkzmp-vd-text);
+}
+.nkzmp-vd-card--pending { border-color: var(--nkzmp-vd-warn); }
+.nkzmp-vd-card--draft   { border-style: dashed; }
+
+.nkzmp-vd-card-media {
+	position: relative;
+	aspect-ratio: 1 / 1;
+	overflow: hidden;
+	background: #f5f5f5;
+	border-bottom: 1px solid var(--nkzmp-vd-line);
+}
+.nkzmp-vd-card-media img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	display: block;
+}
+.nkzmp-vd-card-status {
+	position: absolute;
+	top: 10px;
+	left: 10px;
+	padding: 4px 10px;
+	font-size: 10px;
+	font-weight: 600;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+}
+
+.nkzmp-vd-card-body {
+	padding: 16px;
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+.nkzmp-vd-card-title {
+	margin: 0;
+	font-size: 16px;
+	font-weight: 500;
+	letter-spacing: -0.005em;
+	line-height: 1.25;
+	color: var(--nkzmp-vd-text);
+}
+.nkzmp-vd-card-price {
+	font-size: 15px;
+	font-weight: 500;
+	color: var(--nkzmp-vd-text);
+}
+.nkzmp-vd-card-price del { color: var(--nkzmp-vd-muted); margin-right: 4px; font-weight: 400; }
+.nkzmp-vd-card-price ins { text-decoration: none; }
+.nkzmp-vd-card-stock {
+	font-size: 12px;
+	color: var(--nkzmp-vd-muted);
+	margin-top: auto;
+	padding-top: 4px;
+}
+
+.nkzmp-vd-card-actions {
+	display: flex;
+	gap: 1px;
+	background: var(--nkzmp-vd-line-bold);
+	border-top: 1px solid var(--nkzmp-vd-line-bold);
+}
+.nkzmp-vd-card-edit,
+.nkzmp-vd-card-view {
+	flex: 1;
+	text-align: center;
+	padding: 12px 8px;
+	font-size: 13px;
+	font-weight: 500;
+	text-decoration: none !important;
+	background: var(--nkzmp-vd-bg);
+	color: var(--nkzmp-vd-text) !important;
+	transition: background 0.15s ease, color 0.15s ease;
+}
+.nkzmp-vd-card-edit:hover { background: var(--nkzmp-vd-text); color: var(--nkzmp-vd-bg) !important; }
+.nkzmp-vd-card-view:hover { background: var(--nkzmp-vd-accent); color: var(--nkzmp-vd-bg) !important; }
+
+/* Empty state */
+.nkzmp-vd-products-empty {
+	text-align: center;
+	padding: 64px 24px;
+	border: 1px dashed var(--nkzmp-vd-line-bold);
+}
+.nkzmp-vd-products-empty-art {
+	font-size: 48px;
+	font-weight: 300;
+	color: var(--nkzmp-vd-accent);
+	line-height: 1;
+	margin-bottom: 16px;
+}
+.nkzmp-vd-products-empty h2 {
+	font-size: 24px;
+	font-weight: 400;
+	letter-spacing: -0.01em;
+	margin: 0 0 8px;
+}
+.nkzmp-vd-products-empty p {
+	color: var(--nkzmp-vd-muted);
+	margin: 0 0 24px;
+}
+
 /* ── New product CTA + flash ─────────────────────────────────── */
 
 .nkzmp-vd-cta-new {

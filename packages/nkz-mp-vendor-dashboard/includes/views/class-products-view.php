@@ -65,47 +65,63 @@ final class ProductsView {
 			?>
 
 			<?php if ( ! $query->have_posts() ) : ?>
-				<p class="nkzmp-vd-empty-msg"><?php esc_html_e( 'Zatím nemáš žádné produkty. Ozvi se nám a založíme ti je.', 'nkz-mp-vendor-dashboard' ); ?></p>
+				<div class="nkzmp-vd-products-empty">
+					<div class="nkzmp-vd-products-empty-art">+</div>
+					<h2><?php esc_html_e( 'Zatím tu nic není', 'nkz-mp-vendor-dashboard' ); ?></h2>
+					<p><?php esc_html_e( 'Přidej svůj první produkt. Projdeme ho a publikujeme.', 'nkz-mp-vendor-dashboard' ); ?></p>
+					<a class="nkzmp-vd-cta-new" href="<?php echo esc_url( add_query_arg( 'new', '1', wc_get_account_endpoint_url( 'vendor-products' ) ) ); ?>">
+						<?php esc_html_e( 'Nový produkt', 'nkz-mp-vendor-dashboard' ); ?> <span>+</span>
+					</a>
+				</div>
 			<?php else : ?>
-				<table class="nkzmp-vd-table">
-					<thead>
-						<tr>
-							<th class="col-img"></th>
-							<th><?php esc_html_e( 'Produkt', 'nkz-mp-vendor-dashboard' ); ?></th>
-							<th><?php esc_html_e( 'Cena', 'nkz-mp-vendor-dashboard' ); ?></th>
-							<th><?php esc_html_e( 'Stav', 'nkz-mp-vendor-dashboard' ); ?></th>
-							<th><?php esc_html_e( 'Sklad', 'nkz-mp-vendor-dashboard' ); ?></th>
-							<th></th>
-						</tr>
-					</thead>
-					<tbody>
-						<?php while ( $query->have_posts() ) : $query->the_post(); $product = wc_get_product( get_the_ID() ); if ( ! $product ) { continue; } ?>
-							<tr>
-								<td class="col-img"><?php echo $product->get_image( [ 56, 56 ] ); // phpcs:ignore ?></td>
-								<td>
-									<a href="<?php the_permalink(); ?>" target="_blank" class="nkzmp-vd-product-name"><?php echo esc_html( $product->get_name() ); ?></a>
-								</td>
-								<td><?php echo wp_kses_post( $product->get_price_html() ); ?></td>
-								<td><span class="nkzmp-vd-pill nkzmp-vd-pill--<?php echo esc_attr( get_post_status() ); ?>"><?php echo esc_html( self::status_label( get_post_status() ) ); ?></span></td>
-								<td>
+				<div class="nkzmp-vd-product-grid">
+					<?php while ( $query->have_posts() ) : $query->the_post(); $product = wc_get_product( get_the_ID() ); if ( ! $product ) { continue; }
+						$status   = get_post_status();
+						$can_edit = in_array( $status, [ 'pending', 'draft', 'private' ], true );
+						$edit_url = add_query_arg( 'edit', get_the_ID(), wc_get_account_endpoint_url( 'vendor-products' ) );
+						?>
+						<article class="nkzmp-vd-card nkzmp-vd-card--<?php echo esc_attr( $status ); ?>">
+							<div class="nkzmp-vd-card-media">
+								<?php echo $product->get_image( 'medium' ); // phpcs:ignore ?>
+								<span class="nkzmp-vd-card-status nkzmp-vd-pill--<?php echo esc_attr( $status ); ?>"><?php echo esc_html( self::status_label( $status ) ); ?></span>
+							</div>
+							<div class="nkzmp-vd-card-body">
+								<h3 class="nkzmp-vd-card-title"><?php echo esc_html( $product->get_name() ); ?></h3>
+								<div class="nkzmp-vd-card-price"><?php echo wp_kses_post( $product->get_price_html() ); ?></div>
+								<div class="nkzmp-vd-card-stock">
 									<?php if ( $product->managing_stock() ) :
-										echo esc_html( (string) $product->get_stock_quantity() );
+										echo esc_html( sprintf( __( '%d ks skladem', 'nkz-mp-vendor-dashboard' ), (int) $product->get_stock_quantity() ) );
 									else :
-										echo esc_html( $product->get_stock_status() === 'instock' ? __( 'Na skladě', 'nkz-mp-vendor-dashboard' ) : __( 'Není', 'nkz-mp-vendor-dashboard' ) );
+										echo esc_html( $product->get_stock_status() === 'instock' ? __( 'Na skladě', 'nkz-mp-vendor-dashboard' ) : __( 'Vyprodáno', 'nkz-mp-vendor-dashboard' ) );
 									endif; ?>
-								</td>
-								<td class="col-action">
-									<?php $can_edit = in_array( get_post_status(), [ 'pending', 'draft', 'private' ], true ); ?>
-									<?php if ( $can_edit ) : ?>
-										<a href="<?php echo esc_url( add_query_arg( 'edit', get_the_ID(), wc_get_account_endpoint_url( 'vendor-products' ) ) ); ?>" class="nkzmp-vd-edit-link"><?php esc_html_e( 'Upravit', 'nkz-mp-vendor-dashboard' ); ?></a>
-									<?php else : ?>
-										<span class="nkzmp-vd-muted"><?php esc_html_e( 'Publikováno', 'nkz-mp-vendor-dashboard' ); ?></span>
-									<?php endif; ?>
-								</td>
-							</tr>
-						<?php endwhile; wp_reset_postdata(); ?>
-					</tbody>
-				</table>
+								</div>
+							</div>
+							<div class="nkzmp-vd-card-actions">
+								<?php if ( $can_edit ) : ?>
+									<a class="nkzmp-vd-card-edit" href="<?php echo esc_url( $edit_url ); ?>"><?php esc_html_e( 'Upravit', 'nkz-mp-vendor-dashboard' ); ?></a>
+								<?php endif; ?>
+								<?php if ( $status === 'publish' ) : ?>
+									<a class="nkzmp-vd-card-view" href="<?php the_permalink(); ?>" target="_blank"><?php esc_html_e( 'Zobrazit', 'nkz-mp-vendor-dashboard' ); ?> →</a>
+								<?php endif; ?>
+							</div>
+						</article>
+					<?php endwhile; wp_reset_postdata(); ?>
+				</div>
+
+				<?php if ( $query->max_num_pages > 1 ) : ?>
+					<nav class="nkzmp-pagination" style="margin-top:32px;">
+						<?php
+						echo paginate_links( [
+							'base'      => add_query_arg( 'paged', '%#%', wc_get_account_endpoint_url( 'vendor-products' ) ),
+							'format'    => '',
+							'current'   => max( 1, (int) get_query_var( 'paged' ) ),
+							'total'     => $query->max_num_pages,
+							'prev_text' => '←',
+							'next_text' => '→',
+						] );
+						?>
+					</nav>
+				<?php endif; ?>
 			<?php endif; ?>
 
 			<p class="nkzmp-vd-note">
