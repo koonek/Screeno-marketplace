@@ -35,7 +35,7 @@ final class ProductsView {
 					<p class="nkzmp-vd-meta"><?php echo esc_html( sprintf( __( '%d produktů', 'nkz-mp-vendor-dashboard' ), (int) $query->found_posts ) ); ?></p>
 				</div>
 				<a class="nkzmp-vd-cta-new" href="<?php echo esc_url( add_query_arg( 'new', '1', wc_get_account_endpoint_url( 'vendor-products' ) ) ); ?>">
-					<?php esc_html_e( 'Nový produkt', 'nkz-mp-vendor-dashboard' ); ?> <span>+</span>
+					<span class="label"><?php esc_html_e( 'Nový produkt', 'nkz-mp-vendor-dashboard' ); ?></span> <span class="plus">+</span>
 				</a>
 			</header>
 
@@ -70,7 +70,7 @@ final class ProductsView {
 					<h2><?php esc_html_e( 'Zatím tu nic není', 'nkz-mp-vendor-dashboard' ); ?></h2>
 					<p><?php esc_html_e( 'Přidej svůj první produkt. Projdeme ho a publikujeme.', 'nkz-mp-vendor-dashboard' ); ?></p>
 					<a class="nkzmp-vd-cta-new" href="<?php echo esc_url( add_query_arg( 'new', '1', wc_get_account_endpoint_url( 'vendor-products' ) ) ); ?>">
-						<?php esc_html_e( 'Nový produkt', 'nkz-mp-vendor-dashboard' ); ?> <span>+</span>
+						<span class="label"><?php esc_html_e( 'Nový produkt', 'nkz-mp-vendor-dashboard' ); ?></span> <span class="plus">+</span>
 					</a>
 				</div>
 			<?php else : ?>

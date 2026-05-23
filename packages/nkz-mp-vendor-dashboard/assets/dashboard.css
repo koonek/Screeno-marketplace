@@ -463,20 +463,27 @@ body.nkzmp-account .woocommerce-message {
 	background: var(--nkzmp-vd-line-bold);
 	border-top: 1px solid var(--nkzmp-vd-line-bold);
 }
-.nkzmp-vd-card-edit,
-.nkzmp-vd-card-view {
-	flex: 1;
-	text-align: center;
-	padding: 12px 8px;
-	font-size: 13px;
-	font-weight: 500;
+body.nkzmp-account a.nkzmp-vd-card-edit,
+body.nkzmp-account a.nkzmp-vd-card-view,
+.nkzmp-vd a.nkzmp-vd-card-edit,
+.nkzmp-vd a.nkzmp-vd-card-view {
+	flex: 1 !important;
+	text-align: center !important;
+	padding: 12px 8px !important;
+	font-size: 13px !important;
+	font-weight: 500 !important;
 	text-decoration: none !important;
-	background: var(--nkzmp-vd-bg);
-	color: var(--nkzmp-vd-text) !important;
-	transition: background 0.15s ease, color 0.15s ease;
+	background: #fff !important;
+	background-color: #fff !important;
+	color: #000 !important;
+	border-radius: 0 !important;
+	box-shadow: none !important;
+	transition: background 0.15s ease, color 0.15s ease !important;
 }
-.nkzmp-vd-card-edit:hover { background: var(--nkzmp-vd-text); color: var(--nkzmp-vd-bg) !important; }
-.nkzmp-vd-card-view:hover { background: var(--nkzmp-vd-accent); color: var(--nkzmp-vd-bg) !important; }
+body.nkzmp-account a.nkzmp-vd-card-edit:hover,
+.nkzmp-vd a.nkzmp-vd-card-edit:hover { background: #000 !important; background-color: #000 !important; color: #fff !important; }
+body.nkzmp-account a.nkzmp-vd-card-view:hover,
+.nkzmp-vd a.nkzmp-vd-card-view:hover { background: #0060FF !important; background-color: #0060FF !important; color: #fff !important; }
 
 /* Empty state */
 .nkzmp-vd-products-empty {
@@ -504,8 +511,9 @@ body.nkzmp-account .woocommerce-message {
 
 /* ── New product CTA + flash ─────────────────────────────────── */
 
-.nkzmp-vd-cta-new,
-a.nkzmp-vd-cta-new {
+body.nkzmp-account a.nkzmp-vd-cta-new,
+body.woocommerce-account a.nkzmp-vd-cta-new,
+.nkzmp-vd a.nkzmp-vd-cta-new {
 	display: inline-flex !important;
 	align-items: center !important;
 	gap: 8px !important;
@@ -521,11 +529,12 @@ a.nkzmp-vd-cta-new {
 	box-shadow: none !important;
 	transition: background 0.15s ease, border-color 0.15s ease !important;
 }
-.nkzmp-vd-cta-new *,
-a.nkzmp-vd-cta-new * { color: #fff !important; }
-.nkzmp-vd-cta-new:hover,
-a.nkzmp-vd-cta-new:hover { background: #0050d6 !important; background-color: #0050d6 !important; border-color: #0050d6 !important; color: #fff !important; }
-.nkzmp-vd-cta-new span { font-size: 18px !important; line-height: 1 !important; }
+body.nkzmp-account a.nkzmp-vd-cta-new *,
+body.woocommerce-account a.nkzmp-vd-cta-new *,
+.nkzmp-vd a.nkzmp-vd-cta-new * { color: #fff !important; }
+body.nkzmp-account a.nkzmp-vd-cta-new:hover,
+body.woocommerce-account a.nkzmp-vd-cta-new:hover { background: #0050d6 !important; background-color: #0050d6 !important; border-color: #0050d6 !important; color: #fff !important; }
+body.nkzmp-account a.nkzmp-vd-cta-new .plus { font-size: 18px !important; line-height: 1 !important; }
 
 .nkzmp-vd-flash {
 	display: flex;
