@@ -129,6 +129,18 @@ final class ProductFormView {
 							<input id="vd_qty" type="number" name="stock_quantity" min="0" step="1" value="<?php echo esc_attr( (string) $stock_qty ); ?>" />
 						</div>
 					</div>
+
+					<?php
+					$requires_raw = $product ? get_post_meta( $product->get_id(), '_nkzmp_requires_shipping', true ) : '';
+					$requires     = $requires_raw !== 'no';
+					?>
+					<div class="nkzmp-vd-field">
+						<label class="nkzmp-vd-check">
+							<input type="checkbox" name="requires_shipping" value="1" <?php checked( $requires ); ?> />
+							<span><?php esc_html_e( 'Fyzický produkt – vyžaduje dopravu', 'nkz-mp-vendor-dashboard' ); ?></span>
+						</label>
+						<small><?php esc_html_e( 'Odškrtni u digitálních produktů (e-booky, návody, vouchery). Pak se za ně neúčtuje doprava.', 'nkz-mp-vendor-dashboard' ); ?></small>
+					</div>
 				</section>
 
 				<section class="nkzmp-vd-form-section">

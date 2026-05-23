@@ -64,6 +64,7 @@ final class ProductSubmitController {
 		$sale       = (string) ( $_POST['sale_price'] ?? '' );
 		$manage     = ! empty( $_POST['manage_stock'] );
 		$qty        = isset( $_POST['stock_quantity'] ) && $_POST['stock_quantity'] !== '' ? (int) $_POST['stock_quantity'] : null;
+		$requires_shipping = ! empty( $_POST['requires_shipping'] );
 		$cats       = isset( $_POST['categories'] ) ? array_map( 'intval', (array) $_POST['categories'] ) : [];
 
 		if ( $title === '' || $price === '' || ! is_numeric( $price ) || (float) $price < 0 ) {
@@ -121,6 +122,14 @@ final class ProductSubmitController {
 		// Vendor ownership meta (both mirrors).
 		update_post_meta( $product_id, '_nkzmp_vendor_id', $vendor_id );
 		update_post_meta( $product_id, '_nkv_vendor_id', $vendor_id );
+
+		// Shipping flag. Digital = virtual (WC nepožaduje dopravu).
+		update_post_meta( $product_id, '_nkzmp_requires_shipping', $requires_shipping ? 'yes' : 'no' );
+		$saved_product = wc_get_product( $product_id );
+		if ( $saved_product ) {
+			$saved_product->set_virtual( ! $requires_shipping );
+			$saved_product->save();
+		}
 
 		// Image uploads (povinné jen při novém).
 		require_once ABSPATH . 'wp-admin/includes/file.php';
