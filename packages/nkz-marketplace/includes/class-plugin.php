@@ -60,6 +60,7 @@ final class Plugin {
 			\NKZMP\Admin\DashboardPage::instance()->init();
 			\NKZMP\Admin\StatusPage::instance()->init();
 			\NKZMP\Admin\ToolsPage::instance()->init();
+			\NKZMP\Admin\AdminBulk::instance()->init();
 		}
 
 		if ( defined( 'WP_CLI' ) && WP_CLI ) {

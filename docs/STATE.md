@@ -3,11 +3,11 @@
 > Živý stav projektu. Aktualizuj při větších milnících. Vše commitnuté na
 > branchi `claude/trusting-fermat-YBzZT`, PR #19 (Phase 1).
 
-## Aktuální verze (bundle 0.17.0)
+## Aktuální verze (bundle 0.19.0)
 
 | Modul | Verze |
 |---|---|
-| nkz-marketplace (core) | 0.10.7-dev |
+| nkz-marketplace (core) | 0.10.8-dev |
 | nkz-mp-stripe (adapter, slug nkz-woo-stripe-vendor-split) | 0.6.7 |
 | nkz-mp-storefront | 0.4.0 |
 | nkz-mp-vendor-registration | 0.4.0 |
@@ -15,7 +15,7 @@
 | nkz-mp-shipping | 0.1.0 |
 | nkz-mp-vendor-billing | 0.5.0 |
 | nkz-mp-packeta | 0.1.0 |
-| **nkz-mp-aoz-bundle** | **0.18.0** |
+| **nkz-mp-aoz-bundle** | **0.19.0** |
 
 Build: `./scripts/build-bundles.sh` → `dist/nkz-marketplace-aoz-<ver>.zip`.
 
@@ -43,7 +43,7 @@ Build: `./scripts/build-bundles.sh` → `dist/nkz-marketplace-aoz-<ver>.zip`.
 
 ### Admin / ops batch (oranžová)
 - [ ] **Vendor detail** – 1 admin obrazovka per vendor (status, billing, produkty, tržby, ledger)
-- [ ] **Bulk approve** vendorů/produktů
+- [x] **Bulk approve** vendorů ✅ (0.19.0, AdminBulk – bulk akce „Schválit (NKZ) → čeká na KYC" ve vendor list table; produkty řeší WC nativně)
 - [x] **Reconcile drift → e-mail adminovi** ✅ (0.18.0, DriftNotifier, dedupe 12h)
 - [ ] **Setup wizard / first-run checklist** pro admina
 - [ ] **Unified Settings** – jedna stránka s taby místo 6 podstránek (čistě organizační, ~půl dne)
