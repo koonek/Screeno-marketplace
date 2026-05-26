@@ -71,7 +71,7 @@ Zásilkovna auto-štítky (Scope B), Packeta výběr výdejny v blokovém checko
 
 - Shipping = 1 řádek se součtem (ne řádek per vendor) – WC standard
 - Packeta štítky ručně (Scope A)
-- **Packeta výběr výdejny vyžaduje klasický checkout** (`[woocommerce_checkout]`) – CheckoutWidget jede na classic hookách, **blokový checkout (Checkout block) nepodporuje** (picker se nevykreslí). Blocks integrace = Scope B.
+- **Packeta výběr výdejny vyžaduje klasický checkout** (`[woocommerce_checkout]` shortcode **nebo Elementor Pro widget Pokladna** – oba renderují classic review-order tabulku). CheckoutWidget se věší na `woocommerce_review_order_after_shipping`. **Blokový checkout (Gutenberg Checkout block) NEPODPOROVÁN** (nevolá classic hooky → picker se nevykreslí). Blocks integrace = Scope B.
 - Billing webhook funguje i bez secretu pro prvotní aktivaci (sync na návratu); secret nutný pro renewaly
 - CZ texty natvrdo (žádné .pot)
 - Dva webhook endpointy/secrety (adapter Connect + billing) – Stripe standard, nelze sdílet
