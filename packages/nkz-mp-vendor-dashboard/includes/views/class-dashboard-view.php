@@ -39,6 +39,8 @@ final class DashboardView {
 				</div>
 			</header>
 
+			<?php self::render_onboarding( $vendor_id, $status ); ?>
+
 			<section class="nkzmp-vd-stats">
 				<?php foreach ( $stats as $s ) : ?>
 					<div class="nkzmp-vd-stat">
@@ -134,7 +136,104 @@ final class DashboardView {
 				'value' => $volume_total > 0 ? Money::from_minor_display( $volume_total, $currency ) : '0 ' . $currency,
 				'hint'  => __( 'od začátku', 'nkz-mp-vendor-dashboard' ),
 			],
+			[
+				'label' => __( 'Provize platformy', 'nkz-mp-vendor-dashboard' ),
+				'value' => self::commission_label( $vendor_id ),
+				'hint'  => __( 'z každého prodeje', 'nkz-mp-vendor-dashboard' ),
+			],
 		];
+	}
+
+	/**
+	 * Provize platformy pro vendora (per-vendor meta → globální default adapteru).
+	 */
+	private static function commission_label( int $vendor_id ): string {
+		$pct = get_post_meta( $vendor_id, '_nkzmp_default_fee_percent', true );
+		if ( $pct === '' || ! is_numeric( $pct ) ) {
+			$pct = get_post_meta( $vendor_id, '_nkv_default_fee_percent', true );
+		}
+		if ( ( $pct === '' || ! is_numeric( $pct ) ) && class_exists( \NKVSVS\Plugin::class ) ) {
+			$settings = \NKVSVS\Plugin::settings();
+			$pct      = $settings['default_fee_percent'] ?? '';
+		}
+		if ( $pct === '' || ! is_numeric( $pct ) ) {
+			return '—';
+		}
+		return rtrim( rtrim( number_format( (float) $pct, 2, ',', ' ' ), '0' ), ',' ) . ' %';
+	}
+
+	private static function render_onboarding( int $vendor_id, ?Status $status ): void {
+		$is_active = $status === Status::ACTIVE;
+
+		// Krok: schváleno (>= approved_awaiting_kyc).
+		$approved = in_array( $status, [ Status::APPROVED_AWAITING_KYC, Status::ACTIVE ], true );
+		// KYC = active.
+		$kyc = $is_active;
+		// Předplatné (jen pokud billing modul + zapnuto).
+		$billing_on = class_exists( \NKZMP\Billing\Settings::class ) && \NKZMP\Billing\Settings::is_enabled();
+		$billing_ok = $billing_on && (string) get_post_meta( $vendor_id, '_nkzmp_billing_status', true ) === 'active';
+		// První produkt.
+		$has_product = self::vendor_has_product( $vendor_id );
+
+		$steps = [];
+		$steps[] = [ 'done' => $approved, 'label' => __( 'Přihláška schválena', 'nkz-mp-vendor-dashboard' ), 'cta' => null ];
+		$steps[] = [ 'done' => $kyc, 'label' => __( 'Dokončená registrace plateb (KYC)', 'nkz-mp-vendor-dashboard' ), 'cta' => null ];
+		if ( $billing_on ) {
+			$steps[] = [
+				'done'  => $billing_ok,
+				'label' => __( 'Aktivní předplatné', 'nkz-mp-vendor-dashboard' ),
+				'cta'   => $billing_ok ? null : [ wc_get_account_endpoint_url( 'vendor-billing' ), __( 'Aktivovat', 'nkz-mp-vendor-dashboard' ) ],
+			];
+		}
+		$steps[] = [
+			'done'  => $has_product,
+			'label' => __( 'První produkt', 'nkz-mp-vendor-dashboard' ),
+			'cta'   => $has_product ? null : [ add_query_arg( 'new', '1', wc_get_account_endpoint_url( 'vendor-products' ) ), __( 'Přidat', 'nkz-mp-vendor-dashboard' ) ],
+		];
+
+		// Pokud vše hotové, checklist nezobrazuj.
+		$all_done = true;
+		foreach ( $steps as $s ) {
+			if ( ! $s['done'] ) {
+				$all_done = false;
+				break;
+			}
+		}
+		if ( $all_done ) {
+			return;
+		}
+
+		$first_undone = true;
+		?>
+		<section class="nkzmp-vd-onboarding">
+			<h2><?php esc_html_e( 'Než začneš prodávat', 'nkz-mp-vendor-dashboard' ); ?></h2>
+			<ul class="nkzmp-vd-steps">
+				<?php foreach ( $steps as $s ) :
+					$cls = $s['done'] ? 'done' : ( $first_undone ? 'current' : '' );
+					if ( ! $s['done'] ) { $first_undone = false; }
+					?>
+					<li class="<?php echo esc_attr( $cls ); ?>">
+						<span class="nkzmp-vd-step-mark"><?php echo $s['done'] ? '✓' : '•'; ?></span>
+						<span class="nkzmp-vd-step-label"><?php echo esc_html( $s['label'] ); ?></span>
+						<?php if ( ! $s['done'] && $s['cta'] ) : ?>
+							<a class="nkzmp-vd-step-cta" href="<?php echo esc_url( $s['cta'][0] ); ?>"><?php echo esc_html( $s['cta'][1] ); ?> →</a>
+						<?php endif; ?>
+					</li>
+				<?php endforeach; ?>
+			</ul>
+		</section>
+		<?php
+	}
+
+	private static function vendor_has_product( int $vendor_id ): bool {
+		global $wpdb;
+		$count = (int) $wpdb->get_var( $wpdb->prepare(
+			"SELECT COUNT(*) FROM {$wpdb->postmeta} pm
+			 INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id AND p.post_type = 'product'
+			 WHERE pm.meta_key IN ('_nkzmp_vendor_id','_nkv_vendor_id') AND pm.meta_value = %d",
+			$vendor_id
+		) );
+		return $count > 0;
 	}
 
 	private static function status_text( ?Status $s ): string {

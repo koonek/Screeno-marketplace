@@ -61,6 +61,24 @@ final class ProductsView {
 					</div>
 				</div>
 				<?php
+			elseif ( $flash === 'live_updated' ) :
+				?>
+				<div class="nkzmp-vd-flash nkzmp-vd-flash--success">
+					<div class="icon">✓</div>
+					<div>
+						<strong><?php esc_html_e( 'Změny jsou živé.', 'nkz-mp-vendor-dashboard' ); ?></strong>
+						<p><?php esc_html_e( 'Produkt zůstal publikovaný, úpravy se hned projevily v obchodě.', 'nkz-mp-vendor-dashboard' ); ?></p>
+					</div>
+				</div>
+				<?php
+			elseif ( $flash === 'unpublished' ) :
+				?>
+				<div class="nkzmp-vd-flash"><div class="icon">↓</div><div><strong><?php esc_html_e( 'Staženo z prodeje.', 'nkz-mp-vendor-dashboard' ); ?></strong> <p><?php esc_html_e( 'Produkt je v konceptech. Úpravou a odesláním ho zase pustíš na schválení.', 'nkz-mp-vendor-dashboard' ); ?></p></div></div>
+				<?php
+			elseif ( $flash === 'deleted' ) :
+				?>
+				<div class="nkzmp-vd-flash"><div class="icon">✕</div><div><strong><?php esc_html_e( 'Produkt smazán.', 'nkz-mp-vendor-dashboard' ); ?></strong></div></div>
+				<?php
 			endif;
 			?>
 
@@ -97,12 +115,26 @@ final class ProductsView {
 								</div>
 							</div>
 							<div class="nkzmp-vd-card-actions">
-								<?php if ( $can_edit ) : ?>
-									<a class="nkzmp-vd-card-edit" href="<?php echo esc_url( $edit_url ); ?>"><?php esc_html_e( 'Upravit', 'nkz-mp-vendor-dashboard' ); ?></a>
-								<?php endif; ?>
+								<a class="nkzmp-vd-card-edit" href="<?php echo esc_url( $edit_url ); ?>"><?php esc_html_e( 'Upravit', 'nkz-mp-vendor-dashboard' ); ?></a>
 								<?php if ( $status === 'publish' ) : ?>
 									<a class="nkzmp-vd-card-view" href="<?php the_permalink(); ?>" target="_blank"><?php esc_html_e( 'Zobrazit', 'nkz-mp-vendor-dashboard' ); ?> →</a>
 								<?php endif; ?>
+							</div>
+							<div class="nkzmp-vd-card-subactions">
+								<?php if ( $status === 'publish' ) : ?>
+									<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" onsubmit="return confirm('<?php echo esc_js( __( 'Stáhnout produkt z prodeje?', 'nkz-mp-vendor-dashboard' ) ); ?>');">
+										<input type="hidden" name="action" value="nkzmp_vd_product_unpublish" />
+										<input type="hidden" name="product_id" value="<?php echo (int) get_the_ID(); ?>" />
+										<?php wp_nonce_field( 'nkzmp_vd_product_action_' . get_the_ID() ); ?>
+										<button type="submit" class="nkzmp-vd-link-btn"><?php esc_html_e( 'Stáhnout z prodeje', 'nkz-mp-vendor-dashboard' ); ?></button>
+									</form>
+								<?php endif; ?>
+								<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" onsubmit="return confirm('<?php echo esc_js( __( 'Opravdu smazat tento produkt?', 'nkz-mp-vendor-dashboard' ) ); ?>');">
+									<input type="hidden" name="action" value="nkzmp_vd_product_delete" />
+									<input type="hidden" name="product_id" value="<?php echo (int) get_the_ID(); ?>" />
+									<?php wp_nonce_field( 'nkzmp_vd_product_action_' . get_the_ID() ); ?>
+									<button type="submit" class="nkzmp-vd-link-btn nkzmp-vd-link-btn--danger"><?php esc_html_e( 'Smazat', 'nkz-mp-vendor-dashboard' ); ?></button>
+								</form>
 							</div>
 						</article>
 					<?php endwhile; wp_reset_postdata(); ?>

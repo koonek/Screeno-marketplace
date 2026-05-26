@@ -72,15 +72,14 @@ final class ProductSubmitController {
 		}
 
 		// Edit ownership check.
+		$was_publish = false;
 		if ( $is_edit ) {
 			$existing = wc_get_product( $product_id );
 			if ( ! $existing || ! $this->owns( $product_id, $vendor_id ) ) {
 				$this->redirect_error( __( 'Tento produkt nemůžeš upravovat.', 'nkz-mp-vendor-dashboard' ) );
 			}
-			if ( $existing->get_status() === 'publish' ) {
-				$this->redirect_error( __( 'Publikované produkty nelze měnit přes panel.', 'nkz-mp-vendor-dashboard' ) );
-			}
-			$product = $existing;
+			$was_publish = $existing->get_status() === 'publish';
+			$product     = $existing;
 		} else {
 			$product = new \WC_Product_Simple();
 		}
@@ -102,8 +101,18 @@ final class ProductSubmitController {
 			$product->set_stock_status( 'instock' );
 		}
 		$product->set_category_ids( $cats );
-		// Vendor podmínky: vždy pending dokud admin nepublikuje.
-		$product->set_status( 'pending' );
+
+		// Stav:
+		//  - nový produkt → pending (admin schválí)
+		//  - edit publikovaného → zůstává publish (důvěřujeme aktivnímu vendorovi),
+		//    pokud filter nevyžaduje re-approval
+		//  - edit pending/draft → pending
+		$reapprove = (bool) apply_filters( 'nkzmp/v1/dashboard/edit_needs_reapproval', false );
+		if ( $is_edit && $was_publish && ! $reapprove ) {
+			$product->set_status( 'publish' );
+		} else {
+			$product->set_status( 'pending' );
+		}
 
 		// Vendor jako post_author aby WP věděl kdo to napsal (pro list filtering).
 		if ( ! $is_edit ) {
@@ -177,13 +186,73 @@ final class ProductSubmitController {
 		}
 		do_action( 'nkzmp/v1/dashboard/product_submitted', $product_id, $vendor_id, $is_edit );
 
-		// E-maily vendor + admin.
-		ProductEmails::on_submitted( $product_id, $vendor_id, $is_edit );
+		$stayed_live = $is_edit && $was_publish && get_post_status( $product_id ) === 'publish';
 
-		wp_safe_redirect( add_query_arg(
-			[ 'nkzmp_msg' => $is_edit ? 'updated' : 'submitted' ],
-			wc_get_account_endpoint_url( 'vendor-products' )
-		) );
+		// E-maily vendor + admin (jen když jde produkt na schválení, ne při live editu).
+		if ( ! $stayed_live ) {
+			ProductEmails::on_submitted( $product_id, $vendor_id, $is_edit );
+		}
+
+		$msg = $stayed_live ? 'live_updated' : ( $is_edit ? 'updated' : 'submitted' );
+		wp_safe_redirect( add_query_arg( [ 'nkzmp_msg' => $msg ], wc_get_account_endpoint_url( 'vendor-products' ) ) );
+		exit;
+	}
+
+	/* ── Unpublish / Delete ──────────────────────────────────────── */
+
+	public function init_actions(): void {
+		add_action( 'admin_post_nkzmp_vd_product_unpublish', [ $this, 'unpublish' ] );
+		add_action( 'admin_post_nkzmp_vd_product_delete', [ $this, 'delete' ] );
+	}
+
+	public function unpublish(): void {
+		[ $vendor_id, $product_id ] = $this->require_owned_product();
+		$product = wc_get_product( $product_id );
+		if ( $product ) {
+			$product->set_status( 'draft' );
+			$product->save();
+			$this->audit_action( 'product.unpublished', $product_id, $vendor_id );
+		}
+		$this->redirect_ok( 'unpublished' );
+	}
+
+	public function delete(): void {
+		[ $vendor_id, $product_id ] = $this->require_owned_product();
+		wp_trash_post( $product_id );
+		$this->audit_action( 'product.deleted', $product_id, $vendor_id );
+		$this->redirect_ok( 'deleted' );
+	}
+
+	/**
+	 * @return array{0:int,1:int} [vendor_id, product_id]
+	 */
+	private function require_owned_product(): array {
+		$product_id = isset( $_POST['product_id'] ) ? (int) $_POST['product_id'] : 0;
+		check_admin_referer( 'nkzmp_vd_product_action_' . $product_id );
+		if ( ! is_user_logged_in() || ! VendorContext::user_is_vendor() ) {
+			$this->redirect_error( __( 'Nepřihlášený prodejce.', 'nkz-mp-vendor-dashboard' ) );
+		}
+		$vendor_id = VendorContext::current_vendor_id();
+		if ( $vendor_id <= 0 || ! $this->owns( $product_id, $vendor_id ) ) {
+			$this->redirect_error( __( 'Tento produkt ti nepatří.', 'nkz-mp-vendor-dashboard' ) );
+		}
+		return [ $vendor_id, $product_id ];
+	}
+
+	private function audit_action( string $action, int $product_id, int $vendor_id ): void {
+		if ( class_exists( \NKZMP\Audit\Recorder::class ) ) {
+			( new \NKZMP\Audit\Recorder() )->record(
+				action:      $action,
+				entity_type: 'product',
+				entity_id:   $product_id,
+				summary:     sprintf( 'vendor #%d', $vendor_id ),
+				actor_label: 'vendor_self',
+			);
+		}
+	}
+
+	private function redirect_ok( string $msg ): void {
+		wp_safe_redirect( add_query_arg( 'nkzmp_msg', $msg, wc_get_account_endpoint_url( 'vendor-products' ) ) );
 		exit;
 	}
 

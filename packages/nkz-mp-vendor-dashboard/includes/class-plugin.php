@@ -23,6 +23,7 @@ final class Plugin {
 		Assets::instance()->init();
 		AccountChrome::instance()->init();
 		ProductSubmitController::instance()->init();
+		ProductSubmitController::instance()->init_actions();
 		ProfileSubmitController::instance()->init();
 		OrderNotifications::instance()->init();
 	}
