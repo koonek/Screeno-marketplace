@@ -932,3 +932,199 @@ body.nkzmp-account .nkzmp-vd button.nkzmp-vd-submit:hover svg { transform: trans
 	color: var(--nkzmp-vd-muted);
 	margin: 0;
 }
+
+/* ─────────────────────────────────────────────────────────────
+ * ÚČET sekce – default WooCommerce stránky v AOZ stylu.
+ * Cíleno jen na WC-specifické třídy, aby to nesáhlo na .nkzmp-vd
+ * vlastní vendor stránky (ty mají vlastní styl výš).
+ * ───────────────────────────────────────────────────────────── */
+
+/* Tabulky (Mé objednávky, detail objednávky) */
+body.nkzmp-account .woocommerce-MyAccount-content table.woocommerce-orders-table,
+body.nkzmp-account .woocommerce-MyAccount-content table.woocommerce-table,
+body.nkzmp-account .woocommerce-MyAccount-content table.shop_table {
+	border: 1px solid var(--nkzmp-vd-line-bold) !important;
+	border-collapse: collapse !important;
+	border-radius: 0 !important;
+	width: 100% !important;
+	font-size: 14px !important;
+	margin: 0 0 24px !important;
+}
+body.nkzmp-account .woocommerce-MyAccount-content table.woocommerce-orders-table th,
+body.nkzmp-account .woocommerce-MyAccount-content table.woocommerce-table th,
+body.nkzmp-account .woocommerce-MyAccount-content table.shop_table th {
+	background: #000 !important;
+	color: #fff !important;
+	font-weight: 500 !important;
+	text-transform: uppercase !important;
+	letter-spacing: 0.08em !important;
+	font-size: 11px !important;
+	text-align: left !important;
+	padding: 12px 14px !important;
+	border: none !important;
+}
+body.nkzmp-account .woocommerce-MyAccount-content table.woocommerce-orders-table td,
+body.nkzmp-account .woocommerce-MyAccount-content table.woocommerce-table td,
+body.nkzmp-account .woocommerce-MyAccount-content table.shop_table td {
+	padding: 14px !important;
+	border: none !important;
+	border-top: 1px solid var(--nkzmp-vd-line) !important;
+	vertical-align: middle !important;
+	color: #000 !important;
+}
+body.nkzmp-account .woocommerce-MyAccount-content table.shop_table tfoot th,
+body.nkzmp-account .woocommerce-MyAccount-content table.shop_table tfoot td {
+	background: #fff !important;
+	color: #000 !important;
+	text-transform: none !important;
+	font-size: 14px !important;
+	border-top: 1px solid var(--nkzmp-vd-line) !important;
+}
+
+/* WC tlačítka → AOZ (černá, hover modrá, bez radiusu) */
+body.nkzmp-account .woocommerce-MyAccount-content a.woocommerce-button,
+body.nkzmp-account .woocommerce-MyAccount-content a.button.woocommerce-button,
+body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-orders-table a.button,
+body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-EditAccountForm button[type="submit"],
+body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-address-fields button[type="submit"],
+body.nkzmp-account .woocommerce-MyAccount-content button.woocommerce-Button {
+	display: inline-block !important;
+	background: #000 !important;
+	background-color: #000 !important;
+	color: #fff !important;
+	border: none !important;
+	border-radius: 0 !important;
+	box-shadow: none !important;
+	padding: 12px 24px !important;
+	font-family: inherit !important;
+	font-weight: 500 !important;
+	font-size: 14px !important;
+	text-transform: none !important;
+	letter-spacing: 0 !important;
+	text-decoration: none !important;
+	cursor: pointer !important;
+	transition: background 0.15s ease !important;
+}
+body.nkzmp-account .woocommerce-MyAccount-content a.woocommerce-button:hover,
+body.nkzmp-account .woocommerce-MyAccount-content a.button.woocommerce-button:hover,
+body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-orders-table a.button:hover,
+body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-EditAccountForm button[type="submit"]:hover,
+body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-address-fields button[type="submit"]:hover,
+body.nkzmp-account .woocommerce-MyAccount-content button.woocommerce-Button:hover {
+	background: #0060FF !important;
+	background-color: #0060FF !important;
+	color: #fff !important;
+}
+
+/* Adresy – dvousloupcové karty */
+body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-Addresses {
+	display: grid !important;
+	grid-template-columns: 1fr 1fr !important;
+	gap: 24px !important;
+	margin: 0 !important;
+}
+body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-Addresses .woocommerce-Address {
+	width: auto !important;
+	float: none !important;
+	border: 1px solid var(--nkzmp-vd-line-bold) !important;
+	padding: 24px !important;
+}
+body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-Address-title {
+	display: flex !important;
+	justify-content: space-between !important;
+	align-items: baseline !important;
+	gap: 16px !important;
+	margin-bottom: 12px !important;
+}
+body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-Address-title h2,
+body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-Address-title h3 {
+	font-size: 18px !important;
+	font-weight: 500 !important;
+	margin: 0 !important;
+}
+body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-Address address {
+	font-style: normal !important;
+	line-height: 1.7 !important;
+	color: #000 !important;
+}
+@media (max-width: 640px) {
+	body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-Addresses {
+		grid-template-columns: 1fr !important;
+	}
+}
+
+/* Formuláře (Detaily účtu, editace adresy) */
+body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-form-row label,
+body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-address-fields label,
+body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-EditAccountForm label {
+	display: block !important;
+	font-size: 13px !important;
+	font-weight: 500 !important;
+	margin-bottom: 6px !important;
+	color: #000 !important;
+}
+body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-form-row input.input-text,
+body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-address-fields input.input-text,
+body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-EditAccountForm input.input-text,
+body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-EditAccountForm input[type="password"],
+body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-address-fields select,
+body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-form-row select {
+	width: 100% !important;
+	max-width: 480px !important;
+	padding: 12px 14px !important;
+	border: 1px solid var(--nkzmp-vd-line-bold) !important;
+	border-radius: 0 !important;
+	background: #fff !important;
+	color: #000 !important;
+	font-family: inherit !important;
+	font-size: 15px !important;
+	box-shadow: none !important;
+	transition: border-color 0.15s ease !important;
+}
+body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-form-row input.input-text:focus,
+body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-address-fields input.input-text:focus,
+body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-EditAccountForm input.input-text:focus,
+body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-EditAccountForm input[type="password"]:focus {
+	border-color: var(--nkzmp-vd-accent) !important;
+	outline: none !important;
+}
+body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-EditAccountForm fieldset {
+	border: 1px solid var(--nkzmp-vd-line) !important;
+	border-radius: 0 !important;
+	padding: 20px !important;
+	margin: 24px 0 !important;
+}
+body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-EditAccountForm legend {
+	font-weight: 500 !important;
+	padding: 0 8px !important;
+}
+
+/* Pagination */
+body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-pagination ul {
+	display: flex !important;
+	gap: 1px !important;
+	list-style: none !important;
+	border: 1px solid var(--nkzmp-vd-line-bold) !important;
+	background: var(--nkzmp-vd-line-bold) !important;
+	width: fit-content !important;
+	margin: 24px 0 0 !important;
+	padding: 0 !important;
+}
+body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-pagination ul li {
+	margin: 0 !important;
+	border: none !important;
+}
+body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-pagination ul li a,
+body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-pagination ul li span {
+	display: block !important;
+	padding: 10px 16px !important;
+	background: #fff !important;
+	color: #000 !important;
+	border: none !important;
+	border-bottom: none !important;
+	text-decoration: none !important;
+}
+body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-pagination ul li span.current {
+	background: #000 !important;
+	color: #fff !important;
+}
