@@ -7,7 +7,7 @@
 
 | Modul | Verze |
 |---|---|
-| nkz-marketplace (core) | 0.10.6-dev |
+| nkz-marketplace (core) | 0.10.7-dev |
 | nkz-mp-stripe (adapter, slug nkz-woo-stripe-vendor-split) | 0.6.7 |
 | nkz-mp-storefront | 0.4.0 |
 | nkz-mp-vendor-registration | 0.4.0 |
@@ -15,7 +15,7 @@
 | nkz-mp-shipping | 0.1.0 |
 | nkz-mp-vendor-billing | 0.5.0 |
 | nkz-mp-packeta | 0.1.0 |
-| **nkz-mp-aoz-bundle** | **0.17.0** |
+| **nkz-mp-aoz-bundle** | **0.18.0** |
 
 Build: `./scripts/build-bundles.sh` → `dist/nkz-marketplace-aoz-<ver>.zip`.
 
@@ -44,7 +44,7 @@ Build: `./scripts/build-bundles.sh` → `dist/nkz-marketplace-aoz-<ver>.zip`.
 ### Admin / ops batch (oranžová)
 - [ ] **Vendor detail** – 1 admin obrazovka per vendor (status, billing, produkty, tržby, ledger)
 - [ ] **Bulk approve** vendorů/produktů
-- [ ] **Reconcile drift → e-mail/notice** adminovi (teď jen audit log)
+- [x] **Reconcile drift → e-mail adminovi** ✅ (0.18.0, DriftNotifier, dedupe 12h)
 - [ ] **Setup wizard / first-run checklist** pro admina
 - [ ] **Unified Settings** – jedna stránka s taby místo 6 podstránek (čistě organizační, ~půl dne)
 
