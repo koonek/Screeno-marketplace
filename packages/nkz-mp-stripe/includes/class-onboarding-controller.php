@@ -370,6 +370,39 @@ final class Onboarding_Controller {
 		update_post_meta( $vendor_id, '_nkv_stripe_charges_enabled', $charges_enabled ? 1 : 0 );
 		update_post_meta( $vendor_id, '_nkv_stripe_payouts_enabled', $payouts_enabled ? 1 : 0 );
 		update_post_meta( $vendor_id, '_nkv_stripe_requirements_due', wp_json_encode( $currently_due ) );
+
+		// KYC dokončené (charges+payouts) → aktivuj vendora čekajícího na KYC.
+		// Jen v bundle režimu s NKZ core; standalone adapter (Screeno) řídí
+		// stav prodejce ručně, takže tam nezasahujeme.
+		if ( 'enabled' === $status ) {
+			$this->maybe_activate_after_kyc( $vendor_id );
+		}
+
 		return null;
+	}
+
+	/**
+	 * Po dokončení Stripe Connect KYC překlopí vendora
+	 * approved_awaiting_kyc → active přes core StatusService. Bez core
+	 * (standalone adapter) je no-op.
+	 */
+	private function maybe_activate_after_kyc( int $vendor_id ): void {
+		if ( ! class_exists( \NKZMP\Vendor\StatusService::class ) ) {
+			return;
+		}
+		$current = (string) get_post_meta( $vendor_id, '_nkzmp_vendor_status', true );
+		if ( \NKZMP\Vendor\Status::APPROVED_AWAITING_KYC->value !== $current ) {
+			return; // aktivujeme jen z čekání na KYC; ostatní stavy neřešíme
+		}
+		try {
+			( new \NKZMP\Vendor\StatusService() )->transition(
+				$vendor_id,
+				\NKZMP\Vendor\Status::ACTIVE,
+				[ 'source' => 'stripe_connect_kyc' ]
+			);
+			Logger::info( 'Vendor aktivován po dokončení Stripe KYC', [ 'vendor' => $vendor_id ] );
+		} catch ( \Throwable $e ) {
+			Logger::error( 'Auto-aktivace po KYC selhala', [ 'vendor' => $vendor_id, 'err' => $e->getMessage() ] );
+		}
 	}
 }
