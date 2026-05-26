@@ -59,28 +59,24 @@ final class Endpoints {
 		}
 
 		$vendor_items = [
-			'vendor'          => __( 'Vendor: Přehled', 'nkz-mp-vendor-dashboard' ),
-			'vendor-products' => __( 'Vendor: Produkty', 'nkz-mp-vendor-dashboard' ),
-			'vendor-orders'   => __( 'Vendor: Objednávky', 'nkz-mp-vendor-dashboard' ),
-			'vendor-payouts'  => __( 'Vendor: Výplaty', 'nkz-mp-vendor-dashboard' ),
-			'vendor-profile'  => __( 'Vendor: Profil', 'nkz-mp-vendor-dashboard' ),
+			'vendor'          => __( 'Přehled', 'nkz-mp-vendor-dashboard' ),
+			'vendor-products' => __( 'Produkty', 'nkz-mp-vendor-dashboard' ),
+			'vendor-orders'   => __( 'Objednávky', 'nkz-mp-vendor-dashboard' ),
+			'vendor-payouts'  => __( 'Výplaty', 'nkz-mp-vendor-dashboard' ),
+			'vendor-profile'  => __( 'Profil', 'nkz-mp-vendor-dashboard' ),
 		];
 
-		// Vlož vendor položky hned po Dashboard.
-		$new = [];
-		foreach ( $items as $key => $label ) {
-			$new[ $key ] = $label;
-			if ( $key === 'dashboard' ) {
-				foreach ( $vendor_items as $vk => $vl ) {
-					$new[ $vk ] = $vl;
-				}
-			}
-		}
-		// Fallback pokud dashboard slug neexistuje.
-		if ( ! isset( $new['vendor'] ) ) {
-			$new = $vendor_items + $new;
+		// Schovej default WC položky, které vendorovi duplikují vendor sekci
+		// nebo nedávají smysl (přehled má vlastní, stahování nevyužije).
+		unset( $items['dashboard'], $items['downloads'] );
+
+		// Zákaznické objednávky přejmenuj, ať se nepletou s vendor objednávkami.
+		if ( isset( $items['orders'] ) ) {
+			$items['orders'] = __( 'Mé objednávky', 'nkz-mp-vendor-dashboard' );
 		}
 
-		return $new;
+		// Vendor položky první, pak zbytek (Mé objednávky, Adresy, Detaily, Odhlásit).
+		// Předplatné vloží billing modul za vendor-profile (priorita 6).
+		return $vendor_items + $items;
 	}
 }

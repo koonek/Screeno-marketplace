@@ -45,16 +45,28 @@ final class AccountSection {
 		if ( ! class_exists( \NKZMP\Dashboard\VendorContext::class ) || ! \NKZMP\Dashboard\VendorContext::user_is_vendor() ) {
 			return $items;
 		}
-		// Vlož za vendor-payouts pokud existuje, jinak na konec před logout.
+		$label = __( 'Předplatné', 'nkz-mp-vendor-billing' );
+
+		// Vlož do vendor skupiny – hned za Profil (poslední vendor položka).
 		$new = [];
 		foreach ( $items as $k => $v ) {
-			if ( $k === 'customer-logout' ) {
-				$new[ self::SLUG ] = __( 'Vendor: Předplatné', 'nkz-mp-vendor-billing' );
-			}
 			$new[ $k ] = $v;
+			if ( $k === 'vendor-profile' ) {
+				$new[ self::SLUG ] = $label;
+			}
 		}
+		// Fallback: před logout, jinak na konec.
 		if ( ! isset( $new[ self::SLUG ] ) ) {
-			$new[ self::SLUG ] = __( 'Vendor: Předplatné', 'nkz-mp-vendor-billing' );
+			$new = [];
+			foreach ( $items as $k => $v ) {
+				if ( $k === 'customer-logout' ) {
+					$new[ self::SLUG ] = $label;
+				}
+				$new[ $k ] = $v;
+			}
+			if ( ! isset( $new[ self::SLUG ] ) ) {
+				$new[ self::SLUG ] = $label;
+			}
 		}
 		return $new;
 	}

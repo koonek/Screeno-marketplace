@@ -2,7 +2,7 @@
 /**
  * Plugin Name: NKZ Marketplace – Vendor Billing
  * Description: Měsíční předplatné prodejců přes Stripe Billing (CZK, konfigurovatelná částka). Neplatící prodejce → suspended (produkty nedostupné). Závisí na core + Stripe adapteru.
- * Version: 0.5.0
+ * Version: 0.5.1
  * Author: NKZ
  * Requires at least: 6.2
  * Requires PHP: 8.1
@@ -14,7 +14,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'NKZMP_BILLING_VERSION', '0.5.0' );
+define( 'NKZMP_BILLING_VERSION', '0.5.1' );
 define( 'NKZMP_BILLING_FILE', __FILE__ );
 define( 'NKZMP_BILLING_DIR', plugin_dir_path( __FILE__ ) );
 define( 'NKZMP_BILLING_URL', plugin_dir_url( __FILE__ ) );

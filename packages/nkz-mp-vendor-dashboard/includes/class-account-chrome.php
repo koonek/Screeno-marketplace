@@ -60,11 +60,19 @@ final class AccountChrome {
 	 * @param string $endpoint
 	 */
 	public function menu_item_classes( $classes, $endpoint ) {
-		if ( in_array( $endpoint, [ 'vendor', 'vendor-products', 'vendor-payouts' ], true ) ) {
+		if ( ! VendorContext::user_is_vendor() ) {
+			return $classes;
+		}
+		$vendor_endpoints = [ 'vendor', 'vendor-products', 'vendor-orders', 'vendor-payouts', 'vendor-profile', 'vendor-billing' ];
+		if ( in_array( $endpoint, $vendor_endpoints, true ) ) {
 			$classes[] = 'nkzmp-acc-nav-vendor';
 			if ( $endpoint === 'vendor' ) {
 				$classes[] = 'nkzmp-acc-nav-vendor-first';
 			}
+		}
+		// První zákaznická položka → nadpis „Účet" (oddělí ji od vendor sekce).
+		if ( $endpoint === 'orders' ) {
+			$classes[] = 'nkzmp-acc-nav-account-first';
 		}
 		return $classes;
 	}
