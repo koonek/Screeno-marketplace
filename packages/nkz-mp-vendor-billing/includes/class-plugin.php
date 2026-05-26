@@ -24,5 +24,7 @@ final class Plugin {
 		AccountSection::instance()->init();
 		Checkout::instance()->init();
 		AdminOverview::instance()->init();
+		GraceCron::instance()->init();
+		HealthChecks::instance()->init();
 	}
 }

@@ -24,5 +24,6 @@ final class Plugin {
 		AccountChrome::instance()->init();
 		ProductSubmitController::instance()->init();
 		ProfileSubmitController::instance()->init();
+		OrderNotifications::instance()->init();
 	}
 }

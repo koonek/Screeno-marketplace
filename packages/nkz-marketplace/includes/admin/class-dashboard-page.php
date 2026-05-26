@@ -935,6 +935,13 @@ final class DashboardPage {
 				: __( 'naplánuj', 'nkz-marketplace' ),
 		];
 
+		/**
+		 * Moduly (billing, packeta, …) můžou přidat vlastní health řádky.
+		 *
+		 * @param array<int,array{label:string,state:string,detail:string}> $rows
+		 */
+		$rows = apply_filters( 'nkzmp/v1/admin/health_checks', $rows );
+
 		return $rows;
 	}
 }
