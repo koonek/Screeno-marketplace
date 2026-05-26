@@ -86,6 +86,7 @@ final class Plugin {
 
 		// Reconciliation cron (denně).
 		\NKZMP\Reconciliation\Cron::instance()->init();
+		\NKZMP\Reconciliation\DriftNotifier::instance()->init();
 
 		// TODO Phase 0:
 		// - Product\Ownership admin UI panel + capability guard
