@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: NKZ Marketplace – Zásilkovna
- * Description: Výběr výdejního místa Zásilkovny v checkoutu (Packeta widget). Cena dopravy = per-vendor paušál (z nkz-mp-shipping). Štítky se zatím generují ručně v Packeta klientovi.
- * Version: 0.1.0
+ * Description: Výběr výdejního místa Zásilkovny v checkoutu (Packeta widget) + zakládání zásilek a tisk štítků per prodejce. Cena dopravy = per-vendor paušál (z nkz-mp-shipping).
+ * Version: 0.2.0
  * Author: NKZ
  * Requires at least: 6.2
  * Requires PHP: 8.1
@@ -14,7 +14,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'NKZMP_PACKETA_VERSION', '0.1.0' );
+define( 'NKZMP_PACKETA_VERSION', '0.2.0' );
 define( 'NKZMP_PACKETA_FILE', __FILE__ );
 define( 'NKZMP_PACKETA_DIR', plugin_dir_path( __FILE__ ) );
 define( 'NKZMP_PACKETA_URL', plugin_dir_url( __FILE__ ) );
@@ -22,6 +22,10 @@ define( 'NKZMP_PACKETA_URL', plugin_dir_url( __FILE__ ) );
 // Meta klíče (na objednávce).
 define( 'NKZMP_PACKETA_POINT_ID_META', '_nkzmp_packeta_point_id' );
 define( 'NKZMP_PACKETA_POINT_NAME_META', '_nkzmp_packeta_point_name' );
+// Založené zásilky: order meta = pole [ vendor_id => [ id, barcode, created ] ].
+define( 'NKZMP_PACKETA_PACKETS_META', '_nkzmp_packeta_packets' );
+// Per-vendor odesílatel (eshop label v Packeta účtu).
+define( 'NKZMP_PACKETA_VENDOR_SENDER_LABEL_META', '_nkzmp_packeta_sender_label' );
 
 spl_autoload_register(
 	static function ( string $class ): void {

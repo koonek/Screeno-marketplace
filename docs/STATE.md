@@ -3,19 +3,19 @@
 > Živý stav projektu. Aktualizuj při větších milnících. Vše commitnuté na
 > branchi `claude/trusting-fermat-YBzZT`, PR #19 (Phase 1).
 
-## Aktuální verze (bundle 0.20.0)
+## Aktuální verze (bundle 0.21.0)
 
 | Modul | Verze |
 |---|---|
 | nkz-marketplace (core) | 0.10.8-dev |
 | nkz-mp-stripe (adapter, slug nkz-woo-stripe-vendor-split) | 0.6.8 |
 | nkz-mp-storefront | 0.4.0 |
-| nkz-mp-vendor-registration | 0.4.0 |
-| nkz-mp-vendor-dashboard | 0.7.3 |
+| nkz-mp-vendor-registration | 0.5.0 |
+| nkz-mp-vendor-dashboard | 0.8.0 |
 | nkz-mp-shipping | 0.1.0 |
 | nkz-mp-vendor-billing | 0.5.1 |
-| nkz-mp-packeta | 0.1.0 |
-| **nkz-mp-aoz-bundle** | **0.20.0** |
+| nkz-mp-packeta | 0.2.0 |
+| **nkz-mp-aoz-bundle** | **0.21.0** |
 
 Build: `./scripts/build-bundles.sh` → `dist/nkz-marketplace-aoz-<ver>.zip`.
 
@@ -36,7 +36,7 @@ Build: `./scripts/build-bundles.sh` → `dist/nkz-marketplace-aoz-<ver>.zip`.
 - **Dashboard (WC My Account):** přehled + onboarding checklist + provize, produkty (card grid, frontend editor create/edit, edit publ. zůstává live, stáhnout/smazat), objednávky, výplaty, profil (self-service), redirect vendor z wp-admin, AOZ branding.
 - **Shipping:** per-vendor paušál, product requires_shipping flag, admin meta box + vendor self-service sazba.
 - **Billing:** Stripe Billing subscription (CZK konfig.), Checkout + portal, webhook (signature), aktivace i na návratu, enforcement (bez předplatného nelze prodávat), grace cron fallback, admin přehled (MRR), health checks.
-- **Packeta:** výběr výdejny (widget v6), cena = per-vendor paušál, zobrazení u objednávky/e-mailů. Štítky ručně. **Čeká na Packeta API klíč.**
+- **Packeta:** výběr výdejny (widget v6), cena = per-vendor paušál, zobrazení u objednávky/e-mailů. **Auto-štítky (0.2.0):** `createPacket` per vendor + PDF štítek z dashboardu prodejce i admin detailu objednávky (idempotentní, multi-vendor split, váha z produktu/fallback, dobírka u `cod`). Odesílatel = per-vendor `eshop` label (fallback globální); adresa odesílatele v profilu prodejce (`_nkzmp_sender_*`). **Čeká na Packeta API klíč (widget) + API heslo (štítky).**
 - **Vendor order e-mail** při processing/completed.
 
 ## Zbývá – polish (neblokuje launch)
@@ -55,7 +55,7 @@ Build: `./scripts/build-bundles.sh` → `dist/nkz-marketplace-aoz-<ver>.zip`.
 - [ ] **HPOS** ověření u nových modulů (používají WC API, pravděpodobně OK)
 
 ### Fáze 2 (po launchi)
-Zásilkovna auto-štítky (Scope B), Packeta výběr výdejny v blokovém checkoutu (Blocks integrace + Store API), reviews, messaging, topování produktů, pokročilý shipping (zóny/váha), CZ/SK tax pack (DPH/OSS/faktury/VIES), i18n .pot/.po, Stripe adapter → first-class PaymentAdapter, pure-math Allocation\Calculator.
+Packeta: tracking sync + ceník dle váhy + adresní doručení (auto-štítky hotové v 0.2.0), Packeta výběr výdejny v blokovém checkoutu (Blocks integrace + Store API), reviews, messaging, topování produktů, pokročilý shipping (zóny/váha), CZ/SK tax pack (DPH/OSS/faktury/VIES), i18n .pot/.po, Stripe adapter → first-class PaymentAdapter, pure-math Allocation\Calculator.
 
 ## Před produkcí (go-live checklist)
 
@@ -70,7 +70,7 @@ Zásilkovna auto-štítky (Scope B), Packeta výběr výdejny v blokovém checko
 ## Známé „by design" (ne bugy)
 
 - Shipping = 1 řádek se součtem (ne řádek per vendor) – WC standard
-- Packeta štítky ručně (Scope A)
+- Packeta odesílatel = `eshop` label v účtu (createPacket neumí volnou adresu odesílatele); per-vendor odesílatele nutno jednorázově založit v Packeta klientovi a namapovat label do profilu prodejce
 - **Packeta výběr výdejny vyžaduje klasický checkout** (`[woocommerce_checkout]` shortcode **nebo Elementor Pro widget Pokladna** – oba renderují classic review-order tabulku). CheckoutWidget se věší na `woocommerce_review_order_after_shipping`. **Blokový checkout (Gutenberg Checkout block) NEPODPOROVÁN** (nevolá classic hooky → picker se nevykreslí). Blocks integrace = Scope B.
 - Billing webhook funguje i bez secretu pro prvotní aktivaci (sync na návratu); secret nutný pro renewaly
 - CZ texty natvrdo (žádné .pot)

@@ -28,6 +28,14 @@ final class ProfileFormView {
 		$shipping_active = defined( 'NKZMP_SHIPPING_VENDOR_RATE_META' );
 		$shipping_rate   = $shipping_active ? get_post_meta( $vendor_id, NKZMP_SHIPPING_VENDOR_RATE_META, true ) : '';
 
+		$packeta_active = class_exists( \NKZMP\Packeta\Settings::class );
+		$snd_name   = (string) get_post_meta( $vendor_id, '_nkzmp_sender_name', true );
+		$snd_street = (string) get_post_meta( $vendor_id, '_nkzmp_sender_street', true );
+		$snd_city   = (string) get_post_meta( $vendor_id, '_nkzmp_sender_city', true );
+		$snd_zip    = (string) get_post_meta( $vendor_id, '_nkzmp_sender_zip', true );
+		$snd_phone  = (string) get_post_meta( $vendor_id, '_nkzmp_sender_phone', true );
+		$snd_label  = (string) get_post_meta( $vendor_id, '_nkzmp_packeta_sender_label', true );
+
 		?>
 		<div class="nkzmp-vd nkzmp-vd-profile-form">
 
@@ -90,6 +98,39 @@ final class ProfileFormView {
 							<label for="vp_ship"><?php esc_html_e( 'Paušál za dopravu (Kč)', 'nkz-mp-vendor-dashboard' ); ?></label>
 							<input id="vp_ship" type="number" min="0" step="1" name="shipping_flat" value="<?php echo esc_attr( (string) $shipping_rate ); ?>" placeholder="<?php echo esc_attr( sprintf( __( 'výchozí %s', 'nkz-mp-vendor-dashboard' ), \NKZMP\Shipping\Rate::default_flat() ) ); ?>" />
 							<small><?php esc_html_e( 'Účtuje se jednou za objednávku, pokud má zákazník v košíku tvůj fyzický produkt. Prázdné = použít výchozí sazbu platformy.', 'nkz-mp-vendor-dashboard' ); ?></small>
+						</div>
+					</section>
+				<?php endif; ?>
+
+				<?php if ( $packeta_active ) : ?>
+					<section class="nkzmp-vd-form-section">
+						<header class="nkzmp-vd-form-shead"><span class="num">04</span><h2><?php esc_html_e( 'Adresa pro odeslání', 'nkz-mp-vendor-dashboard' ); ?></h2></header>
+						<p class="nkzmp-vd-meta"><?php esc_html_e( 'Odkud posíláš balíky. Použije se jako odesílatel na štítku Zásilkovny. Když nevyplníš, vezme se adresa sídla.', 'nkz-mp-vendor-dashboard' ); ?></p>
+
+						<div class="nkzmp-vd-field">
+							<label for="vp_snd_name"><?php esc_html_e( 'Jméno / firma odesílatele', 'nkz-mp-vendor-dashboard' ); ?></label>
+							<input id="vp_snd_name" type="text" name="sender_name" maxlength="120" value="<?php echo esc_attr( $snd_name ); ?>" />
+						</div>
+						<div class="nkzmp-vd-field">
+							<label for="vp_snd_street"><?php esc_html_e( 'Ulice a číslo', 'nkz-mp-vendor-dashboard' ); ?></label>
+							<input id="vp_snd_street" type="text" name="sender_street" maxlength="160" value="<?php echo esc_attr( $snd_street ); ?>" />
+						</div>
+						<div class="nkzmp-vd-field">
+							<label for="vp_snd_city"><?php esc_html_e( 'Město', 'nkz-mp-vendor-dashboard' ); ?></label>
+							<input id="vp_snd_city" type="text" name="sender_city" maxlength="120" value="<?php echo esc_attr( $snd_city ); ?>" />
+						</div>
+						<div class="nkzmp-vd-field">
+							<label for="vp_snd_zip"><?php esc_html_e( 'PSČ', 'nkz-mp-vendor-dashboard' ); ?></label>
+							<input id="vp_snd_zip" type="text" name="sender_zip" maxlength="10" value="<?php echo esc_attr( $snd_zip ); ?>" />
+						</div>
+						<div class="nkzmp-vd-field">
+							<label for="vp_snd_phone"><?php esc_html_e( 'Telefon odesílatele', 'nkz-mp-vendor-dashboard' ); ?></label>
+							<input id="vp_snd_phone" type="text" name="sender_phone" maxlength="40" value="<?php echo esc_attr( $snd_phone ); ?>" />
+						</div>
+						<div class="nkzmp-vd-field">
+							<label for="vp_snd_label"><?php esc_html_e( 'Packeta odesílatel (eshop label)', 'nkz-mp-vendor-dashboard' ); ?></label>
+							<input id="vp_snd_label" type="text" name="sender_label" maxlength="120" value="<?php echo esc_attr( $snd_label ); ?>" />
+							<small><?php esc_html_e( 'Vyplň jen pokud ti správce nastavil v Packetě vlastní odesílací účet. Jinak nech prázdné – použije se výchozí odesílatel platformy.', 'nkz-mp-vendor-dashboard' ); ?></small>
 						</div>
 					</section>
 				<?php endif; ?>

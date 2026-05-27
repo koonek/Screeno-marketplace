@@ -55,6 +55,25 @@ final class ProfileSubmitController {
 		update_post_meta( $vendor_id, '_nkzmp_vendor_bio', $bio );
 		update_post_meta( $vendor_id, '_nkv_vendor_bio', $bio );
 
+		// Adresa pro odeslání (Packeta odesílatel) – pokud modul aktivní.
+		if ( class_exists( \NKZMP\Packeta\Settings::class ) ) {
+			$sender = [
+				'_nkzmp_sender_name'         => sanitize_text_field( wp_unslash( $_POST['sender_name'] ?? '' ) ),
+				'_nkzmp_sender_street'       => sanitize_text_field( wp_unslash( $_POST['sender_street'] ?? '' ) ),
+				'_nkzmp_sender_city'         => sanitize_text_field( wp_unslash( $_POST['sender_city'] ?? '' ) ),
+				'_nkzmp_sender_zip'          => sanitize_text_field( wp_unslash( $_POST['sender_zip'] ?? '' ) ),
+				'_nkzmp_sender_phone'        => sanitize_text_field( wp_unslash( $_POST['sender_phone'] ?? '' ) ),
+				'_nkzmp_packeta_sender_label' => sanitize_text_field( wp_unslash( $_POST['sender_label'] ?? '' ) ),
+			];
+			foreach ( $sender as $meta_key => $meta_val ) {
+				if ( $meta_val === '' ) {
+					delete_post_meta( $vendor_id, $meta_key );
+				} else {
+					update_post_meta( $vendor_id, $meta_key, $meta_val );
+				}
+			}
+		}
+
 		// Shipping paušál (pokud modul aktivní).
 		if ( defined( 'NKZMP_SHIPPING_VENDOR_RATE_META' ) && isset( $_POST['shipping_flat'] ) ) {
 			$raw = trim( (string) wp_unslash( $_POST['shipping_flat'] ) );

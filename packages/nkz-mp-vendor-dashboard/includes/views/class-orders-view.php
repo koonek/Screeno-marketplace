@@ -26,6 +26,10 @@ final class OrdersView {
 				<p class="nkzmp-vd-meta"><?php esc_html_e( 'Objednávky, které obsahují tvoje produkty. Vidíš jen své položky.', 'nkz-mp-vendor-dashboard' ); ?></p>
 			</header>
 
+			<?php if ( isset( $_GET['nkzmp_packeta_err'] ) ) : ?>
+				<div class="nkzmp-vd-form-error"><strong><?php esc_html_e( 'Štítek Zásilkovny:', 'nkz-mp-vendor-dashboard' ); ?></strong> <?php echo esc_html( sanitize_text_field( wp_unslash( $_GET['nkzmp_packeta_err'] ) ) ); ?></div>
+			<?php endif; ?>
+
 			<?php if ( empty( $orders ) ) : ?>
 				<div class="nkzmp-vd-products-empty">
 					<div class="nkzmp-vd-products-empty-art">○</div>
@@ -58,6 +62,17 @@ final class OrdersView {
 								<span><?php esc_html_e( 'Tvoje položky celkem', 'nkz-mp-vendor-dashboard' ); ?></span>
 								<strong><?php echo wp_kses_post( $o['vendor_total'] ); ?></strong>
 							</footer>
+
+							<?php if ( ! empty( $o['packeta'] ) ) : ?>
+								<div class="nkzmp-vd-order-packeta" style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(0,0,0,.1);">
+									<?php if ( ! empty( $o['packeta']['barcode'] ) ) : ?>
+										<span style="font-size:13px;color:rgba(0,0,0,.55);"><?php esc_html_e( 'Zásilka Zásilkovny:', 'nkz-mp-vendor-dashboard' ); ?> <code><?php echo esc_html( (string) $o['packeta']['barcode'] ); ?></code></span>
+										<a class="nkzmp-vd-cancel" href="<?php echo esc_url( $o['packeta']['url'] ); ?>"><?php esc_html_e( 'Stáhnout štítek (PDF)', 'nkz-mp-vendor-dashboard' ); ?> →</a>
+									<?php else : ?>
+										<a class="nkzmp-vd-cancel" href="<?php echo esc_url( $o['packeta']['url'] ); ?>"><?php esc_html_e( 'Vytvořit štítek Zásilkovny (PDF)', 'nkz-mp-vendor-dashboard' ); ?> →</a>
+									<?php endif; ?>
+								</div>
+							<?php endif; ?>
 						</article>
 					<?php endforeach; ?>
 				</div>
@@ -116,8 +131,29 @@ final class OrdersView {
 				'status_label' => wc_get_order_status_name( $order->get_status() ),
 				'items'        => $lines,
 				'vendor_total' => wc_price( $subtotal, [ 'currency' => $order->get_currency() ] ),
+				'packeta'      => self::packeta_action( $order, $vendor_id ),
 			];
 		}
 		return $out;
+	}
+
+	/**
+	 * Data pro tlačítko štítku Zásilkovny, nebo null (modul neaktivní /
+	 * objednávka nemá výdejní místo / nevyplněné API heslo).
+	 *
+	 * @return array{url:string,barcode:string}|null
+	 */
+	private static function packeta_action( \WC_Order $order, int $vendor_id ): ?array {
+		if ( ! class_exists( \NKZMP\Packeta\LabelService::class ) || ! \NKZMP\Packeta\Settings::api_configured() ) {
+			return null;
+		}
+		if ( (string) $order->get_meta( '_nkzmp_packeta_point_id' ) === '' ) {
+			return null;
+		}
+		$packet = \NKZMP\Packeta\LabelService::instance()->get_packet( $order, $vendor_id );
+		return [
+			'url'     => \NKZMP\Packeta\LabelController::label_url( $order->get_id(), $vendor_id ),
+			'barcode' => $packet !== null ? (string) ( $packet['barcode'] ?? '' ) : '',
+		];
 	}
 }

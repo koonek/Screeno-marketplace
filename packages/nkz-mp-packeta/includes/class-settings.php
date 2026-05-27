@@ -26,8 +26,11 @@ final class Settings {
 
 	public static function get(): array {
 		$defaults = [
-			'api_key'       => '',   // Packeta widget API key
-			'default_price' => 0,    // fallback pokud nkz-mp-shipping není aktivní
+			'api_key'        => '',   // Packeta widget API key (veřejný, pro widget)
+			'api_password'   => '',   // Packeta REST API heslo (tajné, pro createPacket/štítky)
+			'sender_label'   => '',   // výchozí odesílatel (eshop label v Packeta účtu)
+			'default_weight' => 1,    // kg, fallback když produkt nemá vyplněnou váhu
+			'default_price'  => 0,    // fallback pokud nkz-mp-shipping není aktivní
 		];
 		$saved = get_option( self::OPTION, [] );
 		return array_merge( $defaults, is_array( $saved ) ? $saved : [] );
@@ -39,6 +42,25 @@ final class Settings {
 
 	public static function is_configured(): bool {
 		return self::api_key() !== '';
+	}
+
+	/** REST API heslo pro zakládání zásilek / štítky. */
+	public static function api_password(): string {
+		return (string) self::get()['api_password'];
+	}
+
+	/** Je nakonfigurované zakládání zásilek (auto-štítky)? */
+	public static function api_configured(): bool {
+		return self::api_password() !== '';
+	}
+
+	public static function sender_label(): string {
+		return (string) self::get()['sender_label'];
+	}
+
+	public static function default_weight(): float {
+		$w = (float) self::get()['default_weight'];
+		return $w > 0 ? $w : 1.0;
 	}
 
 	public function register(): void {
@@ -65,14 +87,27 @@ final class Settings {
 			echo '<div class="notice notice-warning inline"><p>' . esc_html__( 'Zatím není vyplněný API klíč. Bez něj se widget pro výběr výdejny nenačte.', 'nkz-mp-packeta' ) . '</p></div>';
 		}
 
-		echo '<p>' . wp_kses_post( __( 'API klíč najdeš v <strong>Klientská sekce Zásilkovny → Nastavení → API</strong>. Pro widget stačí veřejný API klíč.', 'nkz-mp-packeta' ) ) . '</p>';
-		echo '<p>' . esc_html__( 'Cena dopravy se bere z per-vendor paušálu (NKZ Marketplace → Doprava). Štítky se v této verzi generují ručně v Packeta klientovi podle výdejny uvedené u objednávky.', 'nkz-mp-packeta' ) . '</p>';
+		echo '<p>' . wp_kses_post( __( 'Údaje najdeš v <strong>Klientská sekce Zásilkovny → Nastavení → API</strong>. <strong>API klíč</strong> (veřejný) je pro widget výběru výdejny, <strong>API heslo</strong> (tajné) je pro zakládání zásilek a tisk štítků.', 'nkz-mp-packeta' ) ) . '</p>';
+		echo '<p>' . esc_html__( 'Cena dopravy se bere z per-vendor paušálu (NKZ Marketplace → Doprava). Bez API hesla jedou štítky ručně; s heslem si je prodejci generují přímo v dashboardu.', 'nkz-mp-packeta' ) . '</p>';
 
 		echo '<form method="post" action="options.php">';
 		settings_fields( 'nkzmp_packeta' );
 		echo '<table class="form-table"><tr>';
-		echo '<th><label for="api_key">' . esc_html__( 'Packeta API klíč', 'nkz-mp-packeta' ) . '</label></th>';
-		echo '<td><input id="api_key" type="text" name="' . esc_attr( self::OPTION ) . '[api_key]" value="' . esc_attr( (string) $s['api_key'] ) . '" style="width:420px" /></td>';
+		echo '<th><label for="api_key">' . esc_html__( 'Packeta API klíč (widget)', 'nkz-mp-packeta' ) . '</label></th>';
+		echo '<td><input id="api_key" type="text" name="' . esc_attr( self::OPTION ) . '[api_key]" value="' . esc_attr( (string) $s['api_key'] ) . '" style="width:420px" />';
+		echo '<p class="description">' . esc_html__( 'Veřejný klíč pro widget výběru výdejny v checkoutu.', 'nkz-mp-packeta' ) . '</p></td>';
+		echo '</tr><tr>';
+		echo '<th><label for="api_password">' . esc_html__( 'Packeta API heslo (štítky)', 'nkz-mp-packeta' ) . '</label></th>';
+		echo '<td><input id="api_password" type="text" name="' . esc_attr( self::OPTION ) . '[api_password]" value="' . esc_attr( (string) $s['api_password'] ) . '" style="width:420px" autocomplete="off" />';
+		echo '<p class="description">' . esc_html__( 'Tajné API heslo pro zakládání zásilek a tisk štítků. Bez něj se auto-štítky nevytvoří.', 'nkz-mp-packeta' ) . '</p></td>';
+		echo '</tr><tr>';
+		echo '<th><label for="sender_label">' . esc_html__( 'Výchozí odesílatel (eshop label)', 'nkz-mp-packeta' ) . '</label></th>';
+		echo '<td><input id="sender_label" type="text" name="' . esc_attr( self::OPTION ) . '[sender_label]" value="' . esc_attr( (string) $s['sender_label'] ) . '" style="width:420px" />';
+		echo '<p class="description">' . esc_html__( 'Název odesílatele tak, jak je nakonfigurovaný v Packeta účtu. Použije se, když prodejce nemá vlastní. Prodejce si může nastavit vlastní v profilu.', 'nkz-mp-packeta' ) . '</p></td>';
+		echo '</tr><tr>';
+		echo '<th><label for="default_weight">' . esc_html__( 'Výchozí váha balíku (kg)', 'nkz-mp-packeta' ) . '</label></th>';
+		echo '<td><input id="default_weight" type="number" min="0.1" step="0.1" name="' . esc_attr( self::OPTION ) . '[default_weight]" value="' . esc_attr( (string) $s['default_weight'] ) . '" />';
+		echo '<p class="description">' . esc_html__( 'Použije se, když produkt nemá vyplněnou váhu. Výdejní místa berou zhruba do 5 kg.', 'nkz-mp-packeta' ) . '</p></td>';
 		echo '</tr><tr>';
 		echo '<th><label for="default_price">' . esc_html__( 'Fallback cena (Kč)', 'nkz-mp-packeta' ) . '</label></th>';
 		echo '<td><input id="default_price" type="number" min="0" name="' . esc_attr( self::OPTION ) . '[default_price]" value="' . esc_attr( (string) $s['default_price'] ) . '" />';

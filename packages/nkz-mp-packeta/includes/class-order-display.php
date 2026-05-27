@@ -34,6 +34,40 @@ final class OrderDisplay {
 		}
 		echo '<p><strong>' . esc_html__( 'Zásilkovna – výdejní místo', 'nkz-mp-packeta' ) . ':</strong><br>';
 		echo esc_html( $name ) . ' <code>' . esc_html( $id ) . '</code></p>';
+
+		$this->admin_labels( $order );
+	}
+
+	/** Štítky per vendor – admin fallback (vytvořit / stáhnout PDF). */
+	private function admin_labels( \WC_Order $order ): void {
+		if ( ! class_exists( Settings::class ) || ! Settings::api_configured() ) {
+			return;
+		}
+		if ( isset( $_GET['nkzmp_packeta_err'] ) ) {
+			echo '<p style="color:#b32d2e;"><strong>' . esc_html__( 'Packeta:', 'nkz-mp-packeta' ) . '</strong> '
+				. esc_html( sanitize_text_field( wp_unslash( $_GET['nkzmp_packeta_err'] ) ) ) . '</p>';
+		}
+
+		$service    = LabelService::instance();
+		$vendor_ids = $service->order_vendor_ids( $order );
+		if ( empty( $vendor_ids ) ) {
+			return;
+		}
+
+		echo '<p><strong>' . esc_html__( 'Štítky Zásilkovny', 'nkz-mp-packeta' ) . ':</strong></p>';
+		foreach ( $vendor_ids as $vid ) {
+			$vendor_name = get_the_title( $vid ) ?: ( '#' . $vid );
+			$packet      = $service->get_packet( $order, $vid );
+			$url         = LabelController::label_url( $order->get_id(), $vid );
+			echo '<p style="margin:4px 0;">' . esc_html( $vendor_name ) . ': ';
+			if ( $packet !== null && ! empty( $packet['barcode'] ) ) {
+				echo '<code>' . esc_html( (string) $packet['barcode'] ) . '</code> ';
+				echo '<a class="button button-small" href="' . esc_url( $url ) . '">' . esc_html__( 'Stáhnout štítek', 'nkz-mp-packeta' ) . '</a>';
+			} else {
+				echo '<a class="button button-small" href="' . esc_url( $url ) . '">' . esc_html__( 'Vytvořit štítek (PDF)', 'nkz-mp-packeta' ) . '</a>';
+			}
+			echo '</p>';
+		}
 	}
 
 	public function frontend_block( \WC_Order $order ): void {

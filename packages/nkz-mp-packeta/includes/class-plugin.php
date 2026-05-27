@@ -21,5 +21,6 @@ final class Plugin {
 		Settings::instance()->init();
 		CheckoutWidget::instance()->init();
 		OrderDisplay::instance()->init();
+		LabelController::instance()->init();
 	}
 }

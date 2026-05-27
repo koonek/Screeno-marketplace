@@ -83,6 +83,20 @@ final class FormHandler {
 		update_post_meta( $vendor_id, '_nkzmp_vendor_status', 'pending' );
 		update_post_meta( $vendor_id, '_nkzmp_registration_submitted_at', time() );
 
+		// Nepovinná adresa pro odeslání (odesílatel na štítku Zásilkovny).
+		$sender = [
+			'_nkzmp_sender_name'   => sanitize_text_field( wp_unslash( $_POST['sender_name'] ?? '' ) ),
+			'_nkzmp_sender_street' => sanitize_text_field( wp_unslash( $_POST['sender_street'] ?? '' ) ),
+			'_nkzmp_sender_city'   => sanitize_text_field( wp_unslash( $_POST['sender_city'] ?? '' ) ),
+			'_nkzmp_sender_zip'    => sanitize_text_field( wp_unslash( $_POST['sender_zip'] ?? '' ) ),
+			'_nkzmp_sender_phone'  => sanitize_text_field( wp_unslash( $_POST['sender_phone'] ?? '' ) ),
+		];
+		foreach ( $sender as $meta_key => $meta_val ) {
+			if ( $meta_val !== '' ) {
+				update_post_meta( $vendor_id, $meta_key, $meta_val );
+			}
+		}
+
 		// Emails: applicant + admin.
 		EmailService::send_applicant_pending( $vendor_id );
 		EmailService::send_admin_pending( $vendor_id );

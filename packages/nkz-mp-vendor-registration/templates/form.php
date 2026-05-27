@@ -83,6 +83,39 @@ defined( 'ABSPATH' ) || exit;
 		<section class="nkzmp-reg-section">
 			<header class="nkzmp-reg-section-head">
 				<span class="nkzmp-reg-num">03</span>
+				<h2><?php esc_html_e( 'Adresa pro odeslání', 'nkz-mp-vendor-registration' ); ?></h2>
+			</header>
+			<p class="nkzmp-reg-lead" style="font-size:15px;"><?php esc_html_e( 'Nepovinné – odkud budeš posílat balíky (odesílatel na štítku). Můžeš doplnit i později v profilu.', 'nkz-mp-vendor-registration' ); ?></p>
+
+			<div class="nkzmp-reg-field">
+				<label for="nkzmp_sender_name"><?php esc_html_e( 'Jméno / firma odesílatele', 'nkz-mp-vendor-registration' ); ?></label>
+				<input id="nkzmp_sender_name" type="text" name="sender_name" maxlength="120" autocomplete="name" />
+			</div>
+			<div class="nkzmp-reg-grid nkzmp-reg-grid--2">
+				<div class="nkzmp-reg-field">
+					<label for="nkzmp_sender_street"><?php esc_html_e( 'Ulice a číslo', 'nkz-mp-vendor-registration' ); ?></label>
+					<input id="nkzmp_sender_street" type="text" name="sender_street" maxlength="160" autocomplete="address-line1" />
+				</div>
+				<div class="nkzmp-reg-field">
+					<label for="nkzmp_sender_city"><?php esc_html_e( 'Město', 'nkz-mp-vendor-registration' ); ?></label>
+					<input id="nkzmp_sender_city" type="text" name="sender_city" maxlength="120" autocomplete="address-level2" />
+				</div>
+			</div>
+			<div class="nkzmp-reg-grid nkzmp-reg-grid--2">
+				<div class="nkzmp-reg-field">
+					<label for="nkzmp_sender_zip"><?php esc_html_e( 'PSČ', 'nkz-mp-vendor-registration' ); ?></label>
+					<input id="nkzmp_sender_zip" type="text" name="sender_zip" maxlength="10" autocomplete="postal-code" />
+				</div>
+				<div class="nkzmp-reg-field">
+					<label for="nkzmp_sender_phone"><?php esc_html_e( 'Telefon odesílatele', 'nkz-mp-vendor-registration' ); ?></label>
+					<input id="nkzmp_sender_phone" type="text" name="sender_phone" maxlength="40" autocomplete="tel" />
+				</div>
+			</div>
+		</section>
+
+		<section class="nkzmp-reg-section">
+			<header class="nkzmp-reg-section-head">
+				<span class="nkzmp-reg-num">04</span>
 				<h2><?php esc_html_e( 'Souhlasy', 'nkz-mp-vendor-registration' ); ?></h2>
 			</header>
 
