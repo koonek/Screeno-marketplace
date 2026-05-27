@@ -157,7 +157,7 @@ final class ProductsView {
 			<?php endif; ?>
 
 			<p class="nkzmp-vd-note">
-				<?php esc_html_e( 'Publikované produkty už neměníš přes panel. Pokud potřebuješ úpravu, ozvi se nám.', 'nkz-mp-vendor-dashboard' ); ?>
+				<?php esc_html_e( 'Úpravy publikovaných produktů jsou hned veřejné. Nové produkty čekají na schválení.', 'nkz-mp-vendor-dashboard' ); ?>
 			</p>
 
 		</div>

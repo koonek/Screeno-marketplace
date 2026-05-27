@@ -72,20 +72,21 @@ final class ProductEmails {
 			return;
 		}
 
-		$action_word = $is_edit ? 'úprava' : 'nový produkt';
-		$subject     = sprintf( '[%s] %s ke schválení: %s', $site, ucfirst( $action_word ), $product->get_name() );
+		$subject_word = $is_edit ? 'Úprava' : 'Nový produkt';
+		$body_word    = $is_edit ? 'úpravu produktu' : 'nový produkt';
+		$subject      = sprintf( '[%s] %s ke schválení: %s', $site, $subject_word, $product->get_name() );
 
 		$edit_url   = (string) get_edit_post_link( $product->get_id(), '' );
 		$dash_url   = admin_url( 'admin.php?page=' . ( defined( 'NKZMP_ADMIN_MENU_SLUG' ) ? NKZMP_ADMIN_MENU_SLUG : 'nkz-marketplace' ) );
 
 		$body = sprintf(
-			"Vendor poslal %s na schválení.\n\n" .
+			"Prodejce poslal %s ke schválení.\n\n" .
 			"Produkt: %s\n" .
 			"Cena: %s\n" .
 			"Prodejce: %s%s\n\n" .
-			"Schválit publikování v Dashboardu (sekce \"Čekající produkty\"):\n%s\n\n" .
+			"Schválit publikování můžeš v Dashboardu (sekce „Čekající produkty“):\n%s\n\n" .
 			"Detail produktu:\n%s\n",
-			$action_word,
+			$body_word,
 			$product->get_name(),
 			wp_strip_all_tags( (string) $product->get_price_html() ),
 			$vendor ? $vendor['name'] : ( '#' . $vendor_id ),
@@ -121,7 +122,17 @@ final class ProductEmails {
 			\NKZMP\Registration\EmailService::send_raw( $to, $subject, $body );
 			return;
 		}
-		// Fallback plain text.
-		wp_mail( $to, $subject, $body, [ 'Content-Type: text/plain; charset=UTF-8' ] );
+		// Fallback plain text. PHPMailer default CharSet bývá ISO-8859-1, což
+		// rozbije diakritiku v subjektu i těle – vynutíme UTF-8 + base64.
+		$force_utf8 = static function ( $phpmailer ): void {
+			$phpmailer->CharSet  = 'UTF-8';
+			$phpmailer->Encoding = 'base64';
+		};
+		add_action( 'phpmailer_init', $force_utf8 );
+		try {
+			wp_mail( $to, $subject, $body, [ 'Content-Type: text/plain; charset=UTF-8' ] );
+		} finally {
+			remove_action( 'phpmailer_init', $force_utf8 );
+		}
 	}
 }

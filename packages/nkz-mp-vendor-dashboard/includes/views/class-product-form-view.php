@@ -25,11 +25,6 @@ final class ProductFormView {
 				echo '<div class="nkzmp-vd-empty"><h2>' . esc_html__( 'Nemůžeš upravovat tento produkt.', 'nkz-mp-vendor-dashboard' ) . '</h2></div>';
 				return;
 			}
-			if ( $product->get_status() === 'publish' ) {
-				echo '<div class="nkzmp-vd-empty"><h2>' . esc_html__( 'Publikované produkty se neupravují přes panel.', 'nkz-mp-vendor-dashboard' ) . '</h2>'
-					. '<p>' . esc_html__( 'Pokud potřebuješ úpravu, ozvi se nám.', 'nkz-mp-vendor-dashboard' ) . '</p></div>';
-				return;
-			}
 			$is_edit = true;
 		}
 
@@ -56,7 +51,13 @@ final class ProductFormView {
 			<header class="nkzmp-vd-section-head">
 				<h1><?php echo $is_edit ? esc_html__( 'Upravit produkt', 'nkz-mp-vendor-dashboard' ) : esc_html__( 'Nový produkt', 'nkz-mp-vendor-dashboard' ); ?></h1>
 				<p class="nkzmp-vd-meta">
-					<?php esc_html_e( 'Všechny produkty jdou na schválení k provozovateli. Po publikaci ti dáme vědět.', 'nkz-mp-vendor-dashboard' ); ?>
+					<?php
+					if ( $is_edit && $product && $product->get_status() === 'publish' ) {
+						esc_html_e( 'Tohle je publikovaný produkt — změny se projeví v obchodě hned po uložení.', 'nkz-mp-vendor-dashboard' );
+					} else {
+						esc_html_e( 'Nové produkty jdou na schválení k provozovateli. Po publikaci ti dáme vědět.', 'nkz-mp-vendor-dashboard' );
+					}
+					?>
 				</p>
 			</header>
 
@@ -189,7 +190,15 @@ final class ProductFormView {
 
 				<div class="nkzmp-vd-form-foot">
 					<button type="submit" name="nkzmp_submit" value="1" class="nkzmp-vd-submit" style="background:#0060FF !important;background-color:#0060FF !important;color:#fff !important;border:0 !important;border-radius:0 !important;padding:16px 32px !important;font-weight:500 !important;font-size:15px !important;display:inline-flex !important;align-items:center !important;gap:12px !important;cursor:pointer !important;">
-						<span style="color:#fff !important;"><?php echo $is_edit ? esc_html__( 'Uložit a poslat na schválení', 'nkz-mp-vendor-dashboard' ) : esc_html__( 'Poslat na schválení', 'nkz-mp-vendor-dashboard' ); ?></span>
+						<span style="color:#fff !important;"><?php
+						if ( $is_edit && $product && $product->get_status() === 'publish' ) {
+							esc_html_e( 'Uložit změny', 'nkz-mp-vendor-dashboard' );
+						} elseif ( $is_edit ) {
+							esc_html_e( 'Uložit a poslat na schválení', 'nkz-mp-vendor-dashboard' );
+						} else {
+							esc_html_e( 'Poslat na schválení', 'nkz-mp-vendor-dashboard' );
+						}
+						?></span>
 						<svg viewBox="0 0 24 24" width="18" height="18" fill="none" aria-hidden="true" style="flex-shrink:0;color:#fff;"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
 					</button>
 					<a class="nkzmp-vd-cancel" href="<?php echo esc_url( wc_get_account_endpoint_url( 'vendor-products' ) ); ?>"><?php esc_html_e( 'Zrušit', 'nkz-mp-vendor-dashboard' ); ?></a>
