@@ -58,6 +58,8 @@ final class Plugin {
 			}
 			\NKZMP\Admin\Menu::instance()->init();
 			\NKZMP\Admin\DashboardPage::instance()->init();
+			\NKZMP\Admin\SettingsHub::instance()->init();
+			\NKZMP\Admin\VendorDetailPage::instance()->init();
 			\NKZMP\Admin\StatusPage::instance()->init();
 			\NKZMP\Admin\ToolsPage::instance()->init();
 			\NKZMP\Admin\AdminBulk::instance()->init();

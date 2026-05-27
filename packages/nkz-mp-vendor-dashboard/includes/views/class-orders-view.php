@@ -16,7 +16,8 @@ final class OrdersView {
 
 	public static function render( array $vendor ): void {
 		$vendor_id = (int) $vendor['id'];
-		$orders    = self::vendor_orders( $vendor_id, 80 );
+		$result    = self::query_orders( $vendor_id );
+		$orders    = $result['orders'];
 
 		?>
 		<div class="nkzmp-vd nkzmp-vd-orders">
@@ -80,24 +81,73 @@ final class OrdersView {
 						</article>
 					<?php endforeach; ?>
 				</div>
+
+					<?php if ( $result['pages'] > 1 ) : ?>
+						<nav class="nkzmp-vd-pagination" style="display:flex;gap:16px;align-items:center;margin-top:24px;">
+							<?php if ( $result['page'] > 1 ) : ?>
+								<a class="nkzmp-vd-cancel" href="<?php echo esc_url( add_query_arg( 'vorders_page', $result['page'] - 1 ) ); ?>">← <?php esc_html_e( 'Novější', 'nkz-mp-vendor-dashboard' ); ?></a>
+							<?php endif; ?>
+							<span style="font-size:13px;color:rgba(0,0,0,.55);"><?php echo esc_html( sprintf( __( 'Strana %1$d z %2$d', 'nkz-mp-vendor-dashboard' ), $result['page'], $result['pages'] ) ); ?></span>
+							<?php if ( $result['page'] < $result['pages'] ) : ?>
+								<a class="nkzmp-vd-cancel" href="<?php echo esc_url( add_query_arg( 'vorders_page', $result['page'] + 1 ) ); ?>"><?php esc_html_e( 'Starší', 'nkz-mp-vendor-dashboard' ); ?> →</a>
+							<?php endif; ?>
+						</nav>
+					<?php endif; ?>
 			<?php endif; ?>
 
 		</div>
 		<?php
 	}
 
+	private const PER_PAGE = 20;
+
 	/**
-	 * @return array<int, array{number:string,date:string,status:string,status_label:string,items:array,vendor_total:string}>
+	 * Stránkovaný seznam objednávek vendora. Primárně přes index
+	 * (_nkzmp_order_vendor) s reálnou paginací; fallback sken posledních
+	 * objednávek + lazy backfill indexu.
+	 *
+	 * @return array{orders:array,page:int,pages:int}
 	 */
-	private static function vendor_orders( int $vendor_id, int $scan ): array {
+	private static function query_orders( int $vendor_id ): array {
 		if ( ! function_exists( 'wc_get_orders' ) ) {
-			return [];
+			return [ 'orders' => [], 'page' => 1, 'pages' => 1 ];
 		}
+
+		$page    = isset( $_GET['vorders_page'] ) ? max( 1, (int) $_GET['vorders_page'] ) : 1;
+		$statuses = [ 'wc-processing', 'wc-completed', 'wc-on-hold', 'wc-refunded' ];
+
+		// 1) Indexovaná, stránkovaná query.
+		if ( class_exists( OrderVendorIndex::class ) ) {
+			$res = wc_get_orders( [
+				'limit'      => self::PER_PAGE,
+				'paged'      => $page,
+				'paginate'   => true,
+				'orderby'    => 'date',
+				'order'      => 'DESC',
+				'status'     => $statuses,
+				// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
+				'meta_query' => [ [ 'key' => OrderVendorIndex::META, 'value' => $vendor_id ] ],
+			] );
+			if ( is_object( $res ) && (int) $res->total > 0 ) {
+				$rows = [];
+				foreach ( $res->orders as $order ) {
+					if ( $order instanceof \WC_Order ) {
+						$row = self::build_row( $order, $vendor_id );
+						if ( $row !== null ) {
+							$rows[] = $row;
+						}
+					}
+				}
+				return [ 'orders' => $rows, 'page' => $page, 'pages' => max( 1, (int) $res->max_num_pages ) ];
+			}
+		}
+
+		// 2) Fallback: sken posledních objednávek + lazy backfill indexu.
 		$orders = wc_get_orders( [
-			'limit'   => $scan,
+			'limit'   => 80,
 			'orderby' => 'date',
 			'order'   => 'DESC',
-			'status'  => [ 'wc-processing', 'wc-completed', 'wc-on-hold', 'wc-refunded' ],
+			'status'  => $statuses,
 		] );
 
 		$out = [];
@@ -105,40 +155,59 @@ final class OrdersView {
 			if ( ! $order instanceof \WC_Order ) {
 				continue;
 			}
-			$lines   = [];
-			$subtotal = 0.0;
-			foreach ( $order->get_items( 'line_item' ) as $item ) {
-				/** @var \WC_Order_Item_Product $item */
-				$pid     = $item->get_product_id();
-				$item_vendor = (int) get_post_meta( $pid, '_nkzmp_vendor_id', true );
-				if ( $item_vendor <= 0 ) {
-					$item_vendor = (int) get_post_meta( $pid, '_nkv_vendor_id', true );
-				}
-				if ( $item_vendor !== $vendor_id ) {
-					continue;
-				}
-				$line_total = (float) $item->get_total();
-				$subtotal  += $line_total;
-				$lines[]    = [
-					'qty'   => (float) $item->get_quantity(),
-					'name'  => $item->get_name(),
-					'total' => wc_price( $line_total, [ 'currency' => $order->get_currency() ] ),
-				];
-			}
-			if ( empty( $lines ) ) {
+			$row = self::build_row( $order, $vendor_id );
+			if ( $row === null ) {
 				continue;
 			}
-			$out[] = [
-				'number'       => $order->get_order_number(),
-				'date'         => $order->get_date_created() ? $order->get_date_created()->date_i18n( 'j. n. Y' ) : '',
-				'status'       => $order->get_status(),
-				'status_label' => wc_get_order_status_name( $order->get_status() ),
-				'items'        => $lines,
-				'vendor_total' => wc_price( $subtotal, [ 'currency' => $order->get_currency() ] ),
-				'packeta'      => self::packeta_action( $order, $vendor_id ),
+			// Lazy backfill indexu pro příští stránkování.
+			if ( class_exists( OrderVendorIndex::class ) ) {
+				OrderVendorIndex::index( $order );
+			}
+			$out[] = $row;
+		}
+		return [ 'orders' => $out, 'page' => 1, 'pages' => 1 ];
+	}
+
+	/**
+	 * Postaví řádek objednávky pro vendora, nebo null když v ní nemá položku.
+	 *
+	 * @return array{number:string,date:string,status:string,status_label:string,items:array,vendor_total:string,packeta:?array}|null
+	 */
+	private static function build_row( \WC_Order $order, int $vendor_id ): ?array {
+		$lines    = [];
+		$subtotal = 0.0;
+		foreach ( $order->get_items( 'line_item' ) as $item ) {
+			if ( ! $item instanceof \WC_Order_Item_Product ) {
+				continue;
+			}
+			$pid         = $item->get_product_id();
+			$item_vendor = (int) get_post_meta( $pid, '_nkzmp_vendor_id', true );
+			if ( $item_vendor <= 0 ) {
+				$item_vendor = (int) get_post_meta( $pid, '_nkv_vendor_id', true );
+			}
+			if ( $item_vendor !== $vendor_id ) {
+				continue;
+			}
+			$line_total = (float) $item->get_total();
+			$subtotal  += $line_total;
+			$lines[]    = [
+				'qty'   => (float) $item->get_quantity(),
+				'name'  => $item->get_name(),
+				'total' => wc_price( $line_total, [ 'currency' => $order->get_currency() ] ),
 			];
 		}
-		return $out;
+		if ( empty( $lines ) ) {
+			return null;
+		}
+		return [
+			'number'       => $order->get_order_number(),
+			'date'         => $order->get_date_created() ? $order->get_date_created()->date_i18n( 'j. n. Y' ) : '',
+			'status'       => $order->get_status(),
+			'status_label' => wc_get_order_status_name( $order->get_status() ),
+			'items'        => $lines,
+			'vendor_total' => wc_price( $subtotal, [ 'currency' => $order->get_currency() ] ),
+			'packeta'      => self::packeta_action( $order, $vendor_id ),
+		];
 	}
 
 	/**

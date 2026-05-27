@@ -21,7 +21,21 @@ final class Settings {
 
 	public function init(): void {
 		add_action( 'admin_init', [ $this, 'register' ] );
-		add_action( 'admin_menu', [ $this, 'menu' ], 35 );
+		if ( class_exists( \NKZMP\Admin\SettingsHub::class ) && \NKZMP\Admin\SettingsHub::available() ) {
+			add_filter( 'nkzmp/v1/admin/settings/tabs', [ $this, 'register_tab' ] );
+		} else {
+			add_action( 'admin_menu', [ $this, 'menu' ], 35 );
+		}
+	}
+
+	public function register_tab( array $tabs ): array {
+		$tabs[] = [
+			'id'       => 'packeta',
+			'label'    => __( 'Zásilkovna', 'nkz-mp-packeta' ),
+			'render'   => [ $this, 'render_panel' ],
+			'priority' => 30,
+		];
+		return $tabs;
 	}
 
 	public static function get(): array {
@@ -80,8 +94,13 @@ final class Settings {
 	}
 
 	public function render(): void {
-		$s = self::get();
 		echo '<div class="wrap"><h1>' . esc_html__( 'NKZ Marketplace – Zásilkovna', 'nkz-mp-packeta' ) . '</h1>';
+		$this->render_panel();
+		echo '</div>';
+	}
+
+	public function render_panel(): void {
+		$s = self::get();
 
 		if ( ! self::is_configured() ) {
 			echo '<div class="notice notice-warning inline"><p>' . esc_html__( 'Zatím není vyplněný API klíč. Bez něj se widget pro výběr výdejny nenačte.', 'nkz-mp-packeta' ) . '</p></div>';
@@ -114,6 +133,6 @@ final class Settings {
 		echo '<p class="description">' . esc_html__( 'Použije se jen pokud není aktivní modul Doprava (per-vendor paušál).', 'nkz-mp-packeta' ) . '</p></td>';
 		echo '</tr></table>';
 		submit_button();
-		echo '</form></div>';
+		echo '</form>';
 	}
 }

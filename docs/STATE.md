@@ -3,19 +3,19 @@
 > Živý stav projektu. Aktualizuj při větších milnících. Vše commitnuté na
 > branchi `claude/trusting-fermat-YBzZT`, PR #19 (Phase 1).
 
-## Aktuální verze (bundle 0.21.1)
+## Aktuální verze (bundle 0.22.0)
 
 | Modul | Verze |
 |---|---|
-| nkz-marketplace (core) | 0.10.8-dev |
+| nkz-marketplace (core) | 0.10.9-dev |
 | nkz-mp-stripe (adapter, slug nkz-woo-stripe-vendor-split) | 0.6.8 |
 | nkz-mp-storefront | 0.4.0 |
 | nkz-mp-vendor-registration | 0.5.0 |
-| nkz-mp-vendor-dashboard | 0.8.1 |
+| nkz-mp-vendor-dashboard | 0.9.0 |
 | nkz-mp-shipping | 0.1.0 |
-| nkz-mp-vendor-billing | 0.5.1 |
-| nkz-mp-packeta | 0.2.1 |
-| **nkz-mp-aoz-bundle** | **0.21.1** |
+| nkz-mp-vendor-billing | 0.5.2 |
+| nkz-mp-packeta | 0.2.2 |
+| **nkz-mp-aoz-bundle** | **0.22.0** |
 
 Build: `./scripts/build-bundles.sh` → `dist/nkz-marketplace-aoz-<ver>.zip`.
 
@@ -42,17 +42,17 @@ Build: `./scripts/build-bundles.sh` → `dist/nkz-marketplace-aoz-<ver>.zip`.
 ## Zbývá – polish (neblokuje launch)
 
 ### Admin / ops batch (oranžová)
-- [ ] **Vendor detail** – 1 admin obrazovka per vendor (status, billing, produkty, tržby, ledger)
+- [x] **Vendor detail** ✅ (0.22.0, VendorDetailPage – read-only konsolidace: identita+status, Stripe Connect, adresa pro odeslání, finance z ledgeru + poslední pohyby, produkty; panel hook `nkzmp/v1/admin/vendor_detail/panels`; řádková akce „NKZ detail")
 - [x] **Bulk approve** vendorů ✅ (0.19.0, AdminBulk – bulk akce „Schválit (NKZ) → čeká na KYC" ve vendor list table; produkty řeší WC nativně)
 - [x] **Reconcile drift → e-mail adminovi** ✅ (0.18.0, DriftNotifier, dedupe 12h)
 - [ ] **Setup wizard / first-run checklist** pro admina
-- [ ] **Unified Settings** – jedna stránka s taby místo 6 podstránek (čistě organizační, ~půl dne)
+- [x] **Unified Settings** ✅ (0.22.0, SettingsHub „Nastavení" s taby přes filter `nkzmp/v1/admin/settings/tabs`; Packeta + Billing migrované jako taby s fallbackem na vlastní submenu když hub chybí. Tools/Status zůstávají vlastní (nejsou config), Stripe je pod WC.)
 
 ### Correctness / robustnost (žlutá)
-- [ ] **Refund → reverzace provize** – ověřit proporční vrácení platform commission
+- [x] **Refund → reverzace provize** ✅ (0.10.9-dev, LegacyStripeObserver::record_reversals – při reverzaci transferu zapíše i proporční REVERSAL platform provize, vendor_id=0; dřív zůstávala provize započtená)
 - [ ] **Terminated vendor** – profil viditelný 30 dní pak archiv (plán); teď neimplementováno
-- [ ] **Vendor orders pagination** – OrdersView skenuje posledních 80 objednávek
-- [ ] **HPOS** ověření u nových modulů (používají WC API, pravděpodobně OK)
+- [x] **Vendor orders pagination** ✅ (0.9.0, OrderVendorIndex meta `_nkzmp_order_vendor` + stránkovaná query přes wc_get_orders; fallback sken + lazy backfill indexu)
+- [x] **HPOS** ✅ (0.22.0, declare_compatibility `custom_order_tables` doplněno do packeta + dashboard; core + adapter měly už dřív)
 
 ### Fáze 2 (po launchi)
 Packeta: tracking sync + ceník dle váhy + adresní doručení (auto-štítky hotové v 0.2.0), Packeta výběr výdejny v blokovém checkoutu (Blocks integrace + Store API), reviews, messaging, topování produktů, pokročilý shipping (zóny/váha), CZ/SK tax pack (DPH/OSS/faktury/VIES), i18n .pot/.po, Stripe adapter → first-class PaymentAdapter, pure-math Allocation\Calculator.

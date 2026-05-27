@@ -2,7 +2,7 @@
 /**
  * Plugin Name: NKZ Marketplace – Zásilkovna
  * Description: Výběr výdejního místa Zásilkovny v checkoutu (Packeta widget) + zakládání zásilek a tisk štítků per prodejce. Cena dopravy = per-vendor paušál (z nkz-mp-shipping).
- * Version: 0.2.1
+ * Version: 0.2.2
  * Author: NKZ
  * Requires at least: 6.2
  * Requires PHP: 8.1
@@ -14,7 +14,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'NKZMP_PACKETA_VERSION', '0.2.1' );
+define( 'NKZMP_PACKETA_VERSION', '0.2.2' );
 define( 'NKZMP_PACKETA_FILE', __FILE__ );
 define( 'NKZMP_PACKETA_DIR', plugin_dir_path( __FILE__ ) );
 define( 'NKZMP_PACKETA_URL', plugin_dir_url( __FILE__ ) );
@@ -26,6 +26,16 @@ define( 'NKZMP_PACKETA_POINT_NAME_META', '_nkzmp_packeta_point_name' );
 define( 'NKZMP_PACKETA_PACKETS_META', '_nkzmp_packeta_packets' );
 // Per-vendor odesílatel (eshop label v Packeta účtu).
 define( 'NKZMP_PACKETA_VENDOR_SENDER_LABEL_META', '_nkzmp_packeta_sender_label' );
+
+// HPOS compatibility (modul čte/píše objednávky přes WC_Order API).
+add_action(
+	'before_woocommerce_init',
+	static function () {
+		if ( class_exists( \Automattic\WooCommerce\Utilities\FeaturesUtil::class ) ) {
+			\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', __FILE__, true );
+		}
+	}
+);
 
 spl_autoload_register(
 	static function ( string $class ): void {

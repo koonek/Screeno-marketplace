@@ -21,7 +21,21 @@ final class Settings {
 
 	public function init(): void {
 		add_action( 'admin_init', [ $this, 'register' ] );
-		add_action( 'admin_menu', [ $this, 'menu' ], 40 );
+		if ( class_exists( \NKZMP\Admin\SettingsHub::class ) && \NKZMP\Admin\SettingsHub::available() ) {
+			add_filter( 'nkzmp/v1/admin/settings/tabs', [ $this, 'register_tab' ] );
+		} else {
+			add_action( 'admin_menu', [ $this, 'menu' ], 40 );
+		}
+	}
+
+	public function register_tab( array $tabs ): array {
+		$tabs[] = [
+			'id'       => 'billing',
+			'label'    => __( 'Billing', 'nkz-mp-vendor-billing' ),
+			'render'   => [ $this, 'render_panel' ],
+			'priority' => 40,
+		];
+		return $tabs;
 	}
 
 	public static function get(): array {
@@ -66,9 +80,14 @@ final class Settings {
 	}
 
 	public function render(): void {
+		echo '<div class="wrap"><h1>' . esc_html__( 'NKZ Marketplace – Billing', 'nkz-mp-vendor-billing' ) . '</h1>';
+		$this->render_panel();
+		echo '</div>';
+	}
+
+	public function render_panel(): void {
 		$s = self::get();
 		$webhook_url = home_url( '/wp-json/nkzmp/v1/billing/webhook' );
-		echo '<div class="wrap"><h1>' . esc_html__( 'NKZ Marketplace – Billing', 'nkz-mp-vendor-billing' ) . '</h1>';
 		echo '<p>' . esc_html__( 'Měsíční předplatné prodejců přes Stripe Billing. Stripe klíče se berou ze Stripe adapteru (WooCommerce → Stripe Vendor Split).', 'nkz-mp-vendor-billing' ) . '</p>';
 
 		echo '<div class="notice notice-info inline"><p><strong>' . esc_html__( 'Stripe webhook URL:', 'nkz-mp-vendor-billing' ) . '</strong><br><code>' . esc_html( $webhook_url ) . '</code><br>';
@@ -88,7 +107,7 @@ final class Settings {
 		echo '</table>';
 		echo '<p class="description" style="max-width:640px;">' . esc_html__( 'Signing secret najdeš v Stripe Dashboard → Developers → Webhooks → tvůj endpoint → "Signing secret". Bez něj se webhooky NEOVĚŘUJÍ (OK pro test, NUTNÉ pro produkci s reálnými penězi).', 'nkz-mp-vendor-billing' ) . '</p>';
 		submit_button();
-		echo '</form></div>';
+		echo '</form>';
 	}
 
 	private function text_row( string $key, string $label, $value, string $type = 'text' ): void {
