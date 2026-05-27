@@ -35,10 +35,14 @@ final class VendorDetailPage {
 
 	public function init(): void {
 		add_action( 'admin_menu', [ $this, 'register' ], 6 );
+		add_action( 'admin_head', [ $this, 'hide_menu_item' ] );
 		add_filter( 'post_row_actions', [ $this, 'row_action' ], 10, 2 );
 	}
 
 	public function register(): void {
+		// Registrace pod reálným parentem (kvůli přístupu). Položku z menu
+		// neodstraňujeme přes remove_submenu_page – to rozbíjí dopočet parenta
+		// a vede k „nedostatečná oprávnění". Skrýváme jen vizuálně (CSS).
 		add_submenu_page(
 			NKZMP_ADMIN_MENU_SLUG,
 			__( 'Vendor detail', 'nkz-marketplace' ),
@@ -47,8 +51,11 @@ final class VendorDetailPage {
 			self::SLUG,
 			[ self::class, 'render_static' ]
 		);
-		// Skrýt z menu – je to kontextová stránka.
-		remove_submenu_page( NKZMP_ADMIN_MENU_SLUG, self::SLUG );
+	}
+
+	/** Skryje kontextovou stránku z levého menu (zůstává přístupná přes odkaz). */
+	public function hide_menu_item(): void {
+		echo '<style>#adminmenu a[href*="page=' . esc_attr( self::SLUG ) . '"]{display:none!important;}</style>';
 	}
 
 	/** Odkaz na detail pro daného prodejce. */
