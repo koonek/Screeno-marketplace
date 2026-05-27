@@ -299,9 +299,11 @@ body.nkzmp-account .woocommerce-message {
 }
 .nkzmp-vd-action:hover {
 	background: var(--nkzmp-vd-text) !important;
-	color: var(--nkzmp-vd-bg) !important;
+	color: #fff !important;
 }
-.nkzmp-vd-action:hover span { color: rgba(255, 255, 255, 0.7); }
+.nkzmp-vd-action:hover strong,
+.nkzmp-vd-action:hover span { color: #fff !important; }
+.nkzmp-vd-action:hover span { color: rgba(255, 255, 255, 0.75) !important; }
 .nkzmp-vd-action strong { display: block; font-size: 16px; font-weight: 500; }
 .nkzmp-vd-action span { display: block; font-size: 12px; color: var(--nkzmp-vd-muted); margin-top: 4px; letter-spacing: 0.02em; }
 
