@@ -47,6 +47,10 @@ final class OrderDisplay {
 			echo '<p style="color:#b32d2e;"><strong>' . esc_html__( 'Packeta:', 'nkz-mp-packeta' ) . '</strong> '
 				. esc_html( sanitize_text_field( wp_unslash( $_GET['nkzmp_packeta_err'] ) ) ) . '</p>';
 		}
+		if ( isset( $_GET['nkzmp_packeta_msg'] ) ) {
+			echo '<p style="color:#1a7f37;"><strong>' . esc_html__( 'Packeta:', 'nkz-mp-packeta' ) . '</strong> '
+				. esc_html( sanitize_text_field( wp_unslash( $_GET['nkzmp_packeta_msg'] ) ) ) . '</p>';
+		}
 
 		$service    = LabelService::instance();
 		$vendor_ids = $service->order_vendor_ids( $order );
@@ -61,8 +65,10 @@ final class OrderDisplay {
 			$url         = LabelController::label_url( $order->get_id(), $vid );
 			echo '<p style="margin:4px 0;">' . esc_html( $vendor_name ) . ': ';
 			if ( $packet !== null && ! empty( $packet['barcode'] ) ) {
+				$cancel = LabelController::cancel_url( $order->get_id(), $vid );
 				echo '<code>' . esc_html( (string) $packet['barcode'] ) . '</code> ';
-				echo '<a class="button button-small" href="' . esc_url( $url ) . '">' . esc_html__( 'Stáhnout štítek', 'nkz-mp-packeta' ) . '</a>';
+				echo '<a class="button button-small" href="' . esc_url( $url ) . '">' . esc_html__( 'Stáhnout štítek', 'nkz-mp-packeta' ) . '</a> ';
+				echo '<a class="button button-small button-link-delete" href="' . esc_url( $cancel ) . '" onclick="return confirm(\'' . esc_js( __( 'Opravdu zrušit tuto zásilku v Packetě?', 'nkz-mp-packeta' ) ) . '\');">' . esc_html__( 'Zrušit zásilku', 'nkz-mp-packeta' ) . '</a>';
 			} else {
 				echo '<a class="button button-small" href="' . esc_url( $url ) . '">' . esc_html__( 'Vytvořit štítek (PDF)', 'nkz-mp-packeta' ) . '</a>';
 			}

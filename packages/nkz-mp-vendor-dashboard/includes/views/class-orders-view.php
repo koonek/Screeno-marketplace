@@ -29,6 +29,9 @@ final class OrdersView {
 			<?php if ( isset( $_GET['nkzmp_packeta_err'] ) ) : ?>
 				<div class="nkzmp-vd-form-error"><strong><?php esc_html_e( 'Štítek Zásilkovny:', 'nkz-mp-vendor-dashboard' ); ?></strong> <?php echo esc_html( sanitize_text_field( wp_unslash( $_GET['nkzmp_packeta_err'] ) ) ); ?></div>
 			<?php endif; ?>
+			<?php if ( isset( $_GET['nkzmp_packeta_msg'] ) ) : ?>
+				<div class="nkzmp-vd-flash nkzmp-vd-flash--success"><div class="icon">✓</div><div><strong><?php echo esc_html( sanitize_text_field( wp_unslash( $_GET['nkzmp_packeta_msg'] ) ) ); ?></strong></div></div>
+			<?php endif; ?>
 
 			<?php if ( empty( $orders ) ) : ?>
 				<div class="nkzmp-vd-products-empty">
@@ -68,6 +71,7 @@ final class OrdersView {
 									<?php if ( ! empty( $o['packeta']['barcode'] ) ) : ?>
 										<span style="font-size:13px;color:rgba(0,0,0,.55);"><?php esc_html_e( 'Zásilka Zásilkovny:', 'nkz-mp-vendor-dashboard' ); ?> <code><?php echo esc_html( (string) $o['packeta']['barcode'] ); ?></code></span>
 										<a class="nkzmp-vd-cancel" href="<?php echo esc_url( $o['packeta']['url'] ); ?>"><?php esc_html_e( 'Stáhnout štítek (PDF)', 'nkz-mp-vendor-dashboard' ); ?> →</a>
+										<a class="nkzmp-vd-cancel" href="<?php echo esc_url( $o['packeta']['cancel_url'] ); ?>" style="color:#b00020;" onclick="return confirm('<?php echo esc_js( __( 'Opravdu zrušit tuto zásilku?', 'nkz-mp-vendor-dashboard' ) ); ?>');"><?php esc_html_e( 'Zrušit zásilku', 'nkz-mp-vendor-dashboard' ); ?></a>
 									<?php else : ?>
 										<a class="nkzmp-vd-cancel" href="<?php echo esc_url( $o['packeta']['url'] ); ?>"><?php esc_html_e( 'Vytvořit štítek Zásilkovny (PDF)', 'nkz-mp-vendor-dashboard' ); ?> →</a>
 									<?php endif; ?>
@@ -152,8 +156,9 @@ final class OrdersView {
 		}
 		$packet = \NKZMP\Packeta\LabelService::instance()->get_packet( $order, $vendor_id );
 		return [
-			'url'     => \NKZMP\Packeta\LabelController::label_url( $order->get_id(), $vendor_id ),
-			'barcode' => $packet !== null ? (string) ( $packet['barcode'] ?? '' ) : '',
+			'url'        => \NKZMP\Packeta\LabelController::label_url( $order->get_id(), $vendor_id ),
+			'cancel_url' => \NKZMP\Packeta\LabelController::cancel_url( $order->get_id(), $vendor_id ),
+			'barcode'    => $packet !== null ? (string) ( $packet['barcode'] ?? '' ) : '',
 		];
 	}
 }

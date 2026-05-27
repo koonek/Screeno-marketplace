@@ -121,6 +121,43 @@ final class LabelService {
 		return $record;
 	}
 
+	/**
+	 * Zruší zásilku prodejce v Packetě a odstraní ji z objednávky.
+	 *
+	 * @return true|\WP_Error
+	 */
+	public function cancel_for_vendor( \WC_Order $order, int $vendor_id ) {
+		if ( ! Settings::api_configured() ) {
+			return new \WP_Error( 'nkzmp_packeta_no_api', __( 'Není vyplněné Packeta API heslo.', 'nkz-mp-packeta' ) );
+		}
+		$packet = $this->get_packet( $order, $vendor_id );
+		if ( $packet === null || empty( $packet['id'] ) ) {
+			return new \WP_Error( 'nkzmp_packeta_no_packet', __( 'Pro tohoto prodejce není založená žádná zásilka.', 'nkz-mp-packeta' ) );
+		}
+
+		$client = new ApiClient( Settings::api_password() );
+		$res    = $client->cancel_packet( (string) $packet['id'] );
+		if ( is_wp_error( $res ) ) {
+			return $res;
+		}
+
+		$all = $order->get_meta( NKZMP_PACKETA_PACKETS_META );
+		if ( is_array( $all ) ) {
+			unset( $all[ $vendor_id ] );
+			$order->update_meta_data( NKZMP_PACKETA_PACKETS_META, $all );
+		}
+		$order->add_order_note(
+			sprintf(
+				/* translators: 1: vendor id, 2: barcode */
+				__( 'Packeta: zrušena zásilka prodejce #%1$d (%2$s).', 'nkz-mp-packeta' ),
+				$vendor_id,
+				(string) ( $packet['barcode'] ?? '' )
+			)
+		);
+		$order->save();
+		return true;
+	}
+
 	/** Hodnota (zaokrouhleno) a váha (kg) pro položky prodejce. */
 	private function value_and_weight( \WC_Order $order, int $vendor_id ): array {
 		$value  = 0.0;

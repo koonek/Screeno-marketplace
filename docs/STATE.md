@@ -3,7 +3,7 @@
 > Živý stav projektu. Aktualizuj při větších milnících. Vše commitnuté na
 > branchi `claude/trusting-fermat-YBzZT`, PR #19 (Phase 1).
 
-## Aktuální verze (bundle 0.21.0)
+## Aktuální verze (bundle 0.21.1)
 
 | Modul | Verze |
 |---|---|
@@ -11,11 +11,11 @@
 | nkz-mp-stripe (adapter, slug nkz-woo-stripe-vendor-split) | 0.6.8 |
 | nkz-mp-storefront | 0.4.0 |
 | nkz-mp-vendor-registration | 0.5.0 |
-| nkz-mp-vendor-dashboard | 0.8.0 |
+| nkz-mp-vendor-dashboard | 0.8.1 |
 | nkz-mp-shipping | 0.1.0 |
 | nkz-mp-vendor-billing | 0.5.1 |
-| nkz-mp-packeta | 0.2.0 |
-| **nkz-mp-aoz-bundle** | **0.21.0** |
+| nkz-mp-packeta | 0.2.1 |
+| **nkz-mp-aoz-bundle** | **0.21.1** |
 
 Build: `./scripts/build-bundles.sh` → `dist/nkz-marketplace-aoz-<ver>.zip`.
 
@@ -36,7 +36,7 @@ Build: `./scripts/build-bundles.sh` → `dist/nkz-marketplace-aoz-<ver>.zip`.
 - **Dashboard (WC My Account):** přehled + onboarding checklist + provize, produkty (card grid, frontend editor create/edit, edit publ. zůstává live, stáhnout/smazat), objednávky, výplaty, profil (self-service), redirect vendor z wp-admin, AOZ branding.
 - **Shipping:** per-vendor paušál, product requires_shipping flag, admin meta box + vendor self-service sazba.
 - **Billing:** Stripe Billing subscription (CZK konfig.), Checkout + portal, webhook (signature), aktivace i na návratu, enforcement (bez předplatného nelze prodávat), grace cron fallback, admin přehled (MRR), health checks.
-- **Packeta:** výběr výdejny (widget v6), cena = per-vendor paušál, zobrazení u objednávky/e-mailů. **Auto-štítky (0.2.0):** `createPacket` per vendor + PDF štítek z dashboardu prodejce i admin detailu objednávky (idempotentní, multi-vendor split, váha z produktu/fallback, dobírka u `cod`). Odesílatel = per-vendor `eshop` label (fallback globální); adresa odesílatele v profilu prodejce (`_nkzmp_sender_*`). **Čeká na Packeta API klíč (widget) + API heslo (štítky).**
+- **Packeta:** výběr výdejny (widget v6), cena = per-vendor paušál, zobrazení u objednávky/e-mailů. **Auto-štítky (0.2.0):** `createPacket` per vendor + PDF štítek z dashboardu prodejce i admin detailu objednávky (idempotentní, multi-vendor split, váha z produktu/fallback, dobírka u `cod`). Odesílatel = per-vendor `eshop` label (fallback globální); adresa odesílatele v profilu prodejce (`_nkzmp_sender_*`). **Zrušení zásilky (0.2.1):** `cancelPacket` tlačítko v dashboardu i admin objednávce (užitečné pro testování bez přístupu do Packeta klienta). **Čeká na Packeta API klíč (widget) + API heslo (štítky).**
 - **Vendor order e-mail** při processing/completed.
 
 ## Zbývá – polish (neblokuje launch)

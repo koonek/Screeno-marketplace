@@ -93,6 +93,28 @@ final class ApiClient {
 	}
 
 	/**
+	 * Zruší zásilku. Vrací true nebo WP_Error.
+	 *
+	 * @return true|\WP_Error
+	 */
+	public function cancel_packet( string $packet_id ) {
+		$body = '<?xml version="1.0" encoding="UTF-8"?>'
+			. '<cancelPacket>'
+			. '<apiPassword>' . htmlspecialchars( $this->password, ENT_XML1 | ENT_QUOTES, 'UTF-8' ) . '</apiPassword>'
+			. '<packetId>' . htmlspecialchars( $packet_id, ENT_XML1 | ENT_QUOTES, 'UTF-8' ) . '</packetId>'
+			. '</cancelPacket>';
+
+		$xml = $this->post( $body );
+		if ( is_wp_error( $xml ) ) {
+			return $xml;
+		}
+		if ( (string) $xml->status !== 'ok' ) {
+			return new \WP_Error( 'nkzmp_packeta_api_fault', $this->fault_message( $xml ) );
+		}
+		return true;
+	}
+
+	/**
 	 * @return \SimpleXMLElement|\WP_Error
 	 */
 	private function post( string $body ) {

@@ -26,6 +26,7 @@ S vyplněným **API heslem**:
 - Objednávka se zbožím od víc prodejců = **jedna zásilka na prodejce** (položky se seskupí podle `_nkzmp_vendor_id`).
 - **Prodejce** si v dashboardu (Moje objednávky) klikne „Vytvořit štítek (PDF)" → založí se zásilka (`createPacket`) a stáhne se PDF štítek. **Admin** má totéž v detailu objednávky jako zálohu.
 - Zásilka se ukládá idempotentně na objednávku (`_nkzmp_packeta_packets` = `[ vendor_id => [id, barcode, created] ]`), opakovaný klik štítek jen znovu stáhne.
+- **Zrušení zásilky** (`cancelPacket`) – tlačítko „Zrušit zásilku" v dashboardu i admin objednávce. Hodí se k testování: zásilku lze založit a zase zrušit bez přístupu do Packeta klienta. (Packeta účtuje až při fyzickém předání, takže založení + zrušení nic nestojí.)
 - **Hodnota** = součet položek prodejce (vč. daně). **Váha** = z váhy produktů × množství, fallback = výchozí váha z nastavení. **Dobírka** se nastaví jen u platby `cod`.
 
 ### Odesílatel (sender)
