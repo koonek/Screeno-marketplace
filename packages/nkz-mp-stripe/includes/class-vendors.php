@@ -353,6 +353,18 @@ final class Vendors {
 			$raw = $_POST[ $key ] ?? '';
 			$val = self::sanitize( $type, $raw );
 			update_post_meta( $post_id, $key, $val );
+
+			// Zrcadlení do nového `_nkzmp_*` klíče (core MetaKeys). Repository čte
+			// přednostně z nových klíčů, takže bez tohoto mirroru by edit v admin
+			// meta boxu (legacy klíče) zůstal v core readeru neviditelný, pokud
+			// nový klíč už nějakou hodnotu má (typicky po registraci přes nový
+			// formulář, který píše do `_nkzmp_*` přímo).
+			if ( class_exists( \NKZMP\Vendor\MetaKeys::class ) ) {
+				$new_key = \NKZMP\Vendor\MetaKeys::legacy_map()[ $key ] ?? null;
+				if ( $new_key ) {
+					update_post_meta( $post_id, $new_key, $val );
+				}
+			}
 		}
 	}
 
