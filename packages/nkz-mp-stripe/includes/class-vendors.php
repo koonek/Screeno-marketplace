@@ -37,14 +37,15 @@ final class Vendors {
 					'add_new_item'  => __( 'Přidat prodejce', 'nkz-woo-stripe-vendor-split' ),
 					'edit_item'     => __( 'Upravit prodejce', 'nkz-woo-stripe-vendor-split' ),
 				],
-				// `public => true` is required so Elementor Pro Loop Grid shows the CPT
-				// in its source dropdown. We disable URLs (rewrite + has_archive false)
-				// and 404 single requests in `block_single_vendor()` so no vendor data leaks.
+				// `public => true` + `show_in_nav_menus => true` is required so Elementor Pro
+				// Loop Grid shows the CPT in its source dropdown. We disable URLs (rewrite +
+				// has_archive false) and 404 single requests in `block_single_vendor()` so
+				// no vendor data leaks.
 				'public'              => true,
 				'publicly_queryable'  => true,
 				'show_in_rest'        => true,
 				'exclude_from_search' => true,
-				'show_in_nav_menus'   => false,
+				'show_in_nav_menus'   => true,
 				'has_archive'         => false,
 				'rewrite'             => false,
 				'show_ui'             => true,
