@@ -37,7 +37,12 @@ final class Registry {
 			[
 				'label'              => __( 'Vendoři', 'nkz-marketplace' ),
 				'public'             => true,
-				'publicly_queryable' => false,
+				// publicly_queryable=true je nutné, aby Elementor Pro Loop Grid
+				// vendory ukázal v Source dropdownu. Vlastní permalink /vendor/<slug>
+				// řeší storefront rewrite – default ?nkzmp_vendor=slug query padne
+				// na náš single template přes template_redirect.
+				'publicly_queryable' => true,
+				'exclude_from_search' => true,
 				'show_ui'            => true,
 				'show_in_menu'       => true,
 				'show_in_rest'       => true,
