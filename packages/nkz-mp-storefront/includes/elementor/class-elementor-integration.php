@@ -34,24 +34,32 @@ final class ElementorIntegration {
 	public function init(): void {
 		add_action( 'elementor/dynamic_tags/register', [ $this, 'register_tags' ] );
 		add_action( 'elementor/query/nkzmp_vendor_products', [ $this, 'filter_vendor_products_query' ] );
-		// Vendor CPT má publicly_queryable=false (vlastní rewrite /vendor/<slug>),
-		// Elementor ho proto schová v Loop Grid Source dropdownu. Přihlásíme ho ručně.
+		// Belt-and-suspenders: Elementor / Elementor Pro používají různé filtry
+		// pro plnění dropdownu Source v Loop Grid / Posts widgetech v různých
+		// verzích. Hookujeme všechny známé.
 		add_filter( 'elementor/utils/get_public_post_types', [ $this, 'expose_vendor_post_type' ] );
+		add_filter( 'elementor_pro/loop_builder/loop_widget/source_post_types', [ $this, 'expose_vendor_post_type' ] );
 	}
 
 	/**
-	 * @param array<string,string> $post_types
-	 * @return array<string,string>
+	 * @param array<string,string|object> $post_types
+	 * @return array<string,string|object>
 	 */
-	public function expose_vendor_post_type( array $post_types ): array {
+	public function expose_vendor_post_type( $post_types ) {
+		if ( ! is_array( $post_types ) ) {
+			return $post_types;
+		}
 		foreach ( [ 'nkzmp_vendor', 'nkv_vendor' ] as $pt ) {
 			if ( isset( $post_types[ $pt ] ) ) {
 				continue;
 			}
 			$obj = get_post_type_object( $pt );
-			if ( $obj ) {
-				$post_types[ $pt ] = $obj->label;
+			if ( ! $obj ) {
+				continue;
 			}
+			// První item v poli napoví formát ostatních (label string vs WP_Post_Type).
+			$first = reset( $post_types );
+			$post_types[ $pt ] = is_object( $first ) ? $obj : (string) $obj->label;
 		}
 		return $post_types;
 	}

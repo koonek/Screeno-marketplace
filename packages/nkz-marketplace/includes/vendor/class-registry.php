@@ -36,6 +36,15 @@ final class Registry {
 			self::POST_TYPE,
 			[
 				'label'              => __( 'Vendoři', 'nkz-marketplace' ),
+				'labels'             => [
+					'name'          => __( 'Vendoři', 'nkz-marketplace' ),
+					'singular_name' => __( 'Vendor', 'nkz-marketplace' ),
+					'menu_name'     => __( 'Vendoři', 'nkz-marketplace' ),
+					'all_items'     => __( 'Všichni vendoři', 'nkz-marketplace' ),
+					'add_new'       => __( 'Přidat vendora', 'nkz-marketplace' ),
+					'add_new_item'  => __( 'Nový vendor', 'nkz-marketplace' ),
+					'edit_item'     => __( 'Upravit vendora', 'nkz-marketplace' ),
+				],
 				'public'             => true,
 				// publicly_queryable=true je nutné, aby Elementor Pro Loop Grid
 				// vendory ukázal v Source dropdownu. Vlastní permalink /vendor/<slug>
@@ -43,6 +52,7 @@ final class Registry {
 				// na náš single template přes template_redirect.
 				'publicly_queryable' => true,
 				'exclude_from_search' => true,
+				'show_in_nav_menus'  => true,
 				'show_ui'            => true,
 				'show_in_menu'       => true,
 				'show_in_rest'       => true,
