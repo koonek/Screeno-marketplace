@@ -34,6 +34,26 @@ final class ElementorIntegration {
 	public function init(): void {
 		add_action( 'elementor/dynamic_tags/register', [ $this, 'register_tags' ] );
 		add_action( 'elementor/query/nkzmp_vendor_products', [ $this, 'filter_vendor_products_query' ] );
+		// Vendor CPT má publicly_queryable=false (vlastní rewrite /vendor/<slug>),
+		// Elementor ho proto schová v Loop Grid Source dropdownu. Přihlásíme ho ručně.
+		add_filter( 'elementor/utils/get_public_post_types', [ $this, 'expose_vendor_post_type' ] );
+	}
+
+	/**
+	 * @param array<string,string> $post_types
+	 * @return array<string,string>
+	 */
+	public function expose_vendor_post_type( array $post_types ): array {
+		foreach ( [ 'nkzmp_vendor', 'nkv_vendor' ] as $pt ) {
+			if ( isset( $post_types[ $pt ] ) ) {
+				continue;
+			}
+			$obj = get_post_type_object( $pt );
+			if ( $obj ) {
+				$post_types[ $pt ] = $obj->label;
+			}
+		}
+		return $post_types;
 	}
 
 	/**
