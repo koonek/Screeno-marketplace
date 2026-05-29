@@ -1321,3 +1321,38 @@ html body.woocommerce-checkout table.shop_table tbody tr.nkzmp-group-gap > td {
 	padding: 0 !important;
 	height: 22px !important;
 }
+
+/* ─────────────────────────────────────────────────────────────
+ * Platební metody – radio + label na jeden řádek (obecné label{display:block}
+ * je shazovalo pod sebe → překryv). Popis (payment_box) zůstává pod.
+ * ───────────────────────────────────────────────────────────── */
+
+html body.woocommerce-checkout #payment ul.payment_methods li {
+	display: block !important;
+	position: relative !important;
+	padding-left: 44px !important;
+}
+html body.woocommerce-checkout #payment ul.payment_methods li input[type="radio"] {
+	position: absolute !important;
+	left: 14px !important;
+	top: 16px !important;
+	width: 18px !important;
+	height: 18px !important;
+	margin: 0 !important;
+	accent-color: var(--nkzmp-color-accent) !important;
+}
+html body.woocommerce-checkout #payment ul.payment_methods li label {
+	display: inline !important;
+	margin: 0 !important;
+	font-weight: 600 !important;
+	line-height: 1.4 !important;
+	cursor: pointer !important;
+	vertical-align: middle !important;
+}
+html body.woocommerce-checkout #payment ul.payment_methods li label img {
+	vertical-align: middle !important;
+	margin-left: 8px !important;
+}
+html body.woocommerce-checkout #payment ul.payment_methods li .payment_box {
+	margin-top: 10px !important;
+}
