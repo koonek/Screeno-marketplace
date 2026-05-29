@@ -278,7 +278,26 @@ final class Transfer_Service {
 	}
 
 	private function idempotency_key( \WC_Order $order, int $vendor_id ): string {
-		return sprintf( 'wc_order_%d_vendor_%d_transfer_v1', $order->get_id(), $vendor_id );
+		// Per-vendor attempt counter na objednávce. Bumpne se z retry handleru
+		// (bump_retry_attempt). Bez bumpu by Stripe na retry vracelo cached
+		// failure ze starého pokusu (idempotency cache 24h) – retry by tak byl
+		// fakticky no-op pro chyby co se mezitím napravily (KYC capability,
+		// klíče atd.).
+		$attempt = (int) $order->get_meta( '_nkv_idem_attempt_' . $vendor_id );
+		if ( $attempt < 1 ) {
+			$attempt = 1;
+		}
+		return sprintf( 'wc_order_%d_vendor_%d_transfer_v%d', $order->get_id(), $vendor_id, $attempt );
+	}
+
+	/**
+	 * Zvedne idempotency attempt counter, aby další create_transfer šel
+	 * na Stripe jako nový request (a nedostal cached odpověď).
+	 */
+	public function bump_retry_attempt( \WC_Order $order, int $vendor_id ): void {
+		$current = (int) $order->get_meta( '_nkv_idem_attempt_' . $vendor_id );
+		$order->update_meta_data( '_nkv_idem_attempt_' . $vendor_id, max( 1, $current ) + 1 );
+		$order->save();
 	}
 
 	private function create_transfer( \WC_Order $order, array $vendor_split, array $stripe_ids ): array {

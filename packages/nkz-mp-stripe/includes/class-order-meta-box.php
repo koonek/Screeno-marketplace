@@ -187,8 +187,16 @@ final class Order_Meta_Box {
 		} elseif ( isset( $_POST['nkv_action_run'] ) ) {
 			$ts->maybe_create_transfers( $order_id );
 		} elseif ( isset( $_POST['nkv_action_retry'] ) ) {
-			// Reset failed records so they can be retried (new run uses same idempotency key — Stripe returns cached if completed).
+			// Reset failed records + BUMP idempotency attempt counter pro daného
+			// vendora – jinak Stripe vrátí cached failure ze starého pokusu
+			// (idempotency cache 24h) a retry by byl no-op pro mezitím
+			// napravené chyby (capability, klíče …).
 			$records = $ts->get_transfer_records( $order );
+			foreach ( $records as $r ) {
+				if ( 'failed' === ( $r['status'] ?? '' ) && ! empty( $r['vendor_id'] ) ) {
+					$ts->bump_retry_attempt( $order, (int) $r['vendor_id'] );
+				}
+			}
 			$records = array_filter( $records, static fn( $r ) => 'failed' !== $r['status'] );
 			$ts->save_transfer_records( $order, array_values( $records ) );
 			$ts->maybe_create_transfers( $order_id );
