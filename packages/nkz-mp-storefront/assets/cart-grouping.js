@@ -37,9 +37,12 @@
 		var rows = Array.prototype.slice.call(tbody.querySelectorAll('tr.cart_item'));
 		if (rows.length < 1) { return; }
 
-		// Vyčisti předchozí injektované řádky (idempotence při re-renderu).
-		Array.prototype.forEach.call(tbody.querySelectorAll('tr.nkzmp-group-head, tr.nkzmp-group-sub'), function (el) {
+		// Vyčisti předchozí injektované řádky + třídy (idempotence při re-renderu).
+		Array.prototype.forEach.call(tbody.querySelectorAll('tr.nkzmp-group-head, tr.nkzmp-group-sub, tr.nkzmp-group-gap'), function (el) {
 			el.parentNode.removeChild(el);
+		});
+		Array.prototype.forEach.call(tbody.querySelectorAll('tr.nkzmp-grp-item'), function (el) {
+			el.classList.remove('nkzmp-grp-item');
 		});
 
 		var colCount = 1;
@@ -61,10 +64,23 @@
 		if (order.length <= 1 && order[0] === '0') { return; }
 		if (meaningful.length <= 1 && order.length <= 1) { return; }
 
-		order.forEach(function (vid) {
+		order.forEach(function (vid, gi) {
 			var name = vendorName(vid);
 			if (!name) { return; }
 			var first = groups[vid][0];
+
+			// Mezera mezi balíčky (kromě prvního) – ať skupiny dýchají.
+			if (gi > 0) {
+				var gap = document.createElement('tr');
+				gap.className = 'nkzmp-group-gap';
+				var gc = document.createElement('td');
+				gc.colSpan = colCount;
+				gap.appendChild(gc);
+				first.parentNode.insertBefore(gap, first);
+			}
+
+			// Označ řádky položek skupiny (pro orámování karty v CSS).
+			groups[vid].forEach(function (row) { row.classList.add('nkzmp-grp-item'); });
 
 			// Hlavička skupiny.
 			var head = document.createElement('tr');

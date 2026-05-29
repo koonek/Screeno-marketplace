@@ -95,7 +95,9 @@ final class CartGrouping {
 			foreach ( $vendor_products as $vid_str => $products ) {
 				$cost = \NKZMP\Shipping\Rate::vendor_package_cost( (int) $vid_str, $products );
 				if ( $cost > 0 ) {
-					$shipping[ $vid_str ] = wp_strip_all_tags( wc_price( $cost ) );
+					// wc_price() vrací HTML s entitami (&nbsp;, &#269; …) – dekódovat
+					// na čistý text, jinak se v JS zobrazí syrové entity.
+					$shipping[ $vid_str ] = trim( html_entity_decode( wp_strip_all_tags( wc_price( $cost ) ), ENT_QUOTES, 'UTF-8' ) );
 				} else {
 					$shipping[ $vid_str ] = (string) __( 'zdarma', 'nkz-mp-storefront' );
 				}

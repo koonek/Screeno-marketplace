@@ -95,26 +95,41 @@ body.woocommerce-info a.button:hover {
 	transform: none !important;
 }
 
-/* Notice / message bloky */
-.woocommerce-message,
-.woocommerce-info,
-.woocommerce-error,
-.woocommerce-notice {
-	border-radius: var(--nkzmp-radius-soft);
-	background: var(--nkzmp-color-accent-soft);
-	border: 1px solid rgba(0,96,255,0.16);
-	border-top: 0 !important;
-	color: var(--nkzmp-color-text);
-	padding: 14px 18px;
-	font-family: inherit;
+/* Notice / message bloky – místo pro ikonu vlevo, jemný rámeček, bez
+ * tlustého barevného pruhu. Ikona (::before) zarovnaná, nepřekrývá text. */
+html body.woocommerce .woocommerce-message,
+html body.woocommerce .woocommerce-info,
+html body.woocommerce .woocommerce-error,
+html body.woocommerce-cart .woocommerce-message,
+html body.woocommerce-checkout .woocommerce-message,
+html body .woocommerce-message,
+html body .woocommerce-info,
+html body .woocommerce-error {
+	position: relative !important;
+	border-radius: var(--nkzmp-radius-soft) !important;
+	background: var(--nkzmp-color-accent-soft) !important;
+	border: 1px solid rgba(0,96,255,0.16) !important;
+	border-top-width: 1px !important;
+	color: var(--nkzmp-color-text) !important;
+	padding: 16px 18px 16px 52px !important;
+	font-family: inherit !important;
+	line-height: 1.5 !important;
 }
-.woocommerce-error {
-	background: rgba(176,0,32,0.05);
-	border-color: rgba(176,0,32,0.22);
-	color: var(--nkzmp-color-text);
+html body .woocommerce-error {
+	background: rgba(176,0,32,0.05) !important;
+	border-color: rgba(176,0,32,0.22) !important;
 }
-.woocommerce-message::before,
-.woocommerce-info::before { color: var(--nkzmp-color-accent); }
+html body .woocommerce-message::before,
+html body .woocommerce-info::before,
+html body .woocommerce-error::before {
+	left: 18px !important;
+	top: 16px !important;
+	margin: 0 !important;
+	color: var(--nkzmp-color-accent) !important;
+}
+html body .woocommerce-error::before { color: #b00020 !important; }
+/* skryj default WC tlačítko „Zobrazit košík" uvnitř message ať se nepere */
+html body .woocommerce-message .button { vertical-align: middle; }
 
 /* Formulářová pole – warm box, modrý focus ring. Théma typicky dělá
  * underline-only styling – vynutíme box + barvy přes !important. */
@@ -1139,4 +1154,49 @@ html body.woocommerce-checkout #order_review table.shop_table tr:first-child td 
 }
 html body.woocommerce-checkout #order_review table.shop_table thead th {
 	border-bottom: 1px solid var(--nkzmp-color-border-soft) !important;
+}
+
+/* ─────────────────────────────────────────────────────────────
+ * Grouping jako KARTY – orámování okolo balíčku prodejce.
+ * head = horní zaoblení, item řádky = boční linky, sub = spodní zaoblení.
+ * ───────────────────────────────────────────────────────────── */
+
+/* mezera mezi balíčky */
+html body.woocommerce tr.nkzmp-group-gap > td {
+	border: 0 !important;
+	padding: 0 !important;
+	height: 18px !important;
+	background: transparent !important;
+}
+
+/* hlavička balíčku – horní část karty */
+html body.woocommerce tr.nkzmp-group-head > td {
+	background: var(--nkzmp-color-bg-warm) !important;
+	border: 1px solid var(--nkzmp-color-border-soft) !important;
+	border-bottom: 0 !important;
+	border-radius: var(--nkzmp-radius) var(--nkzmp-radius) 0 0 !important;
+	padding: 16px 18px 12px !important;
+}
+
+/* položky uvnitř karty – boční linky */
+html body.woocommerce tr.nkzmp-grp-item > td {
+	background: var(--nkzmp-color-surface) !important;
+	border-bottom: 1px solid var(--nkzmp-color-border-soft) !important;
+}
+html body.woocommerce tr.nkzmp-grp-item > td:first-child {
+	border-left: 1px solid var(--nkzmp-color-border-soft) !important;
+	padding-left: 18px !important;
+}
+html body.woocommerce tr.nkzmp-grp-item > td:last-child {
+	border-right: 1px solid var(--nkzmp-color-border-soft) !important;
+	padding-right: 18px !important;
+}
+
+/* mezisoučet/poštovné – spodní část karty */
+html body.woocommerce tr.nkzmp-group-sub > td {
+	background: var(--nkzmp-color-bg-warm) !important;
+	border: 1px solid var(--nkzmp-color-border-soft) !important;
+	border-top: 0 !important;
+	border-radius: 0 0 var(--nkzmp-radius) var(--nkzmp-radius) !important;
+	padding: 12px 18px 16px !important;
 }
