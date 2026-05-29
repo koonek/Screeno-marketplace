@@ -1200,3 +1200,63 @@ html body.woocommerce tr.nkzmp-group-sub > td {
 	border-radius: 0 0 var(--nkzmp-radius) var(--nkzmp-radius) !important;
 	padding: 12px 18px 16px !important;
 }
+
+/* ─────────────────────────────────────────────────────────────
+ * Karty balíčků – OVERRIDE s vyšší specificitou než hard-reset čar výš
+ * (table.shop_table tbody …). Vykreslí čistý obrys karty místo změti linek.
+ * ───────────────────────────────────────────────────────────── */
+
+/* mezera mezi balíčky */
+html body.woocommerce table.shop_table tbody tr.nkzmp-group-gap > td,
+html body.woocommerce table.cart tbody tr.nkzmp-group-gap > td {
+	border: 0 !important;
+	padding: 0 !important;
+	height: 20px !important;
+	background: transparent !important;
+}
+
+/* hlavička balíčku = horní okraj karty */
+html body.woocommerce table.shop_table tbody tr.nkzmp-group-head > td,
+html body.woocommerce table.cart tbody tr.nkzmp-group-head > td {
+	background: var(--nkzmp-color-bg-warm) !important;
+	border: 1px solid var(--nkzmp-color-border-soft) !important;
+	border-bottom: 0 !important;
+	border-radius: var(--nkzmp-radius) var(--nkzmp-radius) 0 0 !important;
+	padding: 16px 18px 12px !important;
+}
+
+/* položky uvnitř karty = jen boční linky, žádné vnitřní vodorovné */
+html body.woocommerce table.shop_table tbody tr.nkzmp-grp-item > td,
+html body.woocommerce table.cart tbody tr.nkzmp-grp-item > td {
+	background: var(--nkzmp-color-surface) !important;
+	border-top: 0 !important;
+	border-bottom: 0 !important;
+}
+html body.woocommerce table.shop_table tbody tr.nkzmp-grp-item > td:first-child,
+html body.woocommerce table.cart tbody tr.nkzmp-grp-item > td:first-child {
+	border-left: 1px solid var(--nkzmp-color-border-soft) !important;
+	border-right: 0 !important;
+	padding-left: 18px !important;
+}
+html body.woocommerce table.shop_table tbody tr.nkzmp-grp-item > td:last-child,
+html body.woocommerce table.cart tbody tr.nkzmp-grp-item > td:last-child {
+	border-right: 1px solid var(--nkzmp-color-border-soft) !important;
+	border-left: 0 !important;
+	padding-right: 18px !important;
+}
+/* vnitřní buňky (mezi prvním a posledním) bez bočních linek */
+html body.woocommerce table.shop_table tbody tr.nkzmp-grp-item > td:not(:first-child):not(:last-child),
+html body.woocommerce table.cart tbody tr.nkzmp-grp-item > td:not(:first-child):not(:last-child) {
+	border-left: 0 !important;
+	border-right: 0 !important;
+}
+
+/* mezisoučet + poštovné = spodní okraj karty */
+html body.woocommerce table.shop_table tbody tr.nkzmp-group-sub > td,
+html body.woocommerce table.cart tbody tr.nkzmp-group-sub > td {
+	background: var(--nkzmp-color-bg-warm) !important;
+	border: 1px solid var(--nkzmp-color-border-soft) !important;
+	border-top: 1px solid var(--nkzmp-color-border-soft) !important;
+	border-radius: 0 0 var(--nkzmp-radius) var(--nkzmp-radius) !important;
+	padding: 12px 18px 16px !important;
+}
