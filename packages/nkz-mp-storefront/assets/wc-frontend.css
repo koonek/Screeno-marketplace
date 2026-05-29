@@ -852,3 +852,81 @@ body.woocommerce-cart .cart_totals .checkout-button,
 		padding: 20px;
 	}
 }
+
+/* ─────────────────────────────────────────────────────────────
+ * Override hammer – théma/Elementor přebíjí hlavní CTA černou s vysokou
+ * specificitou. Prefix `html body` + plný řetězec WC tříd to přebije.
+ * ───────────────────────────────────────────────────────────── */
+
+html body.woocommerce .wc-proceed-to-checkout a.checkout-button,
+html body.woocommerce-cart .wc-proceed-to-checkout a.checkout-button.button,
+html body.woocommerce-cart .wc-proceed-to-checkout a.checkout-button.button.alt,
+html body.woocommerce-checkout #place_order,
+html body.woocommerce #place_order.button.alt {
+	background: var(--nkzmp-color-accent) !important;
+	background-color: var(--nkzmp-color-accent) !important;
+	background-image: none !important;
+	color: #fff !important;
+	border: 0 !important;
+	border-radius: var(--nkzmp-radius-soft) !important;
+}
+html body.woocommerce .wc-proceed-to-checkout a.checkout-button:hover,
+html body.woocommerce-checkout #place_order:hover {
+	background: var(--nkzmp-color-accent-hover) !important;
+	background-color: var(--nkzmp-color-accent-hover) !important;
+}
+
+/* Update Cart disabled (WC ho disabluje než změníš množství) – ať vypadá
+ * jako sekundární, ne jako vybledlé primary. */
+html body.woocommerce button[name="update_cart"],
+html body.woocommerce button[name="update_cart"][disabled],
+html body.woocommerce button[name="update_cart"]:disabled {
+	background: var(--nkzmp-color-surface) !important;
+	background-color: var(--nkzmp-color-surface) !important;
+	color: var(--nkzmp-color-text) !important;
+	border: 1px solid var(--nkzmp-color-border) !important;
+	box-shadow: none !important;
+	opacity: 1 !important;
+}
+html body.woocommerce button[name="update_cart"]:disabled {
+	color: var(--nkzmp-color-text-muted) !important;
+	cursor: default !important;
+}
+
+/* ─────────────────────────────────────────────────────────────
+ * Čáry pryč – théma kreslí černé vodorovné linky na shop_table /
+ * order_review / cart_totals. Přebijeme na jemné (border-soft) nebo nula.
+ * ───────────────────────────────────────────────────────────── */
+
+html body.woocommerce table.shop_table,
+html body.woocommerce table.shop_table th,
+html body.woocommerce table.shop_table td,
+html body.woocommerce table.shop_table tr,
+html body.woocommerce table.shop_table thead th,
+html body.woocommerce table.shop_table tbody th,
+html body.woocommerce table.shop_table tbody td,
+html body.woocommerce table.shop_table tfoot th,
+html body.woocommerce table.shop_table tfoot td,
+html body.woocommerce table.cart th,
+html body.woocommerce table.cart td,
+html body.woocommerce #order_review th,
+html body.woocommerce #order_review td {
+	border-color: var(--nkzmp-color-border-soft) !important;
+}
+/* horní/dolní silné linky (často black) sekce Your Order / Cart Totals */
+html body.woocommerce .cart_totals,
+html body.woocommerce #order_review,
+html body.woocommerce .cart-collaterals {
+	border-color: var(--nkzmp-color-border-soft) !important;
+}
+html body.woocommerce .cart_totals h2,
+html body.woocommerce #order_review_heading,
+html body.woocommerce .woocommerce-checkout #order_review {
+	border-top: 0 !important;
+	border-bottom: 0 !important;
+}
+/* WC občas dává black border-top na .shop_table přes inline theme styl */
+html body.woocommerce table.shop_table {
+	border-top-color: var(--nkzmp-color-border-soft) !important;
+	border: 1px solid var(--nkzmp-color-border-soft) !important;
+}

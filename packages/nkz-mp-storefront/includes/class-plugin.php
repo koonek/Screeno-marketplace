@@ -27,6 +27,7 @@ final class Plugin {
 		ProductLink::instance()->init();
 		Seo::instance()->init();
 		Assets::instance()->init();
+		Strings::instance()->init();
 
 		// Elementor integration je opt-in podle dostupnosti pluginu.
 		if ( did_action( 'elementor/loaded' ) || class_exists( \Elementor\Plugin::class ) ) {
