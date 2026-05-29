@@ -224,6 +224,14 @@ final class OrdersView {
 			return null;
 		}
 		$packet = \NKZMP\Packeta\LabelService::instance()->get_packet( $order, $vendor_id );
+		// Pokud je objednávka uzavřená a štítek neexistuje, akci „Vytvořit"
+		// skryjeme (vrátíme null) – uzavřené objednávky se už neexpedují.
+		// Filtr stejný jako v admin order display.
+		if ( $packet === null
+			&& $order->has_status( [ 'completed', 'cancelled', 'refunded' ] )
+			&& apply_filters( 'nkzmp/v1/packeta/hide_create_on_closed', true, $order ) ) {
+			return null;
+		}
 		return [
 			'url'        => \NKZMP\Packeta\LabelController::label_url( $order->get_id(), $vendor_id ),
 			'cancel_url' => \NKZMP\Packeta\LabelController::cancel_url( $order->get_id(), $vendor_id ),

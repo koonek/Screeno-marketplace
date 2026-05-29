@@ -2,7 +2,7 @@
 /**
  * Plugin Name: NKZ Marketplace – Zásilkovna
  * Description: Výběr výdejního místa Zásilkovny v checkoutu (Packeta widget) + zakládání zásilek a tisk štítků per prodejce. Cena dopravy = per-vendor paušál (z nkz-mp-shipping).
- * Version: 0.2.3
+ * Version: 0.2.4
  * Author: NKZ
  * Requires at least: 6.2
  * Requires PHP: 8.1
@@ -14,7 +14,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'NKZMP_PACKETA_VERSION', '0.2.3' );
+define( 'NKZMP_PACKETA_VERSION', '0.2.4' );
 define( 'NKZMP_PACKETA_FILE', __FILE__ );
 define( 'NKZMP_PACKETA_DIR', plugin_dir_path( __FILE__ ) );
 define( 'NKZMP_PACKETA_URL', plugin_dir_url( __FILE__ ) );

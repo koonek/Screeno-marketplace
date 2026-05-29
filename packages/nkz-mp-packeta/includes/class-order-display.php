@@ -58,6 +58,13 @@ final class OrderDisplay {
 			return;
 		}
 
+		// Pokud je objednávka uzavřená (completed/cancelled/refunded), tlačítka
+		// pro vytvoření nového štítku skrýváme – zboží už bylo odesláno (nebo
+		// objednávka stornována). Existující štítky ale ponecháváme zobrazené
+		// (Stáhnout/Zrušit). Filtr: nkzmp/v1/packeta/show_create_on_closed.
+		$is_closed = $order->has_status( [ 'completed', 'cancelled', 'refunded' ] );
+		$hide_create = $is_closed && apply_filters( 'nkzmp/v1/packeta/hide_create_on_closed', true, $order );
+
 		echo '<p><strong>' . esc_html__( 'Štítky Zásilkovny', 'nkz-mp-packeta' ) . ':</strong></p>';
 		foreach ( $vendor_ids as $vid ) {
 			$vendor_name = get_the_title( $vid ) ?: ( '#' . $vid );
@@ -74,6 +81,9 @@ final class OrderDisplay {
 				echo '<br><code>' . esc_html( (string) $packet['barcode'] ) . '</code> ';
 				echo '<a class="button button-small" href="' . esc_url( $url ) . '">' . esc_html__( 'Stáhnout štítek', 'nkz-mp-packeta' ) . '</a> ';
 				echo '<a class="button button-small button-link-delete" href="' . esc_url( $cancel ) . '" onclick="return confirm(\'' . esc_js( __( 'Opravdu zrušit tuto zásilku v Packetě?', 'nkz-mp-packeta' ) ) . '\');">' . esc_html__( 'Zrušit zásilku', 'nkz-mp-packeta' ) . '</a>';
+			} elseif ( $hide_create ) {
+				// Objednávka uzavřena bez vytvořeného štítku → bez akce.
+				echo '<span style="color:#646970;">' . esc_html__( 'objednávka uzavřena', 'nkz-mp-packeta' ) . '</span>';
 			} else {
 				echo '<span style="color:#b26900;font-weight:600;">⏳ ' . esc_html__( 'Čeká na podání', 'nkz-mp-packeta' ) . '</span> ';
 				echo '<a class="button button-small" href="' . esc_url( $url ) . '">' . esc_html__( 'Vytvořit štítek (PDF)', 'nkz-mp-packeta' ) . '</a>';
