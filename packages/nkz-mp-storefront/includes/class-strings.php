@@ -93,10 +93,11 @@ final class Strings {
 	 * @param string $domain
 	 */
 	public function translate( $translated, $text, $domain ): string {
-		if ( $domain !== 'woocommerce' ) {
-			return $translated;
-		}
-		// Přelož jen pokud WC vrátil anglický originál (tj. překlad nedoběhl).
+		// Záměrně napříč doménami – některá témata renderují WC řetězce přes
+		// vlastní textdomain (např. „Cart Totals", „Proceed to Checkout" s
+		// velkými písmeny), takže omezení na 'woocommerce' je nechytí.
+		// Bezpečné: překládáme jen přesnou shodu z tight mapy a jen když
+		// nebyl řetězec už přeložen (tj. zůstal anglický originál).
 		if ( $translated === $text && isset( $this->map[ $text ] ) ) {
 			return $this->map[ $text ];
 		}
