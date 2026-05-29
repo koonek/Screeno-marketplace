@@ -31,6 +31,7 @@ final class DashboardPage {
 
 	public function init(): void {
 		add_action( 'admin_post_nkzmp_dashboard_quick_approve', [ $this, 'handle_quick_approve' ] );
+		add_action( 'admin_post_nkzmp_dashboard_quick_reject', [ $this, 'handle_quick_reject' ] );
 		add_action( 'admin_post_nkzmp_dashboard_publish_product', [ $this, 'handle_publish_product' ] );
 	}
 
@@ -79,6 +80,31 @@ final class DashboardPage {
 				[ 'source' => 'dashboard_quick_approve' ]
 			);
 			$msg = sprintf( __( 'Vendor #%d schválen, čeká na KYC.', 'nkz-marketplace' ), $vendor_id );
+		} catch ( \Throwable $e ) {
+			$msg = $e->getMessage();
+		}
+		wp_safe_redirect( add_query_arg(
+			[ 'page' => NKZMP_ADMIN_MENU_SLUG, 'nkzmp_approve_msg' => rawurlencode( $msg ) ],
+			admin_url( 'admin.php' )
+		) );
+		exit;
+	}
+
+	public function handle_quick_reject(): void {
+		$vendor_id = isset( $_POST['vendor_id'] ) ? (int) $_POST['vendor_id'] : 0;
+		check_admin_referer( 'nkzmp_dashboard_quick_reject_' . $vendor_id );
+		if ( ! current_user_can( Capabilities::APPROVE_VENDOR ) && ! current_user_can( Capabilities::MANAGE_VENDORS ) ) {
+			wp_die( esc_html__( 'Nedostatečná oprávnění.', 'nkz-marketplace' ) );
+		}
+		$reason = isset( $_POST['reason'] ) ? sanitize_textarea_field( wp_unslash( $_POST['reason'] ) ) : '';
+		$msg    = '';
+		try {
+			( new \NKZMP\Vendor\StatusService() )->transition(
+				$vendor_id,
+				\NKZMP\Vendor\Status::REJECTED,
+				[ 'source' => 'dashboard_quick_reject', 'reason' => $reason ]
+			);
+			$msg = sprintf( __( 'Přihláška vendora #%d zamítnuta.', 'nkz-marketplace' ), $vendor_id );
 		} catch ( \Throwable $e ) {
 			$msg = $e->getMessage();
 		}
@@ -218,6 +244,15 @@ final class DashboardPage {
 								</div>
 								<div class="nkzmp-pend-actions">
 									<a class="nkzmp-pend-btn nkzmp-pend-btn--view" href="<?php echo esc_url( $p['edit_url'] ); ?>"><?php esc_html_e( 'Detail', 'nkz-marketplace' ); ?></a>
+									<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline;" onsubmit="var r=prompt('<?php echo esc_js( __( 'Důvod zamítnutí (nepovinné, pošle se žadateli):', 'nkz-marketplace' ) ); ?>');if(r===null){return false;}this.reason.value=r;">
+										<input type="hidden" name="action" value="nkzmp_dashboard_quick_reject" />
+										<input type="hidden" name="vendor_id" value="<?php echo (int) $p['id']; ?>" />
+										<input type="hidden" name="reason" value="" />
+										<?php wp_nonce_field( 'nkzmp_dashboard_quick_reject_' . $p['id'] ); ?>
+										<button type="submit" class="nkzmp-pend-btn nkzmp-pend-btn--reject">
+											<?php esc_html_e( 'Zamítnout', 'nkz-marketplace' ); ?>
+										</button>
+									</form>
 									<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline;">
 										<input type="hidden" name="action" value="nkzmp_dashboard_quick_approve" />
 										<input type="hidden" name="vendor_id" value="<?php echo (int) $p['id']; ?>" />
@@ -621,6 +656,15 @@ final class DashboardPage {
 			.nkzmp-pend-btn--approve:hover {
 				background: #0050d6;
 				border-color: #0050d6;
+				color: #fff !important;
+			}
+			.nkzmp-pend-btn--reject {
+				border-color: rgba(176,0,32,0.4);
+				color: #b00020;
+			}
+			.nkzmp-pend-btn--reject:hover {
+				background: #b00020;
+				border-color: #b00020;
 				color: #fff !important;
 			}
 
