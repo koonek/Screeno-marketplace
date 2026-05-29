@@ -56,14 +56,8 @@ final class DriftNotifier {
 			);
 		}
 
-		$subject = sprintf( '[%s] Reconciliation drift: %d', $site, $count );
-		$body    = sprintf(
-			"Reconciliation našla %d nesrovnalostí mezi ledgerem a PSP (%s).\n\n" .
-			"Okno: %s – %s\n" .
-			"Source: %d, Ledger: %d, Matched: %d, Drift: %d\n\n" .
-			"%s\n\n" .
-			"Zkontroluj v Tools (reconcile / backfill):\n%s\n",
-			$count,
+		$detail = sprintf(
+			"Adapter: %s\nOkno: %s – %s\nSource: %d, Ledger: %d, Matched: %d, Drift: %d\n\n%s",
 			$report->adapter,
 			gmdate( 'Y-m-d H:i', $report->from_ts ),
 			gmdate( 'Y-m-d H:i', $report->to_ts ),
@@ -71,9 +65,27 @@ final class DriftNotifier {
 			$report->ledger_count,
 			$report->matched_count,
 			$count,
-			implode( "\n", $lines ),
-			$tools_url
+			implode( "\n", $lines )
 		);
+
+		$vars = [
+			'count'     => (string) $count,
+			'detail'    => $detail,
+			'tools_url' => $tools_url,
+			'site_name' => $site,
+		];
+
+		$subject = $body = '';
+		if ( class_exists( \NKZMP\Admin\EmailSettings::class ) ) {
+			$subject = \NKZMP\Admin\EmailSettings::interpolate( \NKZMP\Admin\EmailSettings::raw( 'email_drift_admin_subject' ), $vars );
+			$body    = \NKZMP\Admin\EmailSettings::interpolate( \NKZMP\Admin\EmailSettings::raw( 'email_drift_admin_body' ), $vars );
+		}
+		if ( $subject === '' ) {
+			$subject = sprintf( '[%s] Reconciliation drift: %d', $site, $count );
+		}
+		if ( $body === '' ) {
+			$body = $detail . "\n\nTools: " . $tools_url;
+		}
 
 		wp_mail( $to, $subject, $body, [ 'Content-Type: text/plain; charset=UTF-8' ] );
 	}

@@ -73,22 +73,29 @@ final class OrderNotifications {
 				$lines[]   = sprintf( '  %d× %s — %s', (int) $item->get_quantity(), $item->get_name(), wp_strip_all_tags( wc_price( $t, [ 'currency' => $order->get_currency() ] ) ) );
 			}
 
-			$site    = (string) get_bloginfo( 'name' );
-			$subject = sprintf( __( 'Nová objednávka #%s — %s', 'nkz-mp-vendor-dashboard' ), $order->get_order_number(), $site );
-			$body    = sprintf(
-				"Ahoj %s,\n\n" .
-				"máš novou objednávku #%s. Co odeslat:\n\n%s\n\n" .
-				"Tvoje položky celkem: %s\n\n%s" .
-				"Detaily a stav objednávek najdeš ve svém panelu:\n%s\n\n" .
-				"Tým %s",
-				$vendor['name'],
-				$order->get_order_number(),
-				implode( "\n", $lines ),
-				wp_strip_all_tags( wc_price( $subtotal, [ 'currency' => $order->get_currency() ] ) ),
-				$pickup !== '' ? sprintf( "Doručení na výdejní místo: %s\n\n", $pickup ) : '',
-				wc_get_account_endpoint_url( 'vendor-orders' ),
-				$site
-			);
+			$site = (string) get_bloginfo( 'name' );
+			$vars = [
+				'name'            => (string) $vendor['name'],
+				'order_number'    => (string) $order->get_order_number(),
+				'order_date'      => $order->get_date_created() ? $order->get_date_created()->date_i18n( get_option( 'date_format' ) ) : '',
+				'items'           => implode( "\n", $lines ) . ( $pickup !== '' ? "\n\nDoručení na výdejní místo: " . $pickup : '' ),
+				'subtotal'        => wp_strip_all_tags( wc_price( $subtotal, [ 'currency' => $order->get_currency() ] ) ),
+				'order_admin_url' => wc_get_account_endpoint_url( 'vendor-orders' ),
+				'site_name'       => $site,
+			];
+
+			$subject = $body = '';
+			if ( class_exists( \NKZMP\Admin\EmailSettings::class ) ) {
+				$subject = \NKZMP\Admin\EmailSettings::interpolate( \NKZMP\Admin\EmailSettings::raw( 'email_order_vendor_subject' ), $vars );
+				$body    = \NKZMP\Admin\EmailSettings::interpolate( \NKZMP\Admin\EmailSettings::raw( 'email_order_vendor_body' ), $vars );
+			}
+			if ( $subject === '' ) {
+				$subject = sprintf( __( 'Nová objednávka #%s — %s', 'nkz-mp-vendor-dashboard' ), $vars['order_number'], $site );
+			}
+			if ( $body === '' ) {
+				$body = sprintf( "Ahoj %s,\n\nmáš novou objednávku #%s.\n\n%s\n\nCelkem: %s\n\n%s",
+					$vars['name'], $vars['order_number'], $vars['items'], $vars['subtotal'], $vars['order_admin_url'] );
+			}
 
 			$this->send( (string) $vendor['email'], $subject, $body );
 			$order->update_meta_data( $flag, time() );

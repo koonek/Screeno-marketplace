@@ -17,10 +17,9 @@ final class EmailService {
 		if ( ! $vendor ) {
 			return;
 		}
-		$s        = Settings::get();
-		$vars     = self::base_vars( $vendor_id, $vendor );
-		$subject  = self::interpolate( $s['email_applicant_pending_subject'], $vars );
-		$body     = self::interpolate( $s['email_applicant_pending_body'], $vars );
+		$vars    = self::base_vars( $vendor_id, $vendor );
+		$subject = self::tpl( 'email_applicant_pending_subject', $vars );
+		$body    = self::tpl( 'email_applicant_pending_body', $vars );
 		self::send( $vendor['email'], $subject, $body );
 	}
 
@@ -32,8 +31,8 @@ final class EmailService {
 		$s       = Settings::get();
 		$to      = $s['admin_notification_email'];
 		$vars    = self::base_vars( $vendor_id, $vendor );
-		$subject = self::interpolate( $s['email_admin_pending_subject'], $vars );
-		$body    = self::interpolate( $s['email_admin_pending_body'], $vars );
+		$subject = self::tpl( 'email_admin_pending_subject', $vars );
+		$body    = self::tpl( 'email_admin_pending_body', $vars );
 		self::send( $to, $subject, $body );
 	}
 
@@ -42,10 +41,9 @@ final class EmailService {
 		if ( ! $vendor ) {
 			return;
 		}
-		$s       = Settings::get();
 		$vars    = self::base_vars( $vendor_id, $vendor );
-		$subject = self::interpolate( $s['email_approved_subject'], $vars );
-		$body    = self::interpolate( $s['email_approved_body'], $vars );
+		$subject = self::tpl( 'email_approved_subject', $vars );
+		$body    = self::tpl( 'email_approved_body', $vars );
 		self::send( $vendor['email'], $subject, $body );
 	}
 
@@ -54,10 +52,9 @@ final class EmailService {
 		if ( ! $vendor ) {
 			return;
 		}
-		$s       = Settings::get();
 		$vars    = self::base_vars( $vendor_id, $vendor );
-		$subject = self::interpolate( $s['email_active_subject'], $vars );
-		$body    = self::interpolate( $s['email_active_body'], $vars );
+		$subject = self::tpl( 'email_active_subject', $vars );
+		$body    = self::tpl( 'email_active_body', $vars );
 		self::send( $vendor['email'], $subject, $body );
 	}
 
@@ -66,12 +63,24 @@ final class EmailService {
 		if ( ! $vendor ) {
 			return;
 		}
-		$s       = Settings::get();
-		$vars    = self::base_vars( $vendor_id, $vendor );
+		$vars                 = self::base_vars( $vendor_id, $vendor );
 		$vars['reason_block'] = $reason !== '' ? sprintf( "Pro úplnost: %s\n\n", $reason ) : '';
-		$subject = self::interpolate( $s['email_rejected_subject'], $vars );
-		$body    = self::interpolate( $s['email_rejected_body'], $vars );
+		$subject              = self::tpl( 'email_rejected_subject', $vars );
+		$body                 = self::tpl( 'email_rejected_body', $vars );
 		self::send( $vendor['email'], $subject, $body );
+	}
+
+	/**
+	 * Lookup šablony přes core EmailSettings (s fallbackem na legacy registrační option
+	 * a na hardcoded default uvnitř EmailSettings).
+	 */
+	private static function tpl( string $key, array $vars ): string {
+		if ( class_exists( \NKZMP\Admin\EmailSettings::class ) ) {
+			return \NKZMP\Admin\EmailSettings::interpolate( \NKZMP\Admin\EmailSettings::raw( $key ), $vars );
+		}
+		// Fallback pokud by core nebyl naloaděný (multi-plugin standalone).
+		$s = Settings::get();
+		return self::interpolate( (string) ( $s[ $key ] ?? '' ), $vars );
 	}
 
 	/**

@@ -149,29 +149,27 @@ final class Listener {
 		if ( ! $user ) {
 			return;
 		}
-		// Custom email v AOZ tónu místo defaultní WP zprávy.
-		$key   = get_password_reset_key( $user );
+		$key = get_password_reset_key( $user );
 		if ( is_wp_error( $key ) ) {
 			return;
 		}
 		$reset_url = network_site_url( 'wp-login.php?action=rp&key=' . $key . '&login=' . rawurlencode( $user->user_login ), 'login' );
 
-		$site = (string) get_bloginfo( 'name' );
-		$body = sprintf(
-			"Ahoj %s,\n\n" .
-			"právě jsme ti zřídili účet do Art of život. Aby ses mohl(a) přihlásit, klikni níže a nastav si heslo:\n\n" .
-			"%s\n\n" .
-			"Tvé přihlašovací jméno je: %s\n\n" .
-			"Po nastavení hesla najdeš svůj prodejní panel na /muj-ucet/vendor.\n\n" .
-			"Tým %s",
-			$user->display_name ?: $user->user_login,
-			$reset_url,
-			$user->user_login,
-			$site
-		);
-		$subject = sprintf( 'Nastav si heslo — %s', $site );
+		$vars = [
+			'name'         => $user->display_name ?: $user->user_login,
+			'username'     => $user->user_login,
+			'password_url' => $reset_url,
+			'login_url'    => wc_get_page_permalink( 'myaccount' ) ?: home_url( '/muj-ucet' ),
+			'site_name'    => (string) get_bloginfo( 'name' ),
+		];
 
-		// Použij sdílený AOZ HTML wrapper z EmailService (přes reflection invocation).
+		$subject = class_exists( \NKZMP\Admin\EmailSettings::class )
+			? \NKZMP\Admin\EmailSettings::interpolate( \NKZMP\Admin\EmailSettings::raw( 'email_password_setup_subject' ), $vars )
+			: sprintf( 'Nastav si heslo — %s', $vars['site_name'] );
+		$body    = class_exists( \NKZMP\Admin\EmailSettings::class )
+			? \NKZMP\Admin\EmailSettings::interpolate( \NKZMP\Admin\EmailSettings::raw( 'email_password_setup_body' ), $vars )
+			: sprintf( "Ahoj %s,\n\n%s\n\n", $vars['name'], $reset_url );
+
 		EmailService::send_raw( (string) $user->user_email, $subject, $body );
 	}
 }

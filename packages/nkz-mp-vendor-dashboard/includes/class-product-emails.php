@@ -34,68 +34,57 @@ final class ProductEmails {
 		if ( ! $vendor || empty( $vendor['email'] ) ) {
 			return;
 		}
-		$site = (string) get_bloginfo( 'name' );
-		if ( $is_edit ) {
-			$subject = sprintf( 'Tvoji úpravu jsme dostali — %s', $site );
-			$body    = sprintf(
-				"Ahoj %s,\n\n" .
-				"úpravu produktu „%s\" jsme dostali. Projdeme ji v týmu a zase publikujeme.\n\n" .
-				"Mezitím produkt visí v tvém panelu pod stavem „Čeká schválení\":\n%s\n\n" .
-				"Tým %s",
-				$vendor['name'],
-				$product->get_name(),
-				wc_get_account_endpoint_url( 'vendor-products' ),
-				$site
-			);
-		} else {
-			$subject = sprintf( 'Tvůj produkt jsme dostali — %s', $site );
-			$body    = sprintf(
-				"Ahoj %s,\n\n" .
-				"produkt „%s\" jsme přijali. Projdeme ho a pokud sedne k Art of život, publikujeme ho.\n\n" .
-				"Není to automat — každý produkt si projdeme osobně. Můžeme se ozvat s otázkami.\n\n" .
-				"V tvém panelu máš produkt pod stavem „Čeká schválení\":\n%s\n\n" .
-				"Tým %s",
-				$vendor['name'],
-				$product->get_name(),
-				wc_get_account_endpoint_url( 'vendor-products' ),
-				$site
-			);
-		}
+		$vars = [
+			'name'          => (string) $vendor['name'],
+			'product_name'  => $product->get_name(),
+			'dashboard_url' => wc_get_account_endpoint_url( 'vendor-products' ),
+			'site_name'     => (string) get_bloginfo( 'name' ),
+		];
+		$key_subj = $is_edit ? 'email_product_edit_vendor_subject' : 'email_product_new_vendor_subject';
+		$key_body = $is_edit ? 'email_product_edit_vendor_body'    : 'email_product_new_vendor_body';
+		$subject  = self::render_tpl( $key_subj, $vars, sprintf( 'Tvůj produkt — %s', $vars['site_name'] ) );
+		$body     = self::render_tpl( $key_body, $vars, sprintf( "Ahoj %s,\n\nprodukt „%s\" jsme přijali.\n\n%s\n\nTým %s",
+			$vars['name'], $vars['product_name'], $vars['dashboard_url'], $vars['site_name'] ) );
 		self::send( (string) $vendor['email'], $subject, $body );
 	}
 
 	private static function send_admin_notification( \WC_Product $product, int $vendor_id, bool $is_edit ): void {
 		$vendor = self::vendor( $vendor_id );
-		$site   = (string) get_bloginfo( 'name' );
 		$to     = self::admin_recipient();
 		if ( ! is_email( $to ) ) {
 			return;
 		}
 
-		$subject_word = $is_edit ? 'Úprava' : 'Nový produkt';
-		$body_word    = $is_edit ? 'úpravu produktu' : 'nový produkt';
-		$subject      = sprintf( '[%s] %s ke schválení: %s', $site, $subject_word, $product->get_name() );
+		$vars = [
+			'product_name'  => $product->get_name(),
+			'product_price' => wp_strip_all_tags( (string) $product->get_price_html() ),
+			'vendor_name'   => $vendor ? (string) $vendor['name'] : ( '#' . $vendor_id ),
+			'vendor_email'  => $vendor && ! empty( $vendor['email'] ) ? (string) $vendor['email'] : '',
+			'dashboard_url' => admin_url( 'admin.php?page=' . ( defined( 'NKZMP_ADMIN_MENU_SLUG' ) ? NKZMP_ADMIN_MENU_SLUG : 'nkz-marketplace' ) ),
+			'edit_url'      => (string) get_edit_post_link( $product->get_id(), '' ),
+			'submit_kind'   => $is_edit ? __( 'Úprava', 'nkz-mp-vendor-dashboard' ) : __( 'Nový produkt', 'nkz-mp-vendor-dashboard' ),
+			'site_name'     => (string) get_bloginfo( 'name' ),
+		];
 
-		$edit_url   = (string) get_edit_post_link( $product->get_id(), '' );
-		$dash_url   = admin_url( 'admin.php?page=' . ( defined( 'NKZMP_ADMIN_MENU_SLUG' ) ? NKZMP_ADMIN_MENU_SLUG : 'nkz-marketplace' ) );
-
-		$body = sprintf(
-			"Prodejce poslal %s ke schválení.\n\n" .
-			"Produkt: %s\n" .
-			"Cena: %s\n" .
-			"Prodejce: %s%s\n\n" .
-			"Schválit publikování můžeš v Dashboardu (sekce „Čekající produkty“):\n%s\n\n" .
-			"Detail produktu:\n%s\n",
-			$body_word,
-			$product->get_name(),
-			wp_strip_all_tags( (string) $product->get_price_html() ),
-			$vendor ? $vendor['name'] : ( '#' . $vendor_id ),
-			$vendor && ! empty( $vendor['email'] ) ? ' <' . $vendor['email'] . '>' : '',
-			$dash_url,
-			$edit_url
-		);
+		$subject = self::render_tpl( 'email_product_admin_subject', $vars,
+			sprintf( '[%s] %s: %s', $vars['site_name'], $vars['submit_kind'], $vars['product_name'] ) );
+		$body    = self::render_tpl( 'email_product_admin_body', $vars,
+			sprintf( "Produkt: %s\nProdejce: %s\n\n%s", $vars['product_name'], $vars['vendor_name'], $vars['edit_url'] ) );
 
 		self::send( $to, $subject, $body );
+	}
+
+	/**
+	 * Šablona z core EmailSettings s fallbackem pokud option chybí.
+	 */
+	private static function render_tpl( string $key, array $vars, string $fallback ): string {
+		if ( class_exists( \NKZMP\Admin\EmailSettings::class ) ) {
+			$raw = \NKZMP\Admin\EmailSettings::raw( $key );
+			if ( $raw !== '' ) {
+				return \NKZMP\Admin\EmailSettings::interpolate( $raw, $vars );
+			}
+		}
+		return $fallback;
 	}
 
 	private static function admin_recipient(): string {
