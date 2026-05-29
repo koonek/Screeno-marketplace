@@ -10,68 +10,89 @@
 
 /* ─────────────────────────────────────────────────────────────
  * Společné: WC tlačítka, notice, formuláře
+ *
+ * Pozn.: théma/Elementor často WC button přepisuje vlastním stylem
+ * (typicky černé .button, .elementor-button). Cílíme s vyšší specificitou
+ * a !important na klíčových místech, abychom theme overridy přebili.
  * ───────────────────────────────────────────────────────────── */
 
-.woocommerce a.button,
-.woocommerce-page a.button,
-.woocommerce button.button,
-.woocommerce-page button.button,
-.woocommerce input.button,
-.woocommerce-page input.button,
-.woocommerce #respond input#submit,
-.woocommerce-page #respond input#submit {
-	display: inline-flex;
-	align-items: center;
-	gap: 10px;
-	background: var(--nkzmp-color-accent);
-	color: #fff;
-	border: 0;
-	border-radius: var(--nkzmp-radius-soft);
-	box-shadow: 0 6px 18px rgba(0,96,255,0.22);
-	padding: 13px 26px;
-	font-family: inherit;
-	font-weight: 600;
-	font-size: 15px;
-	letter-spacing: 0;
-	text-transform: none;
-	text-decoration: none;
-	cursor: pointer;
-	transition: background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
-	line-height: 1.2;
-	text-shadow: none;
-	min-height: 44px;
+body.woocommerce a.button,
+body.woocommerce-page a.button,
+body.woocommerce button.button,
+body.woocommerce-page button.button,
+body.woocommerce input.button,
+body.woocommerce-page input.button,
+body.woocommerce a.button.alt,
+body.woocommerce button.button.alt,
+body.woocommerce input.button.alt,
+body.woocommerce a.checkout-button,
+body.woocommerce #place_order,
+body.woocommerce-checkout #place_order,
+body.woocommerce-cart a.checkout-button,
+body.woocommerce #respond input#submit {
+	display: inline-flex !important;
+	align-items: center !important;
+	justify-content: center !important;
+	gap: 10px !important;
+	background: var(--nkzmp-color-accent) !important;
+	background-color: var(--nkzmp-color-accent) !important;
+	background-image: none !important;
+	color: #fff !important;
+	border: 0 !important;
+	border-radius: var(--nkzmp-radius-soft) !important;
+	box-shadow: 0 6px 18px rgba(0,96,255,0.22) !important;
+	padding: 13px 26px !important;
+	font-family: inherit !important;
+	font-weight: 600 !important;
+	font-size: 15px !important;
+	letter-spacing: 0 !important;
+	text-transform: none !important;
+	text-decoration: none !important;
+	cursor: pointer !important;
+	transition: background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease !important;
+	line-height: 1.2 !important;
+	text-shadow: none !important;
+	min-height: 46px !important;
+	width: auto;
 }
-.woocommerce a.button:hover,
-.woocommerce button.button:hover,
-.woocommerce input.button:hover,
-.woocommerce #respond input#submit:hover {
-	background: var(--nkzmp-color-accent-hover);
-	color: #fff;
-	transform: translateY(-1px);
-	box-shadow: 0 10px 26px rgba(0,96,255,0.3);
+body.woocommerce a.button:hover,
+body.woocommerce button.button:hover,
+body.woocommerce input.button:hover,
+body.woocommerce a.button.alt:hover,
+body.woocommerce a.checkout-button:hover,
+body.woocommerce #place_order:hover,
+body.woocommerce #respond input#submit:hover {
+	background: var(--nkzmp-color-accent-hover) !important;
+	background-color: var(--nkzmp-color-accent-hover) !important;
+	color: #fff !important;
+	transform: translateY(-1px) !important;
+	box-shadow: 0 10px 26px rgba(0,96,255,0.3) !important;
 }
 
-/* Sekundární tlačítka – outline, ne modré */
-.woocommerce a.button.alt,
-.woocommerce button.button.alt,
-.woocommerce input.button.alt { background: var(--nkzmp-color-accent); }
-
-.woocommerce a.button.wc-backward,
-.woocommerce a.checkout-button,
-.woocommerce-message a.button,
-.woocommerce-info a.button {
-	background: var(--nkzmp-color-surface);
-	color: var(--nkzmp-color-text);
-	border: 1px solid var(--nkzmp-color-border);
-	box-shadow: none;
+/* Sekundární akce – Update Cart, wc-backward, Apply coupon: outline */
+body.woocommerce a.button.wc-backward,
+body.woocommerce button[name="update_cart"],
+body.woocommerce input[name="update_cart"],
+body.woocommerce button[name="apply_coupon"],
+body.woocommerce input[name="apply_coupon"],
+body.woocommerce-message a.button,
+body.woocommerce-info a.button {
+	background: var(--nkzmp-color-surface) !important;
+	background-color: var(--nkzmp-color-surface) !important;
+	color: var(--nkzmp-color-text) !important;
+	border: 1px solid var(--nkzmp-color-border) !important;
+	box-shadow: none !important;
 }
-.woocommerce a.button.wc-backward:hover,
-.woocommerce-message a.button:hover,
-.woocommerce-info a.button:hover {
-	background: var(--nkzmp-color-bg-warm);
-	color: var(--nkzmp-color-text);
-	border-color: var(--nkzmp-color-accent);
-	box-shadow: none;
+body.woocommerce a.button.wc-backward:hover,
+body.woocommerce button[name="update_cart"]:hover,
+body.woocommerce button[name="apply_coupon"]:hover,
+body.woocommerce-message a.button:hover,
+body.woocommerce-info a.button:hover {
+	background: var(--nkzmp-color-bg-warm) !important;
+	color: var(--nkzmp-color-text) !important;
+	border-color: var(--nkzmp-color-accent) !important;
+	box-shadow: none !important;
+	transform: none !important;
 }
 
 /* Notice / message bloky */
@@ -95,52 +116,67 @@
 .woocommerce-message::before,
 .woocommerce-info::before { color: var(--nkzmp-color-accent); }
 
-/* Formulářová pole – warm box, modrý focus ring */
-.woocommerce form .form-row input.input-text,
-.woocommerce form .form-row textarea,
-.woocommerce form .form-row select,
-.woocommerce-page form .form-row input.input-text,
-.woocommerce-page form .form-row textarea,
-.woocommerce-page form .form-row select,
-.woocommerce-checkout input[type="text"],
-.woocommerce-checkout input[type="email"],
-.woocommerce-checkout input[type="tel"],
-.woocommerce-checkout input[type="number"],
-.woocommerce-checkout textarea,
-.woocommerce-checkout select {
-	width: 100%;
-	box-sizing: border-box;
-	padding: 12px 14px;
-	font-size: 15px;
-	font-family: inherit;
-	color: var(--nkzmp-color-text);
-	background: var(--nkzmp-color-bg-warm);
-	border: 1px solid var(--nkzmp-color-border);
-	border-radius: var(--nkzmp-radius-soft);
-	box-shadow: none;
+/* Formulářová pole – warm box, modrý focus ring. Théma typicky dělá
+ * underline-only styling – vynutíme box + barvy přes !important. */
+body.woocommerce form .form-row input.input-text,
+body.woocommerce form .form-row textarea,
+body.woocommerce form .form-row select,
+body.woocommerce-page form .form-row input.input-text,
+body.woocommerce-page form .form-row textarea,
+body.woocommerce-page form .form-row select,
+body.woocommerce-checkout input[type="text"],
+body.woocommerce-checkout input[type="email"],
+body.woocommerce-checkout input[type="tel"],
+body.woocommerce-checkout input[type="number"],
+body.woocommerce-checkout input[type="password"],
+body.woocommerce-checkout textarea,
+body.woocommerce-checkout select,
+body.woocommerce-cart input.input-text {
+	width: 100% !important;
+	box-sizing: border-box !important;
+	padding: 12px 14px !important;
+	font-size: 15px !important;
+	font-family: inherit !important;
+	color: var(--nkzmp-color-text) !important;
+	background: var(--nkzmp-color-bg-warm) !important;
+	background-color: var(--nkzmp-color-bg-warm) !important;
+	border: 1px solid var(--nkzmp-color-border) !important;
+	border-radius: var(--nkzmp-radius-soft) !important;
+	box-shadow: none !important;
 	transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+	min-height: 46px;
 }
-.woocommerce form .form-row input.input-text:focus,
-.woocommerce form .form-row textarea:focus,
-.woocommerce form .form-row select:focus,
-.woocommerce-checkout input:focus,
-.woocommerce-checkout textarea:focus,
-.woocommerce-checkout select:focus {
-	border-color: var(--nkzmp-color-accent);
-	background: var(--nkzmp-color-surface);
-	box-shadow: 0 0 0 3px var(--nkzmp-color-accent-soft);
-	outline: none;
+body.woocommerce form .form-row input.input-text:focus,
+body.woocommerce form .form-row textarea:focus,
+body.woocommerce form .form-row select:focus,
+body.woocommerce-checkout input:focus,
+body.woocommerce-checkout textarea:focus,
+body.woocommerce-checkout select:focus {
+	border-color: var(--nkzmp-color-accent) !important;
+	background: var(--nkzmp-color-surface) !important;
+	background-color: var(--nkzmp-color-surface) !important;
+	box-shadow: 0 0 0 3px var(--nkzmp-color-accent-soft) !important;
+	outline: none !important;
 }
-.woocommerce form .form-row label,
-.woocommerce-page form .form-row label,
-.woocommerce-checkout label {
-	font-size: 14px;
-	font-weight: 600;
-	color: var(--nkzmp-color-text);
-	margin-bottom: 6px;
-	display: block;
+/* Labely – théma často trakttuje label jako link (modré). Vynutit text. */
+body.woocommerce form .form-row label,
+body.woocommerce-page form .form-row label,
+body.woocommerce-checkout label,
+body.woocommerce-checkout .woocommerce-form-row label,
+body.woocommerce-cart form label {
+	font-size: 14px !important;
+	font-weight: 600 !important;
+	color: var(--nkzmp-color-text) !important;
+	margin-bottom: 8px !important;
+	display: block !important;
+	text-transform: none !important;
+	letter-spacing: 0 !important;
 }
-.woocommerce form .form-row .required { color: var(--nkzmp-color-accent); }
+body.woocommerce form .form-row .required,
+body.woocommerce-checkout .required {
+	color: var(--nkzmp-color-accent) !important;
+	text-decoration: none !important;
+}
 
 /* ─────────────────────────────────────────────────────────────
  * Single product page
@@ -365,6 +401,49 @@
 }
 
 /* ─────────────────────────────────────────────────────────────
+ * Headings na WC stránkách (Cart Totals / Your Order / Billing Details /
+ * Mezisoučet / Cena celkem) – théma je často udělá v accent barvě, my
+ * je vrátíme na text color.
+ * ───────────────────────────────────────────────────────────── */
+
+body.woocommerce h1, body.woocommerce-page h1,
+body.woocommerce h2, body.woocommerce-page h2,
+body.woocommerce h3, body.woocommerce-page h3,
+body.woocommerce h4, body.woocommerce-page h4 {
+	color: var(--nkzmp-color-text) !important;
+	font-weight: 500 !important;
+}
+body.woocommerce-cart h1, body.woocommerce-cart h2,
+body.woocommerce-checkout h1, body.woocommerce-checkout h2, body.woocommerce-checkout h3,
+body.woocommerce-order-received h1, body.woocommerce-order-received h2 {
+	color: var(--nkzmp-color-text) !important;
+}
+
+/* Packeta „Vybrat výdejní místo" tlačítko (z packeta plugin checkout widgetu) */
+body.woocommerce-checkout .packeta-selector-open,
+body.woocommerce-checkout .packetery-widget-button,
+body.woocommerce-checkout a.nkzmp-packeta-open,
+body.woocommerce-checkout button.nkzmp-packeta-open {
+	display: inline-flex !important;
+	align-items: center !important;
+	gap: 8px !important;
+	background: var(--nkzmp-color-accent) !important;
+	color: #fff !important;
+	border: 0 !important;
+	border-radius: var(--nkzmp-radius-soft) !important;
+	box-shadow: 0 4px 14px rgba(0,96,255,0.20) !important;
+	padding: 11px 22px !important;
+	font-weight: 600 !important;
+	font-size: 14px !important;
+	cursor: pointer !important;
+	text-decoration: none !important;
+}
+body.woocommerce-checkout .packeta-selector-open:hover,
+body.woocommerce-checkout .packetery-widget-button:hover {
+	background: var(--nkzmp-color-accent-hover) !important;
+}
+
+/* ─────────────────────────────────────────────────────────────
  * Cart (Košík)
  * ───────────────────────────────────────────────────────────── */
 
@@ -440,14 +519,33 @@
 }
 .woocommerce-cart table.cart td.product-subtotal { font-weight: 600; }
 
-/* Coupon + actions row */
-.woocommerce-cart .actions .coupon {
-	display: inline-flex;
-	gap: 8px;
-	align-items: stretch;
+/* Quantity v košíku – stejný boxed look jako single product */
+body.woocommerce-cart table.cart .quantity .qty,
+body.woocommerce-cart .product-quantity .qty {
+	width: 80px !important;
+	padding: 10px 12px !important;
+	background: var(--nkzmp-color-bg-warm) !important;
+	border: 1px solid var(--nkzmp-color-border) !important;
+	border-radius: var(--nkzmp-radius-soft) !important;
+	text-align: center !important;
+	min-height: auto !important;
 }
-.woocommerce-cart .actions .coupon input.input-text {
-	width: 200px;
+
+/* Coupon + actions row */
+body.woocommerce-cart .actions {
+	padding: 16px !important;
+	background: var(--nkzmp-color-bg-warm);
+	border-radius: var(--nkzmp-radius);
+	margin-top: 16px;
+}
+body.woocommerce-cart .actions .coupon {
+	display: inline-flex !important;
+	gap: 8px !important;
+	align-items: stretch !important;
+}
+body.woocommerce-cart .actions .coupon input.input-text {
+	width: 240px !important;
+	background: #fff !important;
 }
 
 /* Cart totals box */
@@ -483,13 +581,28 @@
 	font-size: 16px;
 	border-bottom: 0;
 }
+body.woocommerce-cart .cart_totals .wc-proceed-to-checkout,
 .cart_totals .wc-proceed-to-checkout {
-	margin-top: 16px;
+	margin-top: 20px !important;
+	padding: 0 !important;
 }
+body.woocommerce-cart .cart_totals .wc-proceed-to-checkout a.checkout-button,
+body.woocommerce-cart .cart_totals .checkout-button,
 .cart_totals .wc-proceed-to-checkout .checkout-button {
-	display: flex;
-	justify-content: center;
-	width: 100%;
+	display: flex !important;
+	justify-content: center !important;
+	width: 100% !important;
+	background: var(--nkzmp-color-accent) !important;
+	background-color: var(--nkzmp-color-accent) !important;
+	background-image: none !important;
+	color: #fff !important;
+	border: 0 !important;
+	border-radius: var(--nkzmp-radius-soft) !important;
+	box-shadow: 0 6px 18px rgba(0,96,255,0.22) !important;
+	padding: 16px 26px !important;
+	font-size: 16px !important;
+	font-weight: 600 !important;
+	min-height: 52px !important;
 }
 
 /* Empty cart */
