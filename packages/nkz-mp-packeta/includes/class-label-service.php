@@ -108,17 +108,109 @@ final class LabelService {
 		$all                 = is_array( $all ) ? $all : [];
 		$all[ $vendor_id ]   = $record;
 		$order->update_meta_data( NKZMP_PACKETA_PACKETS_META, $all );
+
+		$vendor_name = get_the_title( $vendor_id ) ?: ( '#' . $vendor_id );
 		$order->add_order_note(
 			sprintf(
-				/* translators: 1: vendor id, 2: barcode */
-				__( 'Packeta: založena zásilka pro prodejce #%1$d (kód %2$s).', 'nkz-mp-packeta' ),
-				$vendor_id,
+				/* translators: 1: vendor name, 2: barcode */
+				__( 'Zásilkovna: prodejce „%1$s" podal zásilku (kód %2$s).', 'nkz-mp-packeta' ),
+				$vendor_name,
 				$record['barcode']
 			)
 		);
 		$order->save();
 
+		// Side-effecty (e-mail zákazníkovi, auto-dokončení). Guardované, aby
+		// případná chyba neshodila vytvoření zásilky.
+		try {
+			$this->notify_customer_shipped( $order, $vendor_id, $record );
+		} catch ( \Throwable $e ) {
+			// ticho – e-mail není kritický
+		}
+		try {
+			$this->maybe_complete_order( $order );
+		} catch ( \Throwable $e ) {
+			// ticho
+		}
+
 		return $record;
+	}
+
+	/** Veřejná tracking URL Zásilkovny pro daný kód (filterovatelná). */
+	public static function tracking_url( string $barcode ): string {
+		$default = 'https://tracking.packeta.com/cs_CZ/?id=' . rawurlencode( $barcode );
+		return (string) apply_filters( 'nkzmp/v1/packeta/tracking_url', $default, $barcode );
+	}
+
+	/**
+	 * Pošle zákazníkovi e-mail „zásilka od prodejce je na cestě" + tracking.
+	 * Šablona je editovatelná v Nastavení → E-maily (email_shipment_*).
+	 */
+	private function notify_customer_shipped( \WC_Order $order, int $vendor_id, array $record ): void {
+		if ( ! apply_filters( 'nkzmp/v1/packeta/notify_customer', true, $order, $vendor_id ) ) {
+			return;
+		}
+		$to = $order->get_billing_email();
+		if ( ! is_email( $to ) ) {
+			return;
+		}
+		$barcode  = (string) ( $record['barcode'] ?? '' );
+		$vars = [
+			'name'         => $order->get_billing_first_name() ?: __( 'zákazníku', 'nkz-mp-packeta' ),
+			'vendor_name'  => get_the_title( $vendor_id ) ?: ( '#' . $vendor_id ),
+			'order_number' => (string) $order->get_order_number(),
+			'tracking_code' => $barcode,
+			'tracking_url' => self::tracking_url( $barcode ),
+			'pickup_point' => (string) $order->get_meta( NKZMP_PACKETA_POINT_NAME_META ),
+			'site_name'    => (string) get_bloginfo( 'name' ),
+		];
+
+		$subject = $body = '';
+		if ( class_exists( \NKZMP\Admin\EmailSettings::class ) ) {
+			$subject = \NKZMP\Admin\EmailSettings::interpolate( \NKZMP\Admin\EmailSettings::raw( 'email_shipment_subject' ), $vars );
+			$body    = \NKZMP\Admin\EmailSettings::interpolate( \NKZMP\Admin\EmailSettings::raw( 'email_shipment_body' ), $vars );
+		}
+		if ( $subject === '' ) {
+			$subject = sprintf( __( 'Tvoje zásilka od %s je na cestě', 'nkz-mp-packeta' ), $vars['vendor_name'] );
+		}
+		if ( $body === '' ) {
+			$body = sprintf( "Ahoj %s,\n\nzásilka od %s (objednávka #%s) je na cestě k výdejnímu místu.\n\nSledování: %s\n\n%s",
+				$vars['name'], $vars['vendor_name'], $vars['order_number'], $vars['tracking_url'], $vars['site_name'] );
+		}
+
+		if ( class_exists( \NKZMP\Registration\EmailService::class ) ) {
+			\NKZMP\Registration\EmailService::send_raw( $to, $subject, $body );
+		} else {
+			$force = static function ( $m ) { $m->CharSet = 'UTF-8'; $m->Encoding = 'base64'; };
+			add_action( 'phpmailer_init', $force );
+			wp_mail( $to, $subject, $body, [ 'Content-Type: text/plain; charset=UTF-8' ] );
+			remove_action( 'phpmailer_init', $force );
+		}
+	}
+
+	/**
+	 * Když VŠICHNI prodejci s fyzickou položkou v objednávce podali zásilku,
+	 * přepne objednávku na 'completed'. Vypnutí: nkzmp/v1/packeta/auto_complete.
+	 */
+	private function maybe_complete_order( \WC_Order $order ): void {
+		if ( ! apply_filters( 'nkzmp/v1/packeta/auto_complete', true, $order ) ) {
+			return;
+		}
+		if ( $order->has_status( [ 'completed', 'refunded', 'cancelled' ] ) ) {
+			return;
+		}
+		$vendor_ids = $this->order_vendor_ids( $order );
+		if ( empty( $vendor_ids ) ) {
+			return;
+		}
+		$all = $order->get_meta( NKZMP_PACKETA_PACKETS_META );
+		$all = is_array( $all ) ? $all : [];
+		foreach ( $vendor_ids as $vid ) {
+			if ( empty( $all[ $vid ]['id'] ) ) {
+				return; // někdo ještě nepodal
+			}
+		}
+		$order->update_status( 'completed', __( 'Zásilkovna: všichni prodejci podali zásilku → objednávka dokončena.', 'nkz-mp-packeta' ) );
 	}
 
 	/**

@@ -239,6 +239,10 @@ final class EmailSettings {
 					  'hint'  => __( 'Posílá se prodejci při přechodu objednávky na processing / completed (jen za jeho položky).', 'nkz-marketplace' ),
 					  'subject' => 'email_order_vendor_subject', 'body' => 'email_order_vendor_body',
 					  'placeholders' => [ 'name', 'order_number', 'order_date', 'items', 'subtotal', 'order_admin_url', 'site_name' ] ],
+					[ 'label' => __( 'Zákazník: zásilka je na cestě (Zásilkovna)', 'nkz-marketplace' ),
+					  'hint'  => __( 'Posílá se zákazníkovi když prodejce podá zásilku přes Zásilkovnu (s tracking odkazem).', 'nkz-marketplace' ),
+					  'subject' => 'email_shipment_subject', 'body' => 'email_shipment_body',
+					  'placeholders' => [ 'name', 'vendor_name', 'order_number', 'tracking_code', 'tracking_url', 'pickup_point', 'site_name' ] ],
 				],
 			],
 			[
@@ -346,6 +350,15 @@ final class EmailSettings {
 "{items}\n" .
 "Celkem za tvé položky: {subtotal}\n\n" .
 "Detail objednávky:\n{order_admin_url}\n\n" .
+"Tým {site_name}",
+
+			// === Zásilka zákazníkovi ===
+			'email_shipment_subject' => 'Tvoje zásilka od {vendor_name} je na cestě',
+			'email_shipment_body'    =>
+"Ahoj {name},\n\n" .
+"{vendor_name} právě podal(a) tvoji zásilku z objednávky #{order_number}. Je na cestě k výdejnímu místu {pickup_point}.\n\n" .
+"Sledovat zásilku můžeš tady:\n{tracking_url}\n\n" .
+"Číslo zásilky: {tracking_code}\n\n" .
 "Tým {site_name}",
 
 			// === Provoz ===
