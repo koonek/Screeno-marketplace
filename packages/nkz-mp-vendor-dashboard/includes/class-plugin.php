@@ -22,6 +22,7 @@ final class Plugin {
 		Redirect::instance()->init();
 		Assets::instance()->init();
 		AccountChrome::instance()->init();
+		LoginBranding::instance()->init();
 		ProductSubmitController::instance()->init();
 		ProductSubmitController::instance()->init_actions();
 		ProfileSubmitController::instance()->init();
