@@ -69,22 +69,51 @@ final class CartGrouping {
 			return;
 		}
 
-		// Mapa vendorId → název pro prodejce přítomné v košíku.
-		$names = [ '0' => (string) apply_filters( 'nkzmp/v1/storefront/platform_label', __( 'Obchod', 'nkz-mp-storefront' ) ) ];
+		// Mapa vendorId → název + jestli má fyzický (shippovaný) produkt.
+		$names           = [ '0' => (string) apply_filters( 'nkzmp/v1/storefront/platform_label', __( 'Obchod', 'nkz-mp-storefront' ) ) ];
+		$vendor_physical = [];
 		foreach ( WC()->cart->get_cart() as $item ) {
 			$vid = self::item_vendor_id( $item );
 			if ( ! isset( $names[ (string) $vid ] ) && $vid > 0 ) {
 				$title = get_the_title( $vid );
 				$names[ (string) $vid ] = $title ?: ( '#' . $vid );
 			}
+			// Vyžaduje produkt dopravu? (digital → ne)
+			$product = $item['data'] ?? null;
+			$needs   = true;
+			if ( class_exists( \NKZMP\Shipping\Rate::class ) && $product instanceof \WC_Product ) {
+				$needs = \NKZMP\Shipping\Rate::product_requires_shipping( $product );
+			}
+			if ( $needs ) {
+				$vendor_physical[ (string) $vid ] = true;
+			}
+		}
+
+		// Per-vendor poštovné (jen prezentačně – WC pořád účtuje 1 souhrn).
+		$shipping = [];
+		if ( class_exists( \NKZMP\Shipping\Rate::class ) ) {
+			foreach ( array_keys( $names ) as $vid_str ) {
+				if ( empty( $vendor_physical[ $vid_str ] ) ) {
+					continue; // jen digital → bez dopravy
+				}
+				$vid  = (int) $vid_str;
+				$flat = $vid > 0 ? \NKZMP\Shipping\Rate::vendor_flat( $vid ) : \NKZMP\Shipping\Rate::default_flat();
+				if ( $flat > 0 ) {
+					$shipping[ $vid_str ] = wp_strip_all_tags( wc_price( $flat ) );
+				} elseif ( $flat === 0.0 ) {
+					$shipping[ $vid_str ] = (string) __( 'zdarma', 'nkz-mp-storefront' );
+				}
+			}
 		}
 
 		wp_register_script( 'nkz-mp-cart-grouping', NKZMP_STOREFRONT_URL . 'assets/cart-grouping.js', [], NKZMP_STOREFRONT_VERSION, true );
 		wp_localize_script( 'nkz-mp-cart-grouping', 'nkzmpCartGroups', [
-			'names'   => $names,
-			'i18n'    => [
+			'names'    => $names,
+			'shipping' => $shipping,
+			'i18n'     => [
 				'package'  => __( 'Balíček od %s', 'nkz-mp-storefront' ),
 				'subtotal' => __( 'Mezisoučet prodejce', 'nkz-mp-storefront' ),
+				'shipping' => __( '+ Poštovné', 'nkz-mp-storefront' ),
 			],
 		] );
 		wp_enqueue_script( 'nkz-mp-cart-grouping' );

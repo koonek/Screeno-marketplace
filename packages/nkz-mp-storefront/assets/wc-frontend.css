@@ -959,16 +959,21 @@ html body.woocommerce tr.nkzmp-group-head > td {
 	display: inline-block;
 }
 html body.woocommerce tr.nkzmp-group-sub > td {
-	background: transparent !important;
+	background: var(--nkzmp-color-bg-warm) !important;
 	border: 0 !important;
 	border-bottom: 1px solid var(--nkzmp-color-border-soft) !important;
-	padding: 8px 16px 16px !important;
-	text-align: right !important;
+	padding: 10px 16px 14px !important;
+}
+.nkzmp-group-sub__row {
+	display: flex;
+	justify-content: flex-end;
+	align-items: baseline;
+	gap: 12px;
+	padding: 3px 0;
 }
 .nkzmp-group-sub__label {
 	font-size: 12px;
 	color: var(--nkzmp-color-text-muted);
-	margin-right: 12px;
 	text-transform: uppercase;
 	letter-spacing: 0.06em;
 }
@@ -976,4 +981,7 @@ html body.woocommerce tr.nkzmp-group-sub > td {
 	font-weight: 600;
 	font-variant-numeric: tabular-nums;
 	color: var(--nkzmp-color-text);
+	min-width: 90px;
+	text-align: right;
 }
+.nkzmp-group-sub__ship .nkzmp-group-sub__amount { color: var(--nkzmp-color-accent); }

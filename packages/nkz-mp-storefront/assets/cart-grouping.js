@@ -90,8 +90,19 @@
 				sub.className = 'nkzmp-group-sub';
 				var sc = document.createElement('td');
 				sc.colSpan = colCount;
-				sc.innerHTML = '<span class="nkzmp-group-sub__label">' + escapeHtml(data.i18n.subtotal || '') + '</span>'
-					+ '<span class="nkzmp-group-sub__amount">' + formatAmount(sum) + '</span>';
+				var html = '<span class="nkzmp-group-sub__row">'
+					+ '<span class="nkzmp-group-sub__label">' + escapeHtml(data.i18n.subtotal || '') + '</span>'
+					+ '<span class="nkzmp-group-sub__amount">' + formatAmount(sum) + '</span>'
+					+ '</span>';
+				// Per-vendor poštovné (pokud máme).
+				var ship = data.shipping && Object.prototype.hasOwnProperty.call(data.shipping, vid) ? data.shipping[vid] : null;
+				if (ship) {
+					html += '<span class="nkzmp-group-sub__row nkzmp-group-sub__ship">'
+						+ '<span class="nkzmp-group-sub__label">' + escapeHtml(data.i18n.shipping || '') + '</span>'
+						+ '<span class="nkzmp-group-sub__amount">' + escapeHtml(ship) + '</span>'
+						+ '</span>';
+				}
+				sc.innerHTML = html;
 				sub.appendChild(sc);
 				if (last.nextSibling) {
 					last.parentNode.insertBefore(sub, last.nextSibling);
