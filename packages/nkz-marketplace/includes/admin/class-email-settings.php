@@ -167,8 +167,8 @@ final class EmailSettings {
 						</p>
 					<?php endif; ?>
 					<table class="form-table">
-						<?php $this->text_row( $s, $item['subject'], __( 'Předmět', 'nkz-marketplace' ) ); ?>
-						<?php $this->textarea_row( $s, $item['body'], __( 'Tělo', 'nkz-marketplace' ), 9 ); ?>
+						<?php self::text_row( $s, $item['subject'], __( 'Předmět', 'nkz-marketplace' ) ); ?>
+						<?php self::textarea_row( $s, $item['body'], __( 'Tělo', 'nkz-marketplace' ), 9 ); ?>
 					</table>
 				<?php endforeach; ?>
 			<?php endforeach; ?>
@@ -357,7 +357,7 @@ final class EmailSettings {
 		];
 	}
 
-	private function text_row( array $s, string $key, string $label ): void {
+	private static function text_row( array $s, string $key, string $label ): void {
 		printf(
 			'<tr><th><label for="%1$s">%2$s</label></th><td><input id="%1$s" type="text" name="%3$s[%1$s]" value="%4$s" class="regular-text" style="width:520px" /></td></tr>',
 			esc_attr( $key ),
@@ -367,7 +367,7 @@ final class EmailSettings {
 		);
 	}
 
-	private function textarea_row( array $s, string $key, string $label, int $rows = 8 ): void {
+	private static function textarea_row( array $s, string $key, string $label, int $rows = 8 ): void {
 		printf(
 			'<tr><th><label for="%1$s">%2$s</label></th><td><textarea id="%1$s" name="%3$s[%1$s]" rows="%5$d" cols="80" class="large-text code" style="font-family:Menlo,Consolas,monospace;font-size:13px;">%4$s</textarea></td></tr>',
 			esc_attr( $key ),
