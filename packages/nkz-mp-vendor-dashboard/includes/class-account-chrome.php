@@ -24,6 +24,16 @@ final class AccountChrome {
 		add_filter( 'body_class', [ $this, 'body_class' ] );
 		add_action( 'woocommerce_before_account_navigation', [ $this, 'render_brand_header' ] );
 		add_filter( 'woocommerce_account_menu_item_classes', [ $this, 'menu_item_classes' ], 10, 2 );
+		// Customer registrace na /muj-ucet/ zatím neexistuje (vendor onboarding má
+		// vlastní /registrace flow). Vypneme pravý register sloupec ve WC login
+		// formuláři – zůstane jen čisté přihlášení. Filterovatelné pro pozdější
+		// zapnutí, až customer signup přibude.
+		add_filter(
+			'option_woocommerce_enable_myaccount_registration',
+			static function ( $value ) {
+				return apply_filters( 'nkzmp/v1/dashboard/enable_myaccount_registration', false ) ? $value : 'no';
+			}
+		);
 	}
 
 	public function body_class( array $classes ): array {

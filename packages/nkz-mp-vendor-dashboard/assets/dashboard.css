@@ -1130,3 +1130,146 @@ body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-pagination ul li 
 	background: #000 !important;
 	color: #fff !important;
 }
+
+/* ─────────────────────────────────────────────────────────────
+ * Login (/muj-ucet/ – odhlášený stav). AOZ minimalismus:
+ * žádné šedé rámečky, žádné růžové linky, accent #0060FF.
+ * Register sloupec je vypnutý ve filteru (AccountChrome).
+ * ───────────────────────────────────────────────────────────── */
+
+body.nkzmp-account .woocommerce-form-login {
+	max-width: 460px;
+	margin: 0;
+	padding: 0;
+	border: none !important;
+	background: none !important;
+}
+
+/* WC občas renderuje login uvnitř .u-columns gridu (i bez register sloupce).
+ * Sjednotíme na jeden sloupec zarovnaný vlevo. */
+body.nkzmp-account #customer_login.u-columns,
+body.nkzmp-account .u-columns.col2-set {
+	display: block !important;
+}
+body.nkzmp-account #customer_login .u-column2,
+body.nkzmp-account #customer_login .col-2 {
+	display: none !important;
+}
+body.nkzmp-account #customer_login .u-column1,
+body.nkzmp-account #customer_login .col-1 {
+	width: 100% !important;
+	max-width: 460px !important;
+	float: none !important;
+	margin: 0 !important;
+}
+
+body.nkzmp-account #customer_login > h2,
+body.nkzmp-account .woocommerce-account .col-1 > h2 {
+	font-size: clamp(22px, 3vw, 28px) !important;
+	font-weight: 500 !important;
+	letter-spacing: -0.015em !important;
+	color: #000 !important;
+	margin: 0 0 24px !important;
+}
+
+/* Pole */
+body.nkzmp-account .woocommerce-form-login .woocommerce-form-row,
+body.nkzmp-account .woocommerce-form-login .form-row {
+	margin: 0 0 20px !important;
+	padding: 0 !important;
+}
+body.nkzmp-account .woocommerce-form-login label {
+	display: block !important;
+	font-size: 14px !important;
+	font-weight: 500 !important;
+	color: #000 !important;
+	margin: 0 0 8px !important;
+}
+body.nkzmp-account .woocommerce-form-login .woocommerce-Input,
+body.nkzmp-account .woocommerce-form-login input[type="text"],
+body.nkzmp-account .woocommerce-form-login input[type="email"],
+body.nkzmp-account .woocommerce-form-login input[type="password"] {
+	width: 100% !important;
+	box-sizing: border-box !important;
+	padding: 14px 16px !important;
+	font-size: 15px !important;
+	color: #000 !important;
+	background: #fff !important;
+	border: 1px solid rgba(0,0,0,0.18) !important;
+	border-radius: 0 !important;
+	transition: border-color 0.15s ease !important;
+	-webkit-appearance: none !important;
+	appearance: none !important;
+}
+body.nkzmp-account .woocommerce-form-login .woocommerce-Input:focus,
+body.nkzmp-account .woocommerce-form-login input:focus {
+	outline: none !important;
+	border-color: #0060FF !important;
+	box-shadow: 0 0 0 1px #0060FF !important;
+}
+
+/* Show/hide password ikonka WC – necháme, jen zarovnání */
+body.nkzmp-account .woocommerce-form-login .password-input {
+	display: block !important;
+	position: relative !important;
+}
+body.nkzmp-account .woocommerce-form-login .show-password-input {
+	top: 16px !important;
+}
+
+/* Akční řádek: zaškrtávátko + submit */
+body.nkzmp-account .woocommerce-form-login__submit {
+	display: inline-flex !important;
+	align-items: center !important;
+	gap: 10px !important;
+	background: #0060FF !important;
+	color: #fff !important;
+	border: 0 !important;
+	border-radius: 0 !important;
+	padding: 15px 28px !important;
+	font-size: 15px !important;
+	font-weight: 500 !important;
+	letter-spacing: -0.005em !important;
+	cursor: pointer !important;
+	transition: background 0.15s ease !important;
+	margin: 4px 0 0 !important;
+}
+body.nkzmp-account .woocommerce-form-login__submit:hover {
+	background: #0048cc !important;
+}
+body.nkzmp-account .woocommerce-form-login__submit svg {
+	flex-shrink: 0 !important;
+}
+
+body.nkzmp-account .woocommerce-form-login__rememberme {
+	display: inline-flex !important;
+	align-items: center !important;
+	gap: 8px !important;
+	font-size: 14px !important;
+	color: rgba(0,0,0,0.65) !important;
+	margin: 0 0 20px !important;
+	font-weight: 400 !important;
+}
+body.nkzmp-account .woocommerce-form-login__rememberme input {
+	width: auto !important;
+	margin: 0 !important;
+}
+
+/* Zapomenuté heslo – černý decentní link, žádná růžová */
+body.nkzmp-account .woocommerce-LostPassword,
+body.nkzmp-account .lost_password {
+	margin: 18px 0 0 !important;
+	font-size: 14px !important;
+}
+body.nkzmp-account .woocommerce-LostPassword a,
+body.nkzmp-account .lost_password a {
+	color: rgba(0,0,0,0.6) !important;
+	text-decoration: none !important;
+	border-bottom: 1px solid rgba(0,0,0,0.2) !important;
+	transition: color 0.15s ease, border-color 0.15s ease !important;
+}
+body.nkzmp-account .woocommerce-LostPassword a:hover,
+body.nkzmp-account .lost_password a:hover {
+	color: #0060FF !important;
+	border-color: #0060FF !important;
+}
