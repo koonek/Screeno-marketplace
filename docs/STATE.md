@@ -57,6 +57,24 @@ Build: `./scripts/build-bundles.sh` → `dist/nkz-marketplace-aoz-<ver>.zip`.
 ### Fáze 2 (po launchi)
 Packeta: tracking sync + ceník dle váhy + adresní doručení (auto-štítky hotové v 0.2.0), Packeta výběr výdejny v blokovém checkoutu (Blocks integrace + Store API), reviews, messaging, topování produktů, pokročilý shipping (zóny/váha), CZ/SK tax pack (DPH/OSS/faktury/VIES), i18n .pot/.po, Stripe adapter → first-class PaymentAdapter, pure-math Allocation\Calculator.
 
+### Screeno fáze (multi-tenant / white-label) – stav tokenizace designu
+Cíl: nasadit stejné jádro na Screeno bez forku, jen přes přebití brandingu + textů. Aktuální stav:
+
+- **✅ Plně přes filtry (Screeno přebije bez kódu):**
+  - `wp-login.php` branding – filtr `nkzmp/v1/login/tokens` (accent, accent_ink, bg, surface, text, border, radius, font, logo, logo_height, kicker), `nkzmp/v1/login/logo_url`, vypnutí `nkzmp/v1/login/enabled` (LoginBranding).
+- **🟡 Přes CSS proměnné (override blokem v tématu, ne filtrem):**
+  - Storefront / dashboard / registrace mají `:root { --nkzmp-*-accent, --bg-warm, --radius, --shadow, --font … }`. Funguje, ale není to filter-API.
+- **🔴 Zatím hardcoded (AOZ-specifické):**
+  - Texty „Art of život", „Pro tvůrce" + copy v šablonách/EmailSettings defaultech (CZ natvrdo, žádné .pot).
+  - Font Fabio XM v CSS fallback chainu.
+  - Slug `nkz-mp-aoz-bundle` + název bundle.
+
+**Plán pro Screeno onboarding (1 batch, ~půl dne, NEdělat před AOZ launchem):**
+1. Sjednotit storefront/dashboard/registraci na jeden filter `nkzmp/v1/brand/tokens` → vyplivne `:root` CSS proměnné (stejný princip jako LoginBranding). Theme/Screeno pak přepíše jedním filtrem.
+2. Protáhnout všechny CZ texty přes `gettext` + vygenerovat `.pot` (i18n je už v seznamu Fáze 2) – „Art of život" nahradit `{site_name}` / brandovatelným řetězcem.
+3. Druhý thin bundle `nkz-mp-screeno-bundle` (kopie aoz-bundle, jiný slug + default token override) NEBO přejmenovat aoz-bundle na neutrální + AOZ jako tenký wrapper.
+4. EmailSettings defaulty: „Art of život" → `{site_name}` placeholder.
+
 ## Před produkcí (go-live checklist)
 
 - [ ] E2E test ve Stripe test módu dle `docs/test-scenarios-aoz.md` (sekce 1-8)
