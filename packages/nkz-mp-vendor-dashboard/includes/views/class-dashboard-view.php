@@ -177,7 +177,17 @@ final class DashboardView {
 
 		$steps = [];
 		$steps[] = [ 'done' => $approved, 'label' => __( 'Přihláška schválena', 'nkz-mp-vendor-dashboard' ), 'cta' => null ];
-		$steps[] = [ 'done' => $kyc, 'label' => __( 'Dokončená registrace plateb (KYC)', 'nkz-mp-vendor-dashboard' ), 'cta' => null ];
+
+		// KYC CTA: pokud máme Stripe adapter, vendor je už schválený (approved_awaiting_kyc)
+		// a KYC neproběhlo, ukážeme „Dokončit registraci“ → Stripe Connect onboarding URL.
+		$kyc_cta = null;
+		if ( ! $kyc && $approved && class_exists( \NKVSVS\Onboarding_Controller::class ) ) {
+			$stripe_url = (string) \NKVSVS\Onboarding_Controller::vendor_start_url( $vendor_id );
+			if ( $stripe_url !== '' ) {
+				$kyc_cta = [ $stripe_url, __( 'Dokončit registraci', 'nkz-mp-vendor-dashboard' ) ];
+			}
+		}
+		$steps[] = [ 'done' => $kyc, 'label' => __( 'Dokončená registrace plateb (KYC)', 'nkz-mp-vendor-dashboard' ), 'cta' => $kyc_cta ];
 		if ( $billing_on ) {
 			$steps[] = [
 				'done'  => $billing_ok,
