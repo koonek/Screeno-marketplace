@@ -77,7 +77,7 @@ final class DashboardView {
 					<?php if ( class_exists( \NKVSVS\Onboarding_Controller::class ) ) :
 						$stripe_link = \NKVSVS\Onboarding_Controller::vendor_start_url( $vendor_id );
 						if ( $stripe_link ) : ?>
-							<a class="nkzmp-vd-cta" href="<?php echo esc_url( $stripe_link ); ?>"><?php esc_html_e( 'Spustit registraci u Stripe', 'nkz-mp-vendor-dashboard' ); ?> →</a>
+							<a class="nkzmp-vd-cta" href="<?php echo esc_url( $stripe_link ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'Spustit registraci u Stripe', 'nkz-mp-vendor-dashboard' ); ?> →</a>
 						<?php endif;
 					endif; ?>
 				</aside>
@@ -184,7 +184,7 @@ final class DashboardView {
 		if ( ! $kyc && $approved && class_exists( \NKVSVS\Onboarding_Controller::class ) ) {
 			$stripe_url = (string) \NKVSVS\Onboarding_Controller::vendor_start_url( $vendor_id );
 			if ( $stripe_url !== '' ) {
-				$kyc_cta = [ $stripe_url, __( 'Dokončit registraci', 'nkz-mp-vendor-dashboard' ) ];
+				$kyc_cta = [ $stripe_url, __( 'Dokončit registraci', 'nkz-mp-vendor-dashboard' ), true ];
 			}
 		}
 		$steps[] = [ 'done' => $kyc, 'label' => __( 'Dokončená registrace plateb (KYC)', 'nkz-mp-vendor-dashboard' ), 'cta' => $kyc_cta ];
@@ -225,8 +225,10 @@ final class DashboardView {
 					<li class="<?php echo esc_attr( $cls ); ?>">
 						<span class="nkzmp-vd-step-mark"><?php echo $s['done'] ? '✓' : '•'; ?></span>
 						<span class="nkzmp-vd-step-label"><?php echo esc_html( $s['label'] ); ?></span>
-						<?php if ( ! $s['done'] && $s['cta'] ) : ?>
-							<a class="nkzmp-vd-step-cta" href="<?php echo esc_url( $s['cta'][0] ); ?>"><?php echo esc_html( $s['cta'][1] ); ?> →</a>
+						<?php if ( ! $s['done'] && $s['cta'] ) :
+							$cta_blank = ! empty( $s['cta'][2] );
+							?>
+							<a class="nkzmp-vd-step-cta" href="<?php echo esc_url( $s['cta'][0] ); ?>"<?php echo $cta_blank ? ' target="_blank" rel="noopener"' : ''; ?>><?php echo esc_html( $s['cta'][1] ); ?> →</a>
 						<?php endif; ?>
 					</li>
 				<?php endforeach; ?>
