@@ -135,6 +135,27 @@ final class LoginBranding {
 				box-shadow: none !important;
 				transition: border-color .15s ease, box-shadow .15s ease, background .15s ease !important;
 			}
+			/* Password wrap + show/hide oko: zarovnání, ať nepřečuhuje a sedí svisle */
+			.login .wp-pwd { position: relative !important; }
+			.login .wp-pwd input[type="password"],
+			.login .wp-pwd input[type="text"] { padding-right: 46px !important; }
+			.login .wp-pwd .button.wp-hide-pw {
+				position: absolute !important;
+				top: 0 !important;
+				right: 2px !important;
+				height: 100% !important;
+				width: 42px !important;
+				margin: 0 !important;
+				padding: 0 !important;
+				background: transparent !important;
+				border: 0 !important;
+				box-shadow: none !important;
+				display: flex !important;
+				align-items: center !important;
+				justify-content: center !important;
+			}
+			.login .wp-pwd .button.wp-hide-pw .dashicons { color: <?php echo esc_attr( $t['accent'] ); ?> !important; }
+			.login .wp-pwd .button.wp-hide-pw:hover { transform: none !important; }
 			.login form .input:focus,
 			.login input:focus {
 				border-color: <?php echo esc_attr( $t['accent'] ); ?> !important;
@@ -143,24 +164,29 @@ final class LoginBranding {
 				outline: none !important;
 			}
 
-			/* Tlačítka */
+			/* Tlačítko – plná šířka, jemnější stín, menší výška */
+			.login .submit { text-align: left; }
 			.login .button-primary,
 			.wp-core-ui .button-primary {
 				background: <?php echo esc_attr( $t['accent'] ); ?> !important;
 				border: 0 !important;
 				border-radius: 8px !important;
-				box-shadow: 0 6px 18px <?php echo esc_attr( self::soft( $t['accent'], 0.22 ) ); ?> !important;
-				padding: 11px 22px !important;
+				box-shadow: 0 2px 8px <?php echo esc_attr( self::soft( $t['accent'], 0.18 ) ); ?> !important;
+				padding: 10px 22px !important;
+				min-height: 46px !important;
+				line-height: 1.2 !important;
 				font-family: <?php echo $t['font']; // phpcs:ignore ?> !important;
 				font-weight: 600 !important;
 				font-size: 15px !important;
 				text-shadow: none !important;
-				transition: background .15s ease, transform .15s ease !important;
-				width: 100%;
+				transition: background .15s ease, transform .15s ease, box-shadow .15s ease !important;
+				width: 100% !important;
+				float: none !important;
 			}
 			.login .button-primary:hover {
 				background: <?php echo esc_attr( $t['accent_ink'] ); ?> !important;
 				transform: translateY(-1px);
+				box-shadow: 0 6px 16px <?php echo esc_attr( self::soft( $t['accent'], 0.28 ) ); ?> !important;
 			}
 
 			/* Odkazy pod formulářem */
@@ -193,6 +219,26 @@ final class LoginBranding {
 			.login .notice {
 				border: 1px solid <?php echo esc_attr( self::soft( $t['accent'], 0.18 ) ); ?> !important;
 				background: <?php echo esc_attr( self::soft( $t['accent'] ) ); ?> !important;
+			}
+
+			/* Jazykový přepínač dole – splynout s pozadím (žádný bílý pruh) */
+			.login .language-switcher {
+				margin: 8px 0 0 !important;
+				padding: 0 !important;
+			}
+			.login .language-switcher form { background: none !important; border: 0 !important; box-shadow: none !important; padding: 0 !important; margin: 0 !important; }
+			.login .language-switcher select {
+				border: 1px solid <?php echo esc_attr( $t['border'] ); ?> !important;
+				border-radius: 8px !important;
+				background: <?php echo esc_attr( $t['surface'] ); ?> !important;
+				padding: 6px 10px !important;
+			}
+			.login .language-switcher .button {
+				border-radius: 8px !important;
+				border: 1px solid <?php echo esc_attr( $t['border'] ); ?> !important;
+				background: <?php echo esc_attr( $t['surface'] ); ?> !important;
+				color: <?php echo esc_attr( $t['text'] ); ?> !important;
+				box-shadow: none !important;
 			}
 		</style>
 		<?php
