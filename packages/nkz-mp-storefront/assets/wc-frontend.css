@@ -985,3 +985,82 @@ html body.woocommerce tr.nkzmp-group-sub > td {
 	text-align: right;
 }
 .nkzmp-group-sub__ship .nkzmp-group-sub__amount { color: var(--nkzmp-color-accent); }
+
+/* ─────────────────────────────────────────────────────────────
+ * Černé čáry – HARD reset. Téma kreslí border shorthandem (vč. width/style),
+ * takže pouhé border-color nestačí. Vynulujeme všechny bordery na WC
+ * tabulkách a vrátíme jen jemné spodní linky řádků.
+ * ───────────────────────────────────────────────────────────── */
+
+html body.woocommerce table.shop_table,
+html body.woocommerce table.cart,
+html body.woocommerce-cart table.shop_table,
+html body.woocommerce-checkout table.shop_table,
+html body.woocommerce #order_review table.shop_table {
+	border: 0 !important;
+	border-radius: 0 !important;
+	box-shadow: none !important;
+}
+/* hlavička sloupců – tenká jemná spodní linka místo černé */
+html body.woocommerce table.shop_table thead th,
+html body.woocommerce table.cart thead th {
+	border: 0 !important;
+	border-bottom: 1px solid var(--nkzmp-color-border-soft) !important;
+	background: transparent !important;
+}
+/* řádky položek – jen jemná spodní linka */
+html body.woocommerce table.shop_table tbody td,
+html body.woocommerce table.cart tbody td,
+html body.woocommerce table.shop_table tbody th {
+	border: 0 !important;
+	border-bottom: 1px solid var(--nkzmp-color-border-soft) !important;
+}
+/* tfoot (souhrny v review/cart totals) – jemné linky */
+html body.woocommerce table.shop_table tfoot th,
+html body.woocommerce table.shop_table tfoot td {
+	border: 0 !important;
+	border-top: 1px solid var(--nkzmp-color-border-soft) !important;
+}
+/* Cart Totals / V košíku celkem panel – nadpis bez černé linky */
+html body.woocommerce .cart_totals h2,
+html body.woocommerce .cart-collaterals h2,
+html body.woocommerce #order_review_heading {
+	border: 0 !important;
+	padding-bottom: 8px !important;
+}
+/* Pravý panel (V košíku celkem) – odeber black top/under linky, dej kartu */
+html body.woocommerce-cart .cart_totals {
+	border: 1px solid var(--nkzmp-color-border-soft) !important;
+	border-radius: var(--nkzmp-radius) !important;
+	background: var(--nkzmp-color-surface) !important;
+	padding: 24px !important;
+}
+/* odeber WC/théma <hr> a horní rámeček tabulky košíku */
+html body.woocommerce .woocommerce-cart-form table.cart,
+html body.woocommerce .woocommerce-cart-form {
+	border-top: 0 !important;
+}
+html body.woocommerce hr,
+html body.woocommerce-checkout hr,
+html body.woocommerce-cart hr { border-color: var(--nkzmp-color-border-soft) !important; }
+
+/* ── Grouping – čistší vzhled hlavičky + mezisoučtu ── */
+html body.woocommerce tr.nkzmp-group-head > td {
+	background: transparent !important;
+	border: 0 !important;
+	border-bottom: 1px solid var(--nkzmp-color-border-soft) !important;
+	padding: 22px 16px 10px !important;
+}
+.nkzmp-group-head__label {
+	font-size: 12px !important;
+	font-weight: 700 !important;
+	letter-spacing: 0.08em !important;
+	text-transform: uppercase !important;
+}
+html body.woocommerce tr.nkzmp-group-sub > td {
+	background: transparent !important;
+	border: 0 !important;
+	border-bottom: 1px solid var(--nkzmp-color-border-soft) !important;
+	padding: 4px 16px 18px !important;
+}
+.nkzmp-group-sub__label { font-size: 11px !important; }
