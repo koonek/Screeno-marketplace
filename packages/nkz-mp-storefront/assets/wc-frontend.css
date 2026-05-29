@@ -118,20 +118,22 @@ body.woocommerce-info a.button:hover {
 
 /* Formulářová pole – warm box, modrý focus ring. Théma typicky dělá
  * underline-only styling – vynutíme box + barvy přes !important. */
+/* DŮLEŽITÉ: scopováno do .woocommerce / form, NIKDY ne globální
+ * input[type=text] – jinak chytí i vyhledávání v admin liště (#wpadminbar). */
 body.woocommerce form .form-row input.input-text,
 body.woocommerce form .form-row textarea,
 body.woocommerce form .form-row select,
 body.woocommerce-page form .form-row input.input-text,
 body.woocommerce-page form .form-row textarea,
 body.woocommerce-page form .form-row select,
-body.woocommerce-checkout input[type="text"],
-body.woocommerce-checkout input[type="email"],
-body.woocommerce-checkout input[type="tel"],
-body.woocommerce-checkout input[type="number"],
-body.woocommerce-checkout input[type="password"],
-body.woocommerce-checkout textarea,
-body.woocommerce-checkout select,
-body.woocommerce-cart input.input-text {
+body.woocommerce-checkout form.checkout input[type="text"],
+body.woocommerce-checkout form.checkout input[type="email"],
+body.woocommerce-checkout form.checkout input[type="tel"],
+body.woocommerce-checkout form.checkout input[type="number"],
+body.woocommerce-checkout form.checkout input[type="password"],
+body.woocommerce-checkout form.checkout textarea,
+body.woocommerce-checkout form.checkout select,
+body.woocommerce-cart .woocommerce input.input-text {
 	width: 100% !important;
 	box-sizing: border-box !important;
 	padding: 12px 14px !important;
@@ -149,14 +151,19 @@ body.woocommerce-cart input.input-text {
 body.woocommerce form .form-row input.input-text:focus,
 body.woocommerce form .form-row textarea:focus,
 body.woocommerce form .form-row select:focus,
-body.woocommerce-checkout input:focus,
-body.woocommerce-checkout textarea:focus,
-body.woocommerce-checkout select:focus {
+body.woocommerce-checkout form.checkout input:focus,
+body.woocommerce-checkout form.checkout textarea:focus,
+body.woocommerce-checkout form.checkout select:focus {
 	border-color: var(--nkzmp-color-accent) !important;
 	background: var(--nkzmp-color-surface) !important;
 	background-color: var(--nkzmp-color-surface) !important;
 	box-shadow: 0 0 0 3px var(--nkzmp-color-accent-soft) !important;
 	outline: none !important;
+}
+/* Pojistka: admin bar vyhledávání se NESMÍ stylovat. */
+#wpadminbar input,
+#wpadminbar input[type="text"] {
+	all: revert !important;
 }
 /* Labely – théma často trakttuje label jako link (modré). Vynutit text. */
 body.woocommerce form .form-row label,
@@ -1064,3 +1071,72 @@ html body.woocommerce tr.nkzmp-group-sub > td {
 	padding: 4px 16px 18px !important;
 }
 .nkzmp-group-sub__label { font-size: 11px !important; }
+
+/* ─────────────────────────────────────────────────────────────
+ * Doladění: body na pokladně mívá jen .woocommerce-checkout (ne .woocommerce),
+ * proto button pravidla rozšiřujeme. + Packeta tlačítko + čáry u nadpisu.
+ * ───────────────────────────────────────────────────────────── */
+
+html body.woocommerce-checkout button.button,
+html body.woocommerce-checkout a.button,
+html body.woocommerce-cart button.button,
+html body.woocommerce-cart a.button {
+	background: var(--nkzmp-color-accent) !important;
+	background-color: var(--nkzmp-color-accent) !important;
+	color: #fff !important;
+	border: 0 !important;
+	border-radius: var(--nkzmp-radius-soft) !important;
+	box-shadow: 0 6px 18px rgba(0,96,255,0.22) !important;
+}
+/* sekundární (update/coupon) zpět na outline i v checkout-only body */
+html body.woocommerce-cart button[name="update_cart"],
+html body.woocommerce-cart button[name="apply_coupon"] {
+	background: var(--nkzmp-color-surface) !important;
+	color: var(--nkzmp-color-text) !important;
+	border: 1px solid var(--nkzmp-color-border) !important;
+	box-shadow: none !important;
+}
+
+/* Packeta „Vybrat výdejní místo" – accent outline (sekundární akce) */
+html body .nkzmp-packeta-btn,
+html body button.nkzmp-packeta-btn,
+html body #nkzmp-packeta-pick {
+	display: inline-flex !important;
+	align-items: center !important;
+	gap: 8px !important;
+	background: var(--nkzmp-color-surface) !important;
+	color: var(--nkzmp-color-accent) !important;
+	border: 1px solid var(--nkzmp-color-accent) !important;
+	border-radius: var(--nkzmp-radius-soft) !important;
+	box-shadow: none !important;
+	padding: 11px 20px !important;
+	font-weight: 600 !important;
+	font-size: 14px !important;
+	cursor: pointer !important;
+	min-height: 44px !important;
+}
+html body .nkzmp-packeta-btn:hover,
+html body #nkzmp-packeta-pick:hover {
+	background: var(--nkzmp-color-accent) !important;
+	color: #fff !important;
+}
+
+/* „Tvá objednávka" / order review nadpis – černé linky pryč */
+html body.woocommerce-checkout #order_review_heading,
+html body.woocommerce #order_review_heading {
+	border: 0 !important;
+	border-bottom: 0 !important;
+	margin: 0 0 8px !important;
+	padding: 0 !important;
+}
+html body.woocommerce-checkout #order_review,
+html body.woocommerce-checkout #order_review table.shop_table,
+html body.woocommerce-checkout #order_review table.shop_table thead,
+html body.woocommerce-checkout #order_review table.shop_table thead th,
+html body.woocommerce-checkout #order_review table.shop_table tr:first-child th,
+html body.woocommerce-checkout #order_review table.shop_table tr:first-child td {
+	border-top: 0 !important;
+}
+html body.woocommerce-checkout #order_review table.shop_table thead th {
+	border-bottom: 1px solid var(--nkzmp-color-border-soft) !important;
+}
