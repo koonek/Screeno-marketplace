@@ -145,14 +145,30 @@ final class VendorDetailPage {
 			] );
 			return;
 		}
-		$charges = get_post_meta( $vendor_id, '_nkv_stripe_charges_enabled', true );
-		$payouts = get_post_meta( $vendor_id, '_nkv_stripe_payouts_enabled', true );
-		$this->panel( __( 'Stripe Connect', 'nkz-marketplace' ), [
+		$charges   = get_post_meta( $vendor_id, '_nkv_stripe_charges_enabled', true );
+		$payouts   = get_post_meta( $vendor_id, '_nkv_stripe_payouts_enabled', true );
+		$transfers = get_post_meta( $vendor_id, '_nkv_stripe_transfers_capability', true );
+
+		$rows = [
 			__( 'Účet', 'nkz-marketplace' )     => '<code>' . esc_html( $account ) . '</code>',
 			__( 'Stav', 'nkz-marketplace' )     => esc_html( (string) get_post_meta( $vendor_id, '_nkv_stripe_account_status', true ) ?: '—' ),
 			__( 'Platby', 'nkz-marketplace' )   => $charges ? '✓' : '—',
 			__( 'Výplaty', 'nkz-marketplace' )  => $payouts ? '✓' : '—',
-		] );
+			__( 'Transfery (capability)', 'nkz-marketplace' ) => $transfers
+				? '✓'
+				: '<span class="nkzmp-vd-warn">' . esc_html__( 'neaktivní – transfer selže', 'nkz-marketplace' ) . '</span>',
+		];
+
+		// Tlačítko Sync ze Stripe (z adapteru) – přepočítá stav + re-request
+		// transfers capability. Užitečné při testování.
+		if ( class_exists( \NKVSVS\Onboarding_Controller::class ) ) {
+			$sync_url = \NKVSVS\Onboarding_Controller::sync_url( $vendor_id );
+			if ( $sync_url ) {
+				$rows[''] = '<a href="' . esc_url( $sync_url ) . '" class="button">' . esc_html__( 'Sync Stripe účet', 'nkz-marketplace' ) . '</a>';
+			}
+		}
+
+		$this->panel( __( 'Stripe Connect', 'nkz-marketplace' ), $rows );
 	}
 
 	private function panel_sender( int $vendor_id ): void {
