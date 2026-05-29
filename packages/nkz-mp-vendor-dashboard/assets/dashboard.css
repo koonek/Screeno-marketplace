@@ -151,8 +151,7 @@ body.nkzmp-account .woocommerce-MyAccount-content strong {
 body.nkzmp-account .woocommerce-Message,
 body.nkzmp-account .woocommerce-message {
 	background: rgba(0, 96, 255, 0.06) !important;
-	border: 1px solid rgba(0,96,255,0.14) !important;
-	border-left: 4px solid #0060FF !important;
+	border: 1px solid rgba(0,96,255,0.16) !important;
 	color: #111 !important;
 	font-family: inherit !important;
 	padding: 16px 24px !important;
@@ -322,20 +321,21 @@ body.nkzmp-account .woocommerce-message {
 
 .nkzmp-vd-callout {
 	background: var(--nkzmp-vd-accent-soft);
-	border: 1px solid rgba(0,96,255,0.12);
-	border-left: 4px solid var(--nkzmp-vd-accent);
-	border-radius: var(--nkzmp-vd-radius-sm);
-	padding: 22px 24px;
+	border: 1px solid rgba(0,96,255,0.14);
+	border-radius: var(--nkzmp-vd-radius);
+	padding: 24px 26px;
 	margin-bottom: 32px;
 }
 .nkzmp-vd-callout h3 { margin: 0 0 8px; font-size: 18px; font-weight: 500; }
 .nkzmp-vd-callout p { margin: 0 0 16px; color: var(--nkzmp-vd-text); }
-.nkzmp-vd-cta {
+.nkzmp-vd-cta,
+body.nkzmp-account .woocommerce-MyAccount-content a.nkzmp-vd-cta {
 	display: inline-flex;
 	gap: 8px;
 	padding: 13px 26px;
 	background: var(--nkzmp-vd-accent);
 	color: #fff !important;
+	border: 0 !important;
 	font-size: 14px;
 	font-weight: 600;
 	border-radius: var(--nkzmp-vd-radius-sm);
@@ -343,7 +343,8 @@ body.nkzmp-account .woocommerce-message {
 	text-decoration: none !important;
 	transition: background 0.15s ease, transform 0.15s ease;
 }
-.nkzmp-vd-cta:hover { background: var(--nkzmp-vd-accent-hover); transform: translateY(-1px); }
+.nkzmp-vd-cta:hover,
+body.nkzmp-account .woocommerce-MyAccount-content a.nkzmp-vd-cta:hover { background: var(--nkzmp-vd-accent-hover) !important; color: #fff !important; transform: translateY(-1px); }
 
 /* ── Table ────────────────────────────────────────────────────── */
 
@@ -648,8 +649,7 @@ body.nkzmp-account a.nkzmp-vd-cta-new .plus { font-size: 18px !important; line-h
 	gap: 16px;
 	align-items: flex-start;
 	background: var(--nkzmp-vd-accent-soft);
-	border: 1px solid rgba(0,96,255,0.12);
-	border-left: 4px solid var(--nkzmp-vd-accent);
+	border: 1px solid rgba(0,96,255,0.14);
 	border-radius: var(--nkzmp-vd-radius-sm);
 	padding: 18px 22px;
 	margin-bottom: 32px;
@@ -670,13 +670,12 @@ body.nkzmp-account a.nkzmp-vd-cta-new .plus { font-size: 18px !important; line-h
 .nkzmp-vd-flash strong { font-weight: 500; }
 .nkzmp-vd-flash p { margin: 4px 0 0; color: var(--nkzmp-vd-muted); font-size: 14px; line-height: 1.5; }
 
-.nkzmp-vd-flash--success { background: rgba(0, 122, 48, 0.06); border-color: rgba(0,122,48,0.15); border-left-color: var(--nkzmp-vd-success); }
+.nkzmp-vd-flash--success { background: rgba(0, 122, 48, 0.06); border-color: rgba(0,122,48,0.18); }
 .nkzmp-vd-flash--success .icon { background: var(--nkzmp-vd-success); }
 
 .nkzmp-vd-form-error {
 	background: rgba(176, 0, 32, 0.05);
-	border: 1px solid rgba(176,0,32,0.15);
-	border-left: 4px solid var(--nkzmp-vd-error);
+	border: 1px solid rgba(176,0,32,0.2);
 	border-radius: var(--nkzmp-vd-radius-sm);
 	padding: 16px 20px;
 	margin-bottom: 24px;

@@ -76,9 +76,8 @@
 /* ── Error ─────────────────────────────────────────────────────── */
 
 .nkzmp-reg-error {
-	border: 1px solid rgba(176, 0, 32, 0.18);
-	border-left: 4px solid var(--nkzmp-error);
-	background: rgba(176, 0, 32, 0.035);
+	border: 1px solid rgba(176, 0, 32, 0.22);
+	background: rgba(176, 0, 32, 0.04);
 	border-radius: var(--nkzmp-radius-sm);
 	padding: var(--nkzmp-gap-md);
 	margin-bottom: var(--nkzmp-gap-lg);
