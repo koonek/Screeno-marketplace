@@ -120,27 +120,31 @@ final class EmailService {
 	 * PHPMailer default CharSet je často ISO-8859-1 (záleží na serveru),
 	 * což rozbije diakritiku v subjektu i v From name. Vynucujeme UTF-8
 	 * + base64 transfer encoding přes phpmailer_init dočasným hookem.
+	 *
+	 * From EMAIL nepřepisujeme – některé SMTP relayey (Forpsi, Active24,
+	 * SendGrid restricted senders) vyžadují aby MAIL FROM == SMTP login
+	 * a každý vlastní setFrom() ho zhodí (550 5.7.1). Necháme to na SMTP
+	 * pluginu / wp_mail_from filtru. Brandujeme jen From NAME.
 	 */
 	private static function send( string $to, string $subject, string $body ): void {
 		if ( ! is_email( $to ) ) {
 			return;
 		}
 
-		$s        = Settings::get();
-		$from_email = (string) get_option( 'admin_email' );
+		$s          = Settings::get();
 		$from_name  = (string) $s['from_name'];
 		$html       = self::wrap_html( $body, $subject );
 		$headers    = [
 			'Content-Type: text/html; charset=UTF-8',
 		];
 
-		$force_utf8 = static function ( $phpmailer ) use ( $from_email, $from_name ): void {
+		$force_utf8 = static function ( $phpmailer ) use ( $from_name ): void {
 			$phpmailer->CharSet  = 'UTF-8';
 			$phpmailer->Encoding = 'base64';
-			try {
-				$phpmailer->setFrom( $from_email, $from_name, false );
-			} catch ( \Throwable $e ) {
-				// Bude fallback na default From.
+			if ( $from_name !== '' ) {
+				// Jen FromName – From email zůstává tak jak ho nastavil SMTP plugin
+				// nebo WP default (wp_mail_from filter).
+				$phpmailer->FromName = $from_name;
 			}
 		};
 		add_action( 'phpmailer_init', $force_utf8 );
