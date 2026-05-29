@@ -67,7 +67,7 @@ body.nkzmp-account .woocommerce-MyAccount-navigation ul li.woocommerce-MyAccount
 
 /* Vendor section header — divider před první vendor položkou */
 body.nkzmp-account .woocommerce-MyAccount-navigation ul li.nkzmp-acc-nav-vendor-first {
-	border-top: 1px solid #000;
+	border-top: 1px solid rgba(17,17,17,0.10);
 	margin-top: 16px !important;
 	position: relative;
 }
@@ -87,7 +87,7 @@ body.nkzmp-account .woocommerce-MyAccount-navigation ul li.nkzmp-acc-nav-vendor 
 
 /* Account section header — divider před první zákaznickou položkou */
 body.nkzmp-account .woocommerce-MyAccount-navigation ul li.nkzmp-acc-nav-account-first {
-	border-top: 1px solid #000;
+	border-top: 1px solid rgba(17,17,17,0.10);
 	margin-top: 16px !important;
 	position: relative;
 }
@@ -106,7 +106,7 @@ body.nkzmp-account .woocommerce-MyAccount-navigation ul li.nkzmp-acc-nav-account
 .nkzmp-acc-brand {
 	padding-bottom: 24px;
 	margin-bottom: 24px;
-	border-bottom: 1px solid #000;
+	border-bottom: 1px solid rgba(17,17,17,0.10);
 }
 .nkzmp-acc-brand-kicker {
 	display: block;
@@ -150,12 +150,13 @@ body.nkzmp-account .woocommerce-MyAccount-content strong {
 /* Globální WC notice override pro account page */
 body.nkzmp-account .woocommerce-Message,
 body.nkzmp-account .woocommerce-message {
-	background: rgba(0, 96, 255, 0.08) !important;
-	border-top: 3px solid #0060FF !important;
-	color: #000 !important;
+	background: rgba(0, 96, 255, 0.06) !important;
+	border: 1px solid rgba(0,96,255,0.14) !important;
+	border-left: 4px solid #0060FF !important;
+	color: #111 !important;
 	font-family: inherit !important;
 	padding: 16px 24px !important;
-	border-radius: 0 !important;
+	border-radius: 8px !important;
 }
 
 /* Vlastní dashboard content (uvnitř .woocommerce-MyAccount-content) */
@@ -164,16 +165,21 @@ body.nkzmp-account .woocommerce-message {
 
 :root {
 	--nkzmp-vd-bg: #ffffff;
-	--nkzmp-vd-text: #000000;
-	--nkzmp-vd-muted: rgba(0, 0, 0, 0.55);
-	--nkzmp-vd-line: rgba(0, 0, 0, 0.12);
-	--nkzmp-vd-line-bold: #000000;
+	--nkzmp-vd-bg-warm: #faf8f4;
+	--nkzmp-vd-text: #111111;
+	--nkzmp-vd-muted: rgba(17, 17, 17, 0.56);
+	--nkzmp-vd-line: rgba(17, 17, 17, 0.08);
+	--nkzmp-vd-line-bold: rgba(17, 17, 17, 0.10);
 	--nkzmp-vd-accent: #0060FF;
-	--nkzmp-vd-accent-soft: rgba(0, 96, 255, 0.08);
+	--nkzmp-vd-accent-hover: #0048cc;
+	--nkzmp-vd-accent-soft: rgba(0, 96, 255, 0.06);
 	--nkzmp-vd-success: #007a30;
 	--nkzmp-vd-error: #b00020;
 	--nkzmp-vd-warn: #c97300;
 	--nkzmp-vd-font: 'Fabio XM', 'Inter', system-ui, -apple-system, sans-serif;
+	--nkzmp-vd-radius: 12px;
+	--nkzmp-vd-radius-sm: 8px;
+	--nkzmp-vd-shadow: 0 1px 2px rgba(17,17,17,0.04), 0 8px 24px rgba(17,17,17,0.05);
 }
 
 .nkzmp-vd {
@@ -231,19 +237,20 @@ body.nkzmp-account .woocommerce-message {
 	display: inline-flex;
 	align-items: center;
 	gap: 8px;
-	padding: 8px 16px;
+	padding: 7px 16px;
 	font-size: 12px;
 	font-weight: 600;
-	letter-spacing: 0.08em;
+	letter-spacing: 0.06em;
 	text-transform: uppercase;
-	background: var(--nkzmp-vd-text);
-	color: var(--nkzmp-vd-bg);
+	border-radius: 999px;
+	background: var(--nkzmp-vd-accent-soft);
+	color: var(--nkzmp-vd-accent);
 	white-space: nowrap;
 }
-.nkzmp-vd-status--success { background: var(--nkzmp-vd-success); }
-.nkzmp-vd-status--accent  { background: var(--nkzmp-vd-accent); }
-.nkzmp-vd-status--error   { background: var(--nkzmp-vd-error); }
-.nkzmp-vd-status--muted   { background: var(--nkzmp-vd-muted); }
+.nkzmp-vd-status--success { background: rgba(0,122,48,0.10); color: var(--nkzmp-vd-success); }
+.nkzmp-vd-status--accent  { background: var(--nkzmp-vd-accent); color: #fff; }
+.nkzmp-vd-status--error   { background: rgba(176,0,32,0.10); color: var(--nkzmp-vd-error); }
+.nkzmp-vd-status--muted   { background: rgba(17,17,17,0.06); color: var(--nkzmp-vd-muted); }
 
 /* ── Stats grid ───────────────────────────────────────────────── */
 
@@ -251,13 +258,15 @@ body.nkzmp-account .woocommerce-message {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
 	gap: 1px;
-	background: var(--nkzmp-vd-line-bold);
-	border: 1px solid var(--nkzmp-vd-line-bold);
+	background: var(--nkzmp-vd-line);
+	border: 1px solid var(--nkzmp-vd-line);
+	border-radius: var(--nkzmp-vd-radius);
+	overflow: hidden;
 	margin-bottom: 32px;
 }
 .nkzmp-vd-stat {
 	background: var(--nkzmp-vd-bg);
-	padding: 20px 24px;
+	padding: 22px 24px;
 }
 .nkzmp-vd-stat-label {
 	font-size: 11px;
@@ -286,24 +295,26 @@ body.nkzmp-account .woocommerce-message {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 	gap: 1px;
-	background: var(--nkzmp-vd-line-bold);
-	border: 1px solid var(--nkzmp-vd-line-bold);
+	background: var(--nkzmp-vd-line);
+	border: 1px solid var(--nkzmp-vd-line);
+	border-radius: var(--nkzmp-vd-radius);
+	overflow: hidden;
 	margin-bottom: 32px;
 }
 .nkzmp-vd-action {
 	background: var(--nkzmp-vd-bg);
-	padding: 20px 24px;
+	padding: 22px 24px;
 	text-decoration: none !important;
 	color: var(--nkzmp-vd-text) !important;
 	transition: background 0.15s ease, color 0.15s ease;
 }
 .nkzmp-vd-action:hover {
-	background: var(--nkzmp-vd-text) !important;
+	background: var(--nkzmp-vd-accent) !important;
 	color: #fff !important;
 }
 .nkzmp-vd-action:hover strong,
 .nkzmp-vd-action:hover span { color: #fff !important; }
-.nkzmp-vd-action:hover span { color: rgba(255, 255, 255, 0.75) !important; }
+.nkzmp-vd-action:hover span { color: rgba(255, 255, 255, 0.8) !important; }
 .nkzmp-vd-action strong { display: block; font-size: 16px; font-weight: 500; }
 .nkzmp-vd-action span { display: block; font-size: 12px; color: var(--nkzmp-vd-muted); margin-top: 4px; letter-spacing: 0.02em; }
 
@@ -311,8 +322,10 @@ body.nkzmp-account .woocommerce-message {
 
 .nkzmp-vd-callout {
 	background: var(--nkzmp-vd-accent-soft);
+	border: 1px solid rgba(0,96,255,0.12);
 	border-left: 4px solid var(--nkzmp-vd-accent);
-	padding: 20px 24px;
+	border-radius: var(--nkzmp-vd-radius-sm);
+	padding: 22px 24px;
 	margin-bottom: 32px;
 }
 .nkzmp-vd-callout h3 { margin: 0 0 8px; font-size: 18px; font-weight: 500; }
@@ -320,15 +333,17 @@ body.nkzmp-account .woocommerce-message {
 .nkzmp-vd-cta {
 	display: inline-flex;
 	gap: 8px;
-	padding: 12px 24px;
-	background: var(--nkzmp-vd-text);
-	color: var(--nkzmp-vd-bg) !important;
+	padding: 13px 26px;
+	background: var(--nkzmp-vd-accent);
+	color: #fff !important;
 	font-size: 14px;
-	font-weight: 500;
+	font-weight: 600;
+	border-radius: var(--nkzmp-vd-radius-sm);
+	box-shadow: 0 6px 18px rgba(0,96,255,0.22);
 	text-decoration: none !important;
-	transition: background 0.15s ease;
+	transition: background 0.15s ease, transform 0.15s ease;
 }
-.nkzmp-vd-cta:hover { background: var(--nkzmp-vd-accent); }
+.nkzmp-vd-cta:hover { background: var(--nkzmp-vd-accent-hover); transform: translateY(-1px); }
 
 /* ── Table ────────────────────────────────────────────────────── */
 
@@ -371,12 +386,13 @@ body.nkzmp-account .woocommerce-message {
 
 .nkzmp-vd-pill {
 	display: inline-block;
-	padding: 2px 10px;
+	padding: 3px 11px;
 	font-size: 11px;
 	font-weight: 500;
 	letter-spacing: 0.04em;
 	text-transform: uppercase;
-	background: rgba(0, 0, 0, 0.08);
+	border-radius: 999px;
+	background: rgba(17, 17, 17, 0.06);
 	color: var(--nkzmp-vd-text);
 }
 .nkzmp-vd-pill--publish { background: var(--nkzmp-vd-success); color: #fff; }
@@ -413,21 +429,24 @@ body.nkzmp-account .woocommerce-message {
 	display: flex;
 	flex-direction: column;
 	background: var(--nkzmp-vd-bg);
-	border: 1px solid var(--nkzmp-vd-line-bold);
-	transition: transform 0.15s ease, box-shadow 0.15s ease;
+	border: 1px solid var(--nkzmp-vd-line);
+	border-radius: var(--nkzmp-vd-radius);
+	overflow: hidden;
+	transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
 }
 .nkzmp-vd-card:hover {
-	transform: translateY(-2px);
-	box-shadow: 6px 6px 0 0 var(--nkzmp-vd-text);
+	transform: translateY(-3px);
+	box-shadow: var(--nkzmp-vd-shadow);
+	border-color: var(--nkzmp-vd-line-bold);
 }
-.nkzmp-vd-card--pending { border-color: var(--nkzmp-vd-warn); }
+.nkzmp-vd-card--pending { border-color: rgba(201,115,0,0.4); }
 .nkzmp-vd-card--draft   { border-style: dashed; }
 
 .nkzmp-vd-card-media {
 	position: relative;
 	aspect-ratio: 1 / 1;
 	overflow: hidden;
-	background: #f5f5f5;
+	background: var(--nkzmp-vd-bg-warm);
 	border-bottom: 1px solid var(--nkzmp-vd-line);
 }
 .nkzmp-vd-card-media img {
@@ -440,11 +459,12 @@ body.nkzmp-account .woocommerce-message {
 	position: absolute;
 	top: 10px;
 	left: 10px;
-	padding: 4px 10px;
+	padding: 4px 11px;
 	font-size: 10px;
 	font-weight: 600;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
+	border-radius: 999px;
 }
 
 .nkzmp-vd-card-body {
@@ -500,7 +520,7 @@ body.nkzmp-account a.nkzmp-vd-card-view,
 	transition: background 0.15s ease, color 0.15s ease !important;
 }
 body.nkzmp-account a.nkzmp-vd-card-edit:hover,
-.nkzmp-vd a.nkzmp-vd-card-edit:hover { background: #000 !important; background-color: #000 !important; color: #fff !important; }
+.nkzmp-vd a.nkzmp-vd-card-edit:hover { background: #111 !important; background-color: #111 !important; color: #fff !important; }
 body.nkzmp-account a.nkzmp-vd-card-view:hover,
 .nkzmp-vd a.nkzmp-vd-card-view:hover { background: #0060FF !important; background-color: #0060FF !important; color: #fff !important; }
 
@@ -541,8 +561,10 @@ body.nkzmp-account button.nkzmp-vd-link-btn--danger:hover,
 
 /* Onboarding checklist */
 .nkzmp-vd-onboarding {
-	border: 1px solid var(--nkzmp-vd-line-bold);
-	padding: 24px 28px;
+	border: 1px solid var(--nkzmp-vd-line);
+	border-radius: var(--nkzmp-vd-radius);
+	background: var(--nkzmp-vd-bg-warm);
+	padding: 26px 28px;
 	margin-bottom: 32px;
 }
 .nkzmp-vd-onboarding h2 { margin: 0 0 16px; font-size: 18px; font-weight: 500; }
@@ -553,9 +575,10 @@ body.nkzmp-account button.nkzmp-vd-link-btn--danger:hover,
 }
 .nkzmp-vd-steps li:last-child { border-bottom: none; }
 .nkzmp-vd-step-mark {
-	width: 24px; height: 24px; flex-shrink: 0;
+	width: 26px; height: 26px; flex-shrink: 0; border-radius: 50%;
 	display: flex; align-items: center; justify-content: center;
 	border: 1px solid var(--nkzmp-vd-line-bold); font-size: 13px; font-weight: 600;
+	background: var(--nkzmp-vd-bg);
 }
 .nkzmp-vd-steps li.done .nkzmp-vd-step-mark { background: var(--nkzmp-vd-success); color: #fff; border-color: var(--nkzmp-vd-success); }
 .nkzmp-vd-steps li.done .nkzmp-vd-step-label { color: var(--nkzmp-vd-muted); text-decoration: line-through; }
@@ -572,6 +595,8 @@ body.nkzmp-account button.nkzmp-vd-link-btn--danger:hover,
 	text-align: center;
 	padding: 64px 24px;
 	border: 1px dashed var(--nkzmp-vd-line-bold);
+	border-radius: var(--nkzmp-vd-radius);
+	background: var(--nkzmp-vd-bg-warm);
 }
 .nkzmp-vd-products-empty-art {
 	font-size: 48px;
@@ -599,17 +624,17 @@ body.woocommerce-account a.nkzmp-vd-cta-new,
 	display: inline-flex !important;
 	align-items: center !important;
 	gap: 8px !important;
-	padding: 12px 22px !important;
+	padding: 13px 24px !important;
 	background: #0060FF !important;
 	background-color: #0060FF !important;
 	color: #fff !important;
 	font-size: 14px !important;
-	font-weight: 500 !important;
+	font-weight: 600 !important;
 	text-decoration: none !important;
 	border: 1px solid #0060FF !important;
-	border-radius: 0 !important;
-	box-shadow: none !important;
-	transition: background 0.15s ease, border-color 0.15s ease !important;
+	border-radius: 8px !important;
+	box-shadow: 0 6px 18px rgba(0,96,255,0.22) !important;
+	transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease !important;
 }
 body.nkzmp-account a.nkzmp-vd-cta-new *,
 body.woocommerce-account a.nkzmp-vd-cta-new *,
@@ -622,8 +647,10 @@ body.nkzmp-account a.nkzmp-vd-cta-new .plus { font-size: 18px !important; line-h
 	display: flex;
 	gap: 16px;
 	align-items: flex-start;
-	background: rgba(0, 96, 255, 0.06);
+	background: var(--nkzmp-vd-accent-soft);
+	border: 1px solid rgba(0,96,255,0.12);
 	border-left: 4px solid var(--nkzmp-vd-accent);
+	border-radius: var(--nkzmp-vd-radius-sm);
 	padding: 18px 22px;
 	margin-bottom: 32px;
 	font-size: 15px;
@@ -632,6 +659,7 @@ body.nkzmp-account a.nkzmp-vd-cta-new .plus { font-size: 18px !important; line-h
 	flex-shrink: 0;
 	width: 28px;
 	height: 28px;
+	border-radius: 50%;
 	background: var(--nkzmp-vd-accent);
 	color: #fff;
 	display: flex;
@@ -642,12 +670,14 @@ body.nkzmp-account a.nkzmp-vd-cta-new .plus { font-size: 18px !important; line-h
 .nkzmp-vd-flash strong { font-weight: 500; }
 .nkzmp-vd-flash p { margin: 4px 0 0; color: var(--nkzmp-vd-muted); font-size: 14px; line-height: 1.5; }
 
-.nkzmp-vd-flash--success { background: rgba(0, 122, 48, 0.06); border-left-color: var(--nkzmp-vd-success); }
+.nkzmp-vd-flash--success { background: rgba(0, 122, 48, 0.06); border-color: rgba(0,122,48,0.15); border-left-color: var(--nkzmp-vd-success); }
 .nkzmp-vd-flash--success .icon { background: var(--nkzmp-vd-success); }
 
 .nkzmp-vd-form-error {
-	background: rgba(176, 0, 32, 0.06);
+	background: rgba(176, 0, 32, 0.05);
+	border: 1px solid rgba(176,0,32,0.15);
 	border-left: 4px solid var(--nkzmp-vd-error);
+	border-radius: var(--nkzmp-vd-radius-sm);
 	padding: 16px 20px;
 	margin-bottom: 24px;
 	font-size: 15px;
@@ -711,24 +741,25 @@ body.nkzmp-account a.nkzmp-vd-cta-new .plus { font-size: 18px !important; line-h
 .nkzmp-vd-field input[type="text"],
 .nkzmp-vd-field input[type="number"],
 .nkzmp-vd-field textarea {
-	background: transparent;
-	border: none;
-	border-bottom: 1px solid var(--nkzmp-vd-line-bold);
-	padding: 10px 0;
+	background: var(--nkzmp-vd-bg-warm);
+	border: 1px solid var(--nkzmp-vd-line-bold);
+	border-radius: var(--nkzmp-vd-radius-sm);
+	padding: 13px 15px;
 	font-family: inherit;
 	font-size: 16px;
 	color: var(--nkzmp-vd-text);
 	outline: none;
-	transition: border-color 0.15s ease, background 0.15s ease;
-	border-radius: 0;
+	transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
 	width: 100%;
 	box-sizing: border-box;
+	-webkit-appearance: none;
+	appearance: none;
 }
 .nkzmp-vd-field input:hover,
-.nkzmp-vd-field textarea:hover { border-bottom-color: var(--nkzmp-vd-accent); }
+.nkzmp-vd-field textarea:hover { border-color: rgba(17,17,17,0.22); }
 .nkzmp-vd-field input:focus,
-.nkzmp-vd-field textarea:focus { border-bottom-color: var(--nkzmp-vd-accent); background: var(--nkzmp-vd-accent-soft); padding-left: 8px; padding-right: 8px; }
-.nkzmp-vd-field textarea { min-height: 80px; line-height: 1.55; resize: vertical; }
+.nkzmp-vd-field textarea:focus { border-color: var(--nkzmp-vd-accent); background: var(--nkzmp-vd-bg); box-shadow: 0 0 0 3px var(--nkzmp-vd-accent-soft); }
+.nkzmp-vd-field textarea { min-height: 110px; line-height: 1.55; resize: vertical; }
 
 .nkzmp-vd-check {
 	display: flex;
@@ -745,6 +776,8 @@ body.nkzmp-account a.nkzmp-vd-cta-new .plus { font-size: 18px !important; line-h
 	gap: 8px;
 	padding: 16px;
 	border: 1px solid var(--nkzmp-vd-line-bold);
+	border-radius: var(--nkzmp-vd-radius-sm);
+	background: var(--nkzmp-vd-bg-warm);
 	max-width: 100%;
 	box-sizing: border-box;
 }
@@ -762,7 +795,8 @@ body.nkzmp-account a.nkzmp-vd-cta-new .plus { font-size: 18px !important; line-h
 	flex-direction: column;
 	gap: 6px;
 	padding: 12px;
-	border: 1px dashed var(--nkzmp-vd-line);
+	border: 1px dashed var(--nkzmp-vd-line-bold);
+	border-radius: var(--nkzmp-vd-radius-sm);
 	box-sizing: border-box;
 	min-width: 0;
 }
@@ -789,19 +823,21 @@ body.nkzmp-account a.nkzmp-vd-cta-new .plus { font-size: 18px !important; line-h
 	display: inline-flex;
 	align-items: center;
 	gap: 6px;
-	padding: 8px 14px;
-	border: 1px solid var(--nkzmp-vd-line);
+	padding: 9px 16px;
+	border: 1px solid var(--nkzmp-vd-line-bold);
+	border-radius: 999px;
+	background: var(--nkzmp-vd-bg-warm);
 	cursor: pointer;
 	font-size: 14px;
-	transition: border-color 0.15s ease, background 0.15s ease;
+	transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
 	user-select: none;
 }
-.nkzmp-vd-cat:hover { border-color: var(--nkzmp-vd-line-bold); }
+.nkzmp-vd-cat:hover { border-color: var(--nkzmp-vd-accent); }
 .nkzmp-vd-cat input { display: none; }
 .nkzmp-vd-cat:has(input:checked) {
-	background: var(--nkzmp-vd-text);
-	color: var(--nkzmp-vd-bg);
-	border-color: var(--nkzmp-vd-text);
+	background: var(--nkzmp-vd-accent);
+	color: #fff;
+	border-color: var(--nkzmp-vd-accent);
 }
 
 .nkzmp-vd-form-foot {
@@ -826,17 +862,17 @@ button.nkzmp-vd-submit[type="submit"] {
 	color: #fff !important;
 	font-family: inherit !important;
 	font-size: 15px !important;
-	font-weight: 500 !important;
+	font-weight: 600 !important;
 	border: 0 !important;
-	border-radius: 0 !important;
-	box-shadow: none !important;
+	border-radius: 8px !important;
+	box-shadow: 0 6px 18px rgba(0,96,255,0.22) !important;
 	text-transform: none !important;
 	letter-spacing: normal !important;
 	line-height: 1 !important;
 	text-decoration: none !important;
 	width: auto !important;
 	cursor: pointer !important;
-	transition: gap 0.2s ease, background 0.15s ease !important;
+	transition: gap 0.2s ease, background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease !important;
 	text-shadow: none !important;
 	min-height: 0 !important;
 }
@@ -846,9 +882,11 @@ body.nkzmp-account .nkzmp-vd button.nkzmp-vd-submit span,
 body.nkzmp-account .nkzmp-vd button.nkzmp-vd-submit:hover,
 .nkzmp-vd .nkzmp-vd-form button.nkzmp-vd-submit:hover {
 	gap: 16px !important;
-	background: #0050d6 !important;
-	background-color: #0050d6 !important;
+	background: #0048cc !important;
+	background-color: #0048cc !important;
 	color: #fff !important;
+	transform: translateY(-1px) !important;
+	box-shadow: 0 10px 26px rgba(0,96,255,0.3) !important;
 }
 body.nkzmp-account .nkzmp-vd button.nkzmp-vd-submit:hover svg { transform: translateX(4px) !important; }
 
@@ -864,7 +902,9 @@ body.nkzmp-account .nkzmp-vd button.nkzmp-vd-submit:hover svg { transform: trans
 
 .nkzmp-vd-order-list { display: flex; flex-direction: column; gap: 16px; }
 .nkzmp-vd-order {
-	border: 1px solid var(--nkzmp-vd-line-bold);
+	border: 1px solid var(--nkzmp-vd-line);
+	border-radius: var(--nkzmp-vd-radius);
+	overflow: hidden;
 	background: var(--nkzmp-vd-bg);
 }
 .nkzmp-vd-order-head {
@@ -881,8 +921,9 @@ body.nkzmp-account .nkzmp-vd button.nkzmp-vd-submit:hover svg { transform: trans
 	font-weight: 600;
 	letter-spacing: 0.06em;
 	text-transform: uppercase;
-	padding: 4px 10px;
-	background: rgba(0,0,0,0.08);
+	padding: 4px 11px;
+	border-radius: 999px;
+	background: rgba(17,17,17,0.06);
 	color: var(--nkzmp-vd-text);
 }
 .nkzmp-vd-ostatus--completed  { background: var(--nkzmp-vd-success); color: #fff; }
@@ -909,8 +950,8 @@ body.nkzmp-account .nkzmp-vd button.nkzmp-vd-submit:hover svg { transform: trans
 	justify-content: space-between;
 	align-items: baseline;
 	padding: 14px 18px;
-	border-top: 1px solid var(--nkzmp-vd-line-bold);
-	background: #fafafa;
+	border-top: 1px solid var(--nkzmp-vd-line);
+	background: var(--nkzmp-vd-bg-warm);
 }
 .nkzmp-vd-order-foot span { font-size: 13px; color: var(--nkzmp-vd-muted); }
 .nkzmp-vd-order-foot strong { font-size: 16px; font-variant-numeric: tabular-nums; }
@@ -945,9 +986,11 @@ body.nkzmp-account .nkzmp-vd button.nkzmp-vd-submit:hover svg { transform: trans
 body.nkzmp-account .woocommerce-MyAccount-content table.woocommerce-orders-table,
 body.nkzmp-account .woocommerce-MyAccount-content table.woocommerce-table,
 body.nkzmp-account .woocommerce-MyAccount-content table.shop_table {
-	border: 1px solid var(--nkzmp-vd-line-bold) !important;
-	border-collapse: collapse !important;
-	border-radius: 0 !important;
+	border: 1px solid var(--nkzmp-vd-line) !important;
+	border-collapse: separate !important;
+	border-spacing: 0 !important;
+	border-radius: var(--nkzmp-vd-radius) !important;
+	overflow: hidden !important;
 	width: 100% !important;
 	font-size: 14px !important;
 	margin: 0 0 24px !important;
@@ -955,15 +998,16 @@ body.nkzmp-account .woocommerce-MyAccount-content table.shop_table {
 body.nkzmp-account .woocommerce-MyAccount-content table.woocommerce-orders-table th,
 body.nkzmp-account .woocommerce-MyAccount-content table.woocommerce-table th,
 body.nkzmp-account .woocommerce-MyAccount-content table.shop_table th {
-	background: #000 !important;
-	color: #fff !important;
-	font-weight: 500 !important;
+	background: var(--nkzmp-vd-bg-warm) !important;
+	color: var(--nkzmp-vd-muted) !important;
+	font-weight: 600 !important;
 	text-transform: uppercase !important;
 	letter-spacing: 0.08em !important;
 	font-size: 11px !important;
 	text-align: left !important;
-	padding: 12px 14px !important;
+	padding: 14px !important;
 	border: none !important;
+	border-bottom: 1px solid var(--nkzmp-vd-line) !important;
 }
 body.nkzmp-account .woocommerce-MyAccount-content table.woocommerce-orders-table td,
 body.nkzmp-account .woocommerce-MyAccount-content table.woocommerce-table td,
@@ -991,21 +1035,21 @@ body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-EditAccountForm b
 body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-address-fields button[type="submit"],
 body.nkzmp-account .woocommerce-MyAccount-content button.woocommerce-Button {
 	display: inline-block !important;
-	background: #000 !important;
-	background-color: #000 !important;
+	background: #0060FF !important;
+	background-color: #0060FF !important;
 	color: #fff !important;
 	border: none !important;
-	border-radius: 0 !important;
-	box-shadow: none !important;
+	border-radius: 8px !important;
+	box-shadow: 0 6px 18px rgba(0,96,255,0.22) !important;
 	padding: 12px 24px !important;
 	font-family: inherit !important;
-	font-weight: 500 !important;
+	font-weight: 600 !important;
 	font-size: 14px !important;
 	text-transform: none !important;
 	letter-spacing: 0 !important;
 	text-decoration: none !important;
 	cursor: pointer !important;
-	transition: background 0.15s ease !important;
+	transition: background 0.15s ease, transform 0.15s ease !important;
 }
 body.nkzmp-account .woocommerce-MyAccount-content a.woocommerce-button:hover,
 body.nkzmp-account .woocommerce-MyAccount-content a.button.woocommerce-button:hover,
@@ -1013,9 +1057,10 @@ body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-orders-table a.bu
 body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-EditAccountForm button[type="submit"]:hover,
 body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-address-fields button[type="submit"]:hover,
 body.nkzmp-account .woocommerce-MyAccount-content button.woocommerce-Button:hover {
-	background: #0060FF !important;
-	background-color: #0060FF !important;
+	background: #0048cc !important;
+	background-color: #0048cc !important;
 	color: #fff !important;
+	transform: translateY(-1px) !important;
 }
 
 /* Adresy – dvousloupcové karty */
@@ -1028,7 +1073,9 @@ body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-Addresses {
 body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-Addresses .woocommerce-Address {
 	width: auto !important;
 	float: none !important;
-	border: 1px solid var(--nkzmp-vd-line-bold) !important;
+	border: 1px solid var(--nkzmp-vd-line) !important;
+	border-radius: var(--nkzmp-vd-radius) !important;
+	background: var(--nkzmp-vd-bg-warm) !important;
 	padding: 24px !important;
 }
 body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-Address-title {
@@ -1073,26 +1120,28 @@ body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-address-fields se
 body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-form-row select {
 	width: 100% !important;
 	max-width: 480px !important;
-	padding: 12px 14px !important;
+	padding: 13px 15px !important;
 	border: 1px solid var(--nkzmp-vd-line-bold) !important;
-	border-radius: 0 !important;
-	background: #fff !important;
-	color: #000 !important;
+	border-radius: 8px !important;
+	background: var(--nkzmp-vd-bg-warm) !important;
+	color: #111 !important;
 	font-family: inherit !important;
 	font-size: 15px !important;
 	box-shadow: none !important;
-	transition: border-color 0.15s ease !important;
+	transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease !important;
 }
 body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-form-row input.input-text:focus,
 body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-address-fields input.input-text:focus,
 body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-EditAccountForm input.input-text:focus,
 body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-EditAccountForm input[type="password"]:focus {
 	border-color: var(--nkzmp-vd-accent) !important;
+	background: #fff !important;
+	box-shadow: 0 0 0 3px var(--nkzmp-vd-accent-soft) !important;
 	outline: none !important;
 }
 body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-EditAccountForm fieldset {
 	border: 1px solid var(--nkzmp-vd-line) !important;
-	border-radius: 0 !important;
+	border-radius: var(--nkzmp-vd-radius) !important;
 	padding: 20px !important;
 	margin: 24px 0 !important;
 }
@@ -1106,8 +1155,10 @@ body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-pagination ul {
 	display: flex !important;
 	gap: 1px !important;
 	list-style: none !important;
-	border: 1px solid var(--nkzmp-vd-line-bold) !important;
-	background: var(--nkzmp-vd-line-bold) !important;
+	border: 1px solid var(--nkzmp-vd-line) !important;
+	background: var(--nkzmp-vd-line) !important;
+	border-radius: var(--nkzmp-vd-radius-sm) !important;
+	overflow: hidden !important;
 	width: fit-content !important;
 	margin: 24px 0 0 !important;
 	padding: 0 !important;
@@ -1127,7 +1178,7 @@ body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-pagination ul li 
 	text-decoration: none !important;
 }
 body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-pagination ul li span.current {
-	background: #000 !important;
+	background: #0060FF !important;
 	color: #fff !important;
 }
 
@@ -1193,11 +1244,11 @@ body.nkzmp-account .woocommerce-form-login input[type="password"] {
 	box-sizing: border-box !important;
 	padding: 14px 16px !important;
 	font-size: 15px !important;
-	color: #000 !important;
-	background: #fff !important;
-	border: 1px solid rgba(0,0,0,0.18) !important;
-	border-radius: 0 !important;
-	transition: border-color 0.15s ease !important;
+	color: #111 !important;
+	background: var(--nkzmp-vd-bg-warm) !important;
+	border: 1px solid var(--nkzmp-vd-line-bold) !important;
+	border-radius: 8px !important;
+	transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease !important;
 	-webkit-appearance: none !important;
 	appearance: none !important;
 }
@@ -1205,7 +1256,8 @@ body.nkzmp-account .woocommerce-form-login .woocommerce-Input:focus,
 body.nkzmp-account .woocommerce-form-login input:focus {
 	outline: none !important;
 	border-color: #0060FF !important;
-	box-shadow: 0 0 0 1px #0060FF !important;
+	background: #fff !important;
+	box-shadow: 0 0 0 3px var(--nkzmp-vd-accent-soft) !important;
 }
 
 /* Show/hide password ikonka WC – necháme, jen zarovnání */
@@ -1225,17 +1277,20 @@ body.nkzmp-account .woocommerce-form-login__submit {
 	background: #0060FF !important;
 	color: #fff !important;
 	border: 0 !important;
-	border-radius: 0 !important;
-	padding: 15px 28px !important;
+	border-radius: 8px !important;
+	box-shadow: 0 6px 18px rgba(0,96,255,0.22) !important;
+	padding: 15px 30px !important;
 	font-size: 15px !important;
-	font-weight: 500 !important;
+	font-weight: 600 !important;
 	letter-spacing: -0.005em !important;
 	cursor: pointer !important;
-	transition: background 0.15s ease !important;
+	transition: background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease !important;
 	margin: 4px 0 0 !important;
 }
 body.nkzmp-account .woocommerce-form-login__submit:hover {
 	background: #0048cc !important;
+	transform: translateY(-1px) !important;
+	box-shadow: 0 10px 26px rgba(0,96,255,0.3) !important;
 }
 body.nkzmp-account .woocommerce-form-login__submit svg {
 	flex-shrink: 0 !important;

@@ -1,8 +1,8 @@
-/* NKZ Marketplace Storefront — Art of život design tokens.
+/* NKZ Marketplace Storefront — Art of život, sladěno s homepage (nkz.studio).
  *
- * Design manual: bílá 45 %, černá 45 %, modrá 10 % accent.
- * Font: Fabio XM Regular (fallback Inter, system-ui — Fabio XM je
- * placená rodina, theme ji musí načíst přes @font-face nebo Adobe Fonts).
+ * Měkký vzdušný styl: teplý krémový podklad, jemné zaoblení karet,
+ * modrá #0060FF jako akcent. Pryč od tvrdých černých linek.
+ * Font: Fabio XM Regular (theme @font-face), fallback Inter / system.
  *
  * Theme override: :root { --nkzmp-color-accent: ...; ... }
  */
@@ -10,34 +10,38 @@
 :root {
 	/* AOZ paleta */
 	--nkzmp-color-bg: #ffffff;
-	--nkzmp-color-text: #000000;
-	--nkzmp-color-text-muted: rgba(0, 0, 0, 0.6);
-	--nkzmp-color-border: rgba(0, 0, 0, 0.12);
+	--nkzmp-color-bg-warm: #faf8f4;
+	--nkzmp-color-surface: #ffffff;
+	--nkzmp-color-text: #111111;
+	--nkzmp-color-text-muted: rgba(17, 17, 17, 0.56);
+	--nkzmp-color-border: rgba(17, 17, 17, 0.10);
+	--nkzmp-color-border-soft: rgba(17, 17, 17, 0.07);
 	--nkzmp-color-accent: #0060FF;
-	--nkzmp-color-accent-hover: #0050d6;
+	--nkzmp-color-accent-hover: #0048cc;
+	--nkzmp-color-accent-soft: rgba(0, 96, 255, 0.06);
 
-	/* Typografie — Fabio XM Regular je primární, fallbacky pro safety */
+	/* Typografie */
 	--nkzmp-font-family: 'Fabio XM', 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
 	--nkzmp-font-weight: 400;
 
-	/* Typografická hierarchie (modulární rastr) */
 	--nkzmp-font-h1: clamp(32px, 5vw, 56px);
 	--nkzmp-font-h2: clamp(24px, 3.5vw, 36px);
 	--nkzmp-font-h3: clamp(18px, 2.4vw, 22px);
 	--nkzmp-font-body: 16px;
 	--nkzmp-font-small: 14px;
-	--nkzmp-line-height: 1.5;
+	--nkzmp-line-height: 1.55;
 
 	/* Spacing scale */
 	--nkzmp-gap-xs: 4px;
 	--nkzmp-gap-sm: 8px;
 	--nkzmp-gap-md: 16px;
 	--nkzmp-gap-lg: 32px;
-	--nkzmp-gap-xl: 64px;
+	--nkzmp-gap-xl: 56px;
 
-	/* Radius — manual neudává explicitně, 0 odpovídá střídmému kurátorskému tónu */
-	--nkzmp-radius: 0;
-	--nkzmp-radius-soft: 2px;
+	/* Radius + stín – sladěno s kartami homepage */
+	--nkzmp-radius: 12px;
+	--nkzmp-radius-soft: 10px;
+	--nkzmp-shadow: 0 1px 2px rgba(17,17,17,0.04), 0 8px 24px rgba(17,17,17,0.05);
 }
 
 .nkzmp-vendor-page {
@@ -52,54 +56,89 @@
 	background: var(--nkzmp-color-bg);
 }
 
-/* Vendor header — kurátorský klid, generous whitespace, žádné radius */
+/* Vendor header — měkká karta s teplým podkladem místo černého borderu */
 .nkzmp-vendor-header {
 	display: grid;
-	grid-template-columns: 240px 1fr;
+	grid-template-columns: 260px 1fr;
 	gap: var(--nkzmp-gap-xl);
-	align-items: start;
+	align-items: center;
 	margin-bottom: var(--nkzmp-gap-xl);
-	padding-bottom: var(--nkzmp-gap-lg);
-	border-bottom: 1px solid var(--nkzmp-color-text);
+	padding: var(--nkzmp-gap-lg);
+	background: var(--nkzmp-color-bg-warm);
+	border: 1px solid var(--nkzmp-color-border-soft);
+	border-radius: var(--nkzmp-radius);
 }
 @media (max-width: 720px) {
-	.nkzmp-vendor-header { grid-template-columns: 1fr; gap: var(--nkzmp-gap-lg); }
+	.nkzmp-vendor-header { grid-template-columns: 1fr; gap: var(--nkzmp-gap-lg); padding: var(--nkzmp-gap-md); }
 }
-.nkzmp-vendor-header__image img { width: 100%; height: auto; display: block; }
-.nkzmp-vendor-header__name { margin: 0 0 var(--nkzmp-gap-md); font-size: var(--nkzmp-font-h1); font-weight: var(--nkzmp-font-weight); letter-spacing: -0.02em; line-height: 1.1; }
+.nkzmp-vendor-header__image img {
+	width: 100%;
+	height: auto;
+	display: block;
+	border-radius: var(--nkzmp-radius-soft);
+}
+.nkzmp-vendor-header__name { margin: 0 0 var(--nkzmp-gap-md); font-size: var(--nkzmp-font-h1); font-weight: 500; letter-spacing: -0.03em; line-height: 1.08; }
 .nkzmp-vendor-header__web {
-	display: inline-block;
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
 	margin-right: var(--nkzmp-gap-md);
+	padding: 9px 16px;
+	background: var(--nkzmp-color-surface);
+	border: 1px solid var(--nkzmp-color-border);
+	border-radius: 999px;
 	color: var(--nkzmp-color-accent);
 	text-decoration: none;
-	border-bottom: 1px solid currentColor;
-	padding-bottom: 1px;
+	font-size: var(--nkzmp-font-small);
+	font-weight: 500;
+	transition: border-color 0.15s ease, color 0.15s ease;
 }
-.nkzmp-vendor-header__web:hover { color: var(--nkzmp-color-accent-hover); }
-.nkzmp-vendor-header__bio { margin-top: var(--nkzmp-gap-md); color: var(--nkzmp-color-text); max-width: 60ch; }
+.nkzmp-vendor-header__web:hover { color: var(--nkzmp-color-accent-hover); border-color: var(--nkzmp-color-accent); }
+.nkzmp-vendor-header__bio { margin-top: var(--nkzmp-gap-md); color: rgba(17,17,17,0.74); max-width: 60ch; }
 
 /* Section heading */
-.nkzmp-vendor-products-section > h2 { font-size: var(--nkzmp-font-h2); font-weight: var(--nkzmp-font-weight); margin: 0 0 var(--nkzmp-gap-lg); letter-spacing: -0.01em; }
+.nkzmp-vendor-products-section > h2 { font-size: var(--nkzmp-font-h2); font-weight: 500; margin: 0 0 var(--nkzmp-gap-lg); letter-spacing: -0.02em; }
 
-/* Product grid — bez ramečku, čisté karty s podtržením na hover */
+/* Product grid — měkké karty se zaoblením + jemný lift na hover */
 .nkzmp-vendor-products { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: var(--nkzmp-gap-lg); }
-.nkzmp-vendor-product { display: flex; flex-direction: column; text-decoration: none; color: var(--nkzmp-color-text); transition: opacity 0.15s ease; }
-.nkzmp-vendor-product:hover { opacity: 0.7; }
-.nkzmp-vendor-product img { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; margin-bottom: var(--nkzmp-gap-md); display: block; }
-.nkzmp-vendor-product h3 { margin: 0 0 var(--nkzmp-gap-xs); font-size: var(--nkzmp-font-h3); font-weight: var(--nkzmp-font-weight); letter-spacing: -0.005em; }
-.nkzmp-vendor-product .price { color: var(--nkzmp-color-text); font-weight: var(--nkzmp-font-weight); font-size: var(--nkzmp-font-small); }
+.nkzmp-vendor-product {
+	display: flex;
+	flex-direction: column;
+	text-decoration: none;
+	color: var(--nkzmp-color-text);
+	background: var(--nkzmp-color-surface);
+	border: 1px solid var(--nkzmp-color-border-soft);
+	border-radius: var(--nkzmp-radius);
+	overflow: hidden;
+	transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+.nkzmp-vendor-product:hover {
+	transform: translateY(-3px);
+	box-shadow: var(--nkzmp-shadow);
+	border-color: var(--nkzmp-color-border);
+}
+.nkzmp-vendor-product img { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; display: block; background: var(--nkzmp-color-bg-warm); }
+.nkzmp-vendor-product h3 { margin: var(--nkzmp-gap-md) var(--nkzmp-gap-md) var(--nkzmp-gap-xs); font-size: var(--nkzmp-font-h3); font-weight: 500; letter-spacing: -0.01em; }
+.nkzmp-vendor-product .price { margin: 0 var(--nkzmp-gap-md) var(--nkzmp-gap-md); color: var(--nkzmp-color-accent); font-weight: 600; font-size: var(--nkzmp-font-body); }
 .nkzmp-vendor-product .price ins { text-decoration: none; }
-.nkzmp-vendor-product .price del { color: var(--nkzmp-color-text-muted); margin-right: 4px; }
+.nkzmp-vendor-product .price del { color: var(--nkzmp-color-text-muted); margin-right: 4px; font-weight: 400; }
 
-/* Archive — vendor cards */
+/* Archive — vendor karty */
 .nkzmp-vendor-archive { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--nkzmp-gap-lg); }
-.nkzmp-vendor-card { padding: 0; }
-.nkzmp-vendor-card h2 { margin: 0 0 var(--nkzmp-gap-sm); font-size: var(--nkzmp-font-h3); font-weight: var(--nkzmp-font-weight); letter-spacing: -0.005em; }
+.nkzmp-vendor-card {
+	padding: var(--nkzmp-gap-lg);
+	background: var(--nkzmp-color-surface);
+	border: 1px solid var(--nkzmp-color-border-soft);
+	border-radius: var(--nkzmp-radius);
+	transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+.nkzmp-vendor-card:hover { transform: translateY(-3px); box-shadow: var(--nkzmp-shadow); border-color: var(--nkzmp-color-border); }
+.nkzmp-vendor-card h2 { margin: 0 0 var(--nkzmp-gap-sm); font-size: var(--nkzmp-font-h3); font-weight: 500; letter-spacing: -0.01em; }
 .nkzmp-vendor-card h2 a { color: var(--nkzmp-color-text); text-decoration: none; }
 .nkzmp-vendor-card h2 a:hover { color: var(--nkzmp-color-accent); }
 .nkzmp-vendor-card .bio { color: var(--nkzmp-color-text-muted); font-size: var(--nkzmp-font-small); line-height: var(--nkzmp-line-height); }
 
-/* Pagination — minimalistické, accent jen pro active */
+/* Pagination — pill akcent pro current */
 .nkzmp-pagination { margin-top: var(--nkzmp-gap-xl); text-align: center; }
 .nkzmp-pagination .page-numbers {
 	display: inline-block;
@@ -107,11 +146,11 @@
 	margin: 0 var(--nkzmp-gap-xs);
 	text-decoration: none;
 	color: var(--nkzmp-color-text);
-	border-bottom: 1px solid transparent;
-	transition: border-color 0.15s ease;
+	border-radius: var(--nkzmp-radius-soft);
+	transition: background 0.15s ease, color 0.15s ease;
 }
-.nkzmp-pagination .page-numbers:hover { border-bottom-color: var(--nkzmp-color-text); }
-.nkzmp-pagination .page-numbers.current { color: var(--nkzmp-color-accent); border-bottom-color: var(--nkzmp-color-accent); }
+.nkzmp-pagination .page-numbers:hover { background: var(--nkzmp-color-bg-warm); }
+.nkzmp-pagination .page-numbers.current { color: #fff; background: var(--nkzmp-color-accent); }
 
 /* Product page „Prodejce" link */
 .nkzmp-product-vendor { font-size: var(--nkzmp-font-small); color: var(--nkzmp-color-text-muted); margin: var(--nkzmp-gap-md) 0; }

@@ -36,14 +36,14 @@
 .nkzmp-reg-form-wrap {
 	max-width: 760px;
 	margin: 0 auto;
-	padding: var(--nkzmp-gap-xl) var(--nkzmp-gap-md);
+	padding: 24px var(--nkzmp-gap-md) var(--nkzmp-gap-xl);
 	font-family: var(--nkzmp-font);
 	color: var(--nkzmp-text);
 	-webkit-font-smoothing: antialiased;
 }
 
 .nkzmp-reg-hero {
-	margin-bottom: var(--nkzmp-gap-xl);
+	margin-bottom: var(--nkzmp-gap-lg);
 }
 
 .nkzmp-reg-kicker {
