@@ -20,6 +20,7 @@ final class Plugin {
 
 		Rate::instance(); // jen pro statické helpery, žádný init
 		VendorRateAdmin::instance()->init();
+		ProductShippingAdmin::instance()->init();
 		Settings::instance()->init();
 	}
 }

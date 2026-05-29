@@ -65,6 +65,7 @@ final class ProductSubmitController {
 		$manage     = ! empty( $_POST['manage_stock'] );
 		$qty        = isset( $_POST['stock_quantity'] ) && $_POST['stock_quantity'] !== '' ? (int) $_POST['stock_quantity'] : null;
 		$requires_shipping = ! empty( $_POST['requires_shipping'] );
+		$ship_override     = isset( $_POST['shipping_override'] ) && $_POST['shipping_override'] !== '' && is_numeric( $_POST['shipping_override'] ) ? (float) $_POST['shipping_override'] : null;
 		$cats       = isset( $_POST['categories'] ) ? array_map( 'intval', (array) $_POST['categories'] ) : [];
 
 		if ( $title === '' || $price === '' || ! is_numeric( $price ) || (float) $price < 0 ) {
@@ -134,6 +135,12 @@ final class ProductSubmitController {
 
 		// Shipping flag. Digital = virtual (WC nepožaduje dopravu).
 		update_post_meta( $product_id, '_nkzmp_requires_shipping', $requires_shipping ? 'yes' : 'no' );
+		// Per-produkt override poštovného (prázdné = smazat → použije se paušál).
+		if ( $ship_override === null ) {
+			delete_post_meta( $product_id, '_nkzmp_shipping_override' );
+		} else {
+			update_post_meta( $product_id, '_nkzmp_shipping_override', $ship_override );
+		}
 		$saved_product = wc_get_product( $product_id );
 		if ( $saved_product ) {
 			$saved_product->set_virtual( ! $requires_shipping );

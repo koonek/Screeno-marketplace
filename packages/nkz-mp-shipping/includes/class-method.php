@@ -60,8 +60,9 @@ final class Method extends \WC_Shipping_Method {
 			return;
 		}
 
-		// Seskup podle vendora — kdo má aspoň 1 produkt co vyžaduje dopravu.
-		$vendors_needing = [];
+		// Seskup fyzické produkty podle vendora (kvůli per-produkt overridu
+		// potřebujeme seznam produktů, ne jen „má/nemá").
+		$vendor_products = [];
 		foreach ( $contents as $item ) {
 			$product = $item['data'] ?? null;
 			if ( ! $product instanceof \WC_Product ) {
@@ -70,33 +71,31 @@ final class Method extends \WC_Shipping_Method {
 			if ( ! Rate::product_requires_shipping( $product ) ) {
 				continue;
 			}
-			// U variací vezmi parent pro vendor meta.
 			$pid       = $product->get_parent_id() ?: $product->get_id();
 			$vendor_id = Rate::product_vendor_id( $pid );
 			if ( $vendor_id <= 0 ) {
 				$vendor_id = Rate::product_vendor_id( $product->get_id() );
 			}
-			if ( $vendor_id <= 0 ) {
-				// Produkt bez vendora — platforma. Použij default jednou.
+			if ( $vendor_id < 0 ) {
 				$vendor_id = 0;
 			}
-			$vendors_needing[ $vendor_id ] = true;
+			$vendor_products[ $vendor_id ][] = $product;
 		}
 
-		if ( empty( $vendors_needing ) ) {
+		if ( empty( $vendor_products ) ) {
 			return; // jen digital → žádná doprava
 		}
 
 		$total     = 0.0;
 		$breakdown = [];
-		foreach ( array_keys( $vendors_needing ) as $vendor_id ) {
-			$flat = $vendor_id > 0 ? Rate::vendor_flat( $vendor_id ) : Rate::default_flat();
-			if ( $flat <= 0 ) {
+		foreach ( $vendor_products as $vendor_id => $products ) {
+			$cost = Rate::vendor_package_cost( (int) $vendor_id, $products );
+			if ( $cost <= 0 ) {
 				continue;
 			}
-			$total += $flat;
+			$total += $cost;
 			$name   = $vendor_id > 0 ? get_the_title( $vendor_id ) : __( 'Platforma', 'nkz-mp-shipping' );
-			$breakdown[] = sprintf( '%s: %s', $name ?: ( '#' . $vendor_id ), wc_price( $flat ) );
+			$breakdown[] = sprintf( '%s: %s', $name ?: ( '#' . $vendor_id ), wc_price( $cost ) );
 		}
 
 		if ( $total <= 0 ) {

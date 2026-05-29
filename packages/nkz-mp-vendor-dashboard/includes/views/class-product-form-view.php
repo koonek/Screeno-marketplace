@@ -142,6 +142,15 @@ final class ProductFormView {
 						</label>
 						<small><?php esc_html_e( 'Odškrtni u digitálních produktů (e-booky, návody, vouchery). Pak se za ně neúčtuje doprava.', 'nkz-mp-vendor-dashboard' ); ?></small>
 					</div>
+
+					<?php
+					$ship_override = $product ? get_post_meta( $product->get_id(), '_nkzmp_shipping_override', true ) : '';
+					?>
+					<div class="nkzmp-vd-field">
+						<label for="vd_ship_override"><?php esc_html_e( 'Poštovné za tento produkt (volitelné)', 'nkz-mp-vendor-dashboard' ); ?></label>
+						<input id="vd_ship_override" type="number" name="shipping_override" min="0" step="1" value="<?php echo esc_attr( (string) $ship_override ); ?>" placeholder="<?php esc_attr_e( 'např. 150', 'nkz-mp-vendor-dashboard' ); ?>" />
+						<small><?php esc_html_e( 'Necháš prázdné = použije se tvůj běžný paušál. Vyplň jen u větších/těžších věcí, kde je doprava jiná. 0 = doprava zdarma.', 'nkz-mp-vendor-dashboard' ); ?></small>
+					</div>
 				</section>
 
 				<section class="nkzmp-vd-form-section">

@@ -69,38 +69,34 @@ final class CartGrouping {
 			return;
 		}
 
-		// Mapa vendorId → název + jestli má fyzický (shippovaný) produkt.
-		$names           = [ '0' => (string) apply_filters( 'nkzmp/v1/storefront/platform_label', __( 'Obchod', 'nkz-mp-storefront' ) ) ];
-		$vendor_physical = [];
+		// Mapa vendorId → název + fyzické produkty per vendor (pro výpočet dopravy).
+		$names            = [ '0' => (string) apply_filters( 'nkzmp/v1/storefront/platform_label', __( 'Obchod', 'nkz-mp-storefront' ) ) ];
+		$vendor_products  = [];
+		$has_shipping_mod = class_exists( \NKZMP\Shipping\Rate::class );
 		foreach ( WC()->cart->get_cart() as $item ) {
 			$vid = self::item_vendor_id( $item );
 			if ( ! isset( $names[ (string) $vid ] ) && $vid > 0 ) {
 				$title = get_the_title( $vid );
 				$names[ (string) $vid ] = $title ?: ( '#' . $vid );
 			}
-			// Vyžaduje produkt dopravu? (digital → ne)
 			$product = $item['data'] ?? null;
-			$needs   = true;
-			if ( class_exists( \NKZMP\Shipping\Rate::class ) && $product instanceof \WC_Product ) {
-				$needs = \NKZMP\Shipping\Rate::product_requires_shipping( $product );
+			if ( ! $product instanceof \WC_Product ) {
+				continue;
 			}
+			$needs = $has_shipping_mod ? \NKZMP\Shipping\Rate::product_requires_shipping( $product ) : true;
 			if ( $needs ) {
-				$vendor_physical[ (string) $vid ] = true;
+				$vendor_products[ (string) $vid ][] = $product;
 			}
 		}
 
-		// Per-vendor poštovné (jen prezentačně – WC pořád účtuje 1 souhrn).
+		// Per-vendor poštovné (override-aware, přes stejnou logiku jako method).
 		$shipping = [];
-		if ( class_exists( \NKZMP\Shipping\Rate::class ) ) {
-			foreach ( array_keys( $names ) as $vid_str ) {
-				if ( empty( $vendor_physical[ $vid_str ] ) ) {
-					continue; // jen digital → bez dopravy
-				}
-				$vid  = (int) $vid_str;
-				$flat = $vid > 0 ? \NKZMP\Shipping\Rate::vendor_flat( $vid ) : \NKZMP\Shipping\Rate::default_flat();
-				if ( $flat > 0 ) {
-					$shipping[ $vid_str ] = wp_strip_all_tags( wc_price( $flat ) );
-				} elseif ( $flat === 0.0 ) {
+		if ( $has_shipping_mod ) {
+			foreach ( $vendor_products as $vid_str => $products ) {
+				$cost = \NKZMP\Shipping\Rate::vendor_package_cost( (int) $vid_str, $products );
+				if ( $cost > 0 ) {
+					$shipping[ $vid_str ] = wp_strip_all_tags( wc_price( $cost ) );
+				} else {
 					$shipping[ $vid_str ] = (string) __( 'zdarma', 'nkz-mp-storefront' );
 				}
 			}

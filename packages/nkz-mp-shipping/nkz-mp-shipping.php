@@ -2,7 +2,7 @@
 /**
  * Plugin Name: NKZ Marketplace – Shipping
  * Description: Per-vendor paušální doprava. Pro každého prodejce v košíku s fyzickým produktem se přičte jeho paušál. Digital produkty dopravu nevyžadují.
- * Version: 0.1.0
+ * Version: 0.2.0
  * Author: NKZ
  * Requires at least: 6.2
  * Requires PHP: 8.1
@@ -14,7 +14,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'NKZMP_SHIPPING_VERSION', '0.1.0' );
+define( 'NKZMP_SHIPPING_VERSION', '0.2.0' );
 define( 'NKZMP_SHIPPING_FILE', __FILE__ );
 define( 'NKZMP_SHIPPING_DIR', plugin_dir_path( __FILE__ ) );
 define( 'NKZMP_SHIPPING_URL', plugin_dir_url( __FILE__ ) );
@@ -22,6 +22,8 @@ define( 'NKZMP_SHIPPING_URL', plugin_dir_url( __FILE__ ) );
 // Meta klíče (sdílené s vendor-dashboard / product editorem).
 define( 'NKZMP_SHIPPING_VENDOR_RATE_META', '_nkzmp_shipping_flat' );
 define( 'NKZMP_SHIPPING_PRODUCT_REQUIRES_META', '_nkzmp_requires_shipping' );
+// Volitelný per-produkt override poštovného (přebije vendor paušál).
+define( 'NKZMP_SHIPPING_PRODUCT_OVERRIDE_META', '_nkzmp_shipping_override' );
 
 spl_autoload_register(
 	static function ( string $class ): void {
