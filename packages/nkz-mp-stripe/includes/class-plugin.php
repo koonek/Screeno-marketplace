@@ -24,6 +24,7 @@ final class Plugin {
 		Vendors::instance()->init();
 		Product_Fields::instance()->init();
 		Admin_Settings::instance()->init();
+		Health::instance()->init();
 		Order_Meta_Box::instance()->init();
 		Onboarding_Controller::instance()->init();
 		Webhook_Controller::instance()->init();

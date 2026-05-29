@@ -152,50 +152,20 @@ final class Settings {
 					?>
 				</table>
 
-				<h2><?php esc_html_e( 'E-mail: applicant po odeslání', 'nkz-mp-vendor-registration' ); ?></h2>
-				<p><em><?php esc_html_e( 'Placeholdery: {name}, {email}, {status_url}', 'nkz-mp-vendor-registration' ); ?></em></p>
-				<table class="form-table">
-					<?php
-					$this->text_row( $s, 'email_applicant_pending_subject', __( 'Předmět', 'nkz-mp-vendor-registration' ) );
-					$this->textarea_row( $s, 'email_applicant_pending_body', __( 'Tělo (Markdown/HTML)', 'nkz-mp-vendor-registration' ), 10 );
+				<?php
+				// Šablony e-mailů byly přesunuty do centrálního tabu „E-maily"
+				// (NKZ Marketplace → Nastavení → E-maily), aby se needitovaly 2×.
+				$emails_tab = class_exists( \NKZMP\Admin\EmailSettings::class ) && class_exists( \NKZMP\Admin\SettingsHub::class )
+					? \NKZMP\Admin\SettingsHub::url( 'emails' )
+					: '';
+				if ( $emails_tab ) :
 					?>
-				</table>
-
-				<h2><?php esc_html_e( 'E-mail: admin notifikace o nové přihlášce', 'nkz-mp-vendor-registration' ); ?></h2>
-				<p><em><?php esc_html_e( 'Placeholdery: {name}, {email}, {ico}, {website}, {bio}, {edit_url}', 'nkz-mp-vendor-registration' ); ?></em></p>
-				<table class="form-table">
-					<?php
-					$this->text_row( $s, 'email_admin_pending_subject', __( 'Předmět', 'nkz-mp-vendor-registration' ) );
-					$this->textarea_row( $s, 'email_admin_pending_body', __( 'Tělo', 'nkz-mp-vendor-registration' ), 10 );
-					?>
-				</table>
-
-				<h2><?php esc_html_e( 'E-mail: po schválení adminem (Stripe Connect link)', 'nkz-mp-vendor-registration' ); ?></h2>
-				<p><em><?php esc_html_e( 'Placeholdery: {name}, {stripe_link}', 'nkz-mp-vendor-registration' ); ?></em></p>
-				<table class="form-table">
-					<?php
-					$this->text_row( $s, 'email_approved_subject', __( 'Předmět', 'nkz-mp-vendor-registration' ) );
-					$this->textarea_row( $s, 'email_approved_body', __( 'Tělo', 'nkz-mp-vendor-registration' ), 10 );
-					?>
-				</table>
-
-				<h2><?php esc_html_e( 'E-mail: po dokončení KYC (welcome)', 'nkz-mp-vendor-registration' ); ?></h2>
-				<p><em><?php esc_html_e( 'Placeholdery: {name}, {profile_url}', 'nkz-mp-vendor-registration' ); ?></em></p>
-				<table class="form-table">
-					<?php
-					$this->text_row( $s, 'email_active_subject', __( 'Předmět', 'nkz-mp-vendor-registration' ) );
-					$this->textarea_row( $s, 'email_active_body', __( 'Tělo', 'nkz-mp-vendor-registration' ), 10 );
-					?>
-				</table>
-
-				<h2><?php esc_html_e( 'E-mail: zamítnutí', 'nkz-mp-vendor-registration' ); ?></h2>
-				<p><em><?php esc_html_e( 'Placeholdery: {name}, {reason_block} – {reason_block} vloží důvod v odstavci, pokud byl uveden při změně statusu.', 'nkz-mp-vendor-registration' ); ?></em></p>
-				<table class="form-table">
-					<?php
-					$this->text_row( $s, 'email_rejected_subject', __( 'Předmět', 'nkz-mp-vendor-registration' ) );
-					$this->textarea_row( $s, 'email_rejected_body', __( 'Tělo', 'nkz-mp-vendor-registration' ), 10 );
-					?>
-				</table>
+					<h2><?php esc_html_e( 'E-maily', 'nkz-mp-vendor-registration' ); ?></h2>
+					<p style="max-width:640px;">
+						<?php esc_html_e( 'Texty registračních (i ostatních) e-mailů se nově upravují na jednom místě:', 'nkz-mp-vendor-registration' ); ?>
+						<a href="<?php echo esc_url( $emails_tab ); ?>"><strong><?php esc_html_e( 'Nastavení → E-maily', 'nkz-mp-vendor-registration' ); ?></strong></a>.
+					</p>
+				<?php endif; ?>
 
 				<?php submit_button(); ?>
 			</form>
