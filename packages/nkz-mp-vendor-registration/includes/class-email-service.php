@@ -92,6 +92,17 @@ final class EmailService {
 		$profile_url = $slug ? home_url( '/vendor/' . $slug ) : '';
 		$status_url  = StatusPage::url_for( $vendor_id );
 
+		// E-maily se posílají z frontendu (anonymní žadatel), takže
+		// get_edit_post_link() vrací prázdno – nemá cap. Stavíme URL ručně,
+		// je to jen redirect endpoint který si admin login vyřeší.
+		// Preferujeme NKZ admin Vendor detail (read-only konsolidace), fallback
+		// na WP post.php edit screen pokud core admin třída není dostupná.
+		if ( class_exists( \NKZMP\Admin\VendorDetailPage::class ) ) {
+			$edit_url = \NKZMP\Admin\VendorDetailPage::url( $vendor_id );
+		} else {
+			$edit_url = admin_url( 'post.php?post=' . $vendor_id . '&action=edit' );
+		}
+
 		return [
 			'name'        => (string) $vendor['name'],
 			'email'       => (string) $vendor['email'],
@@ -101,7 +112,7 @@ final class EmailService {
 			'stripe_link' => $stripe_link,
 			'profile_url' => $profile_url,
 			'status_url'  => $status_url,
-			'edit_url'    => (string) get_edit_post_link( $vendor_id, '' ),
+			'edit_url'    => $edit_url,
 			'site_name'   => (string) get_bloginfo( 'name' ),
 			'site_url'    => (string) home_url( '/' ),
 		];
