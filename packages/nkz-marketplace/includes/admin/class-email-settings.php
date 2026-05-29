@@ -184,7 +184,7 @@ final class EmailSettings {
 	 * @return array<int,array{label:string,hint?:string,items:array<int,array{label:string,hint?:string,subject:string,body:string,placeholders?:string[]}>}>
 	 */
 	private static function groups(): array {
-		$reg_vars = [ 'name', 'email', 'ico', 'website', 'bio', 'stripe_link', 'profile_url', 'status_url', 'edit_url', 'site_name', 'site_url' ];
+		$reg_vars = [ 'name', 'email', 'ico', 'website', 'bio', 'stripe_link', 'profile_url', 'status_url', 'edit_url', 'login_url', 'dashboard_url', 'site_name', 'site_url' ];
 
 		return [
 			[
@@ -291,8 +291,9 @@ final class EmailSettings {
 			'email_active_body'    =>
 "Ahoj {name},\n\n" .
 "je to oficiální — tvůj profil v Art of život je živý a tvoje produkty se mohou prodávat.\n\n" .
-"Tvůj profil:\n{profile_url}\n\n" .
-"V adminu si můžeš přidávat produkty, upravit popis a nahrát obrázek. S čímkoli se ozvi, jsme tady.\n\n" .
+"Tvůj veřejný profil:\n{profile_url}\n\n" .
+"Přihlaš se do svého panelu a začni přidávat produkty:\n{dashboard_url}\n\n" .
+"V panelu si můžeš přidávat produkty, upravit popis a nahrát obrázek. S čímkoli se ozvi, jsme tady.\n\n" .
 "Tým Art of život",
 
 			'email_rejected_subject' => 'Tvoje přihláška — Art of život',

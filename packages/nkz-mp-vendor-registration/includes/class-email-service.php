@@ -101,6 +101,10 @@ final class EmailService {
 		$profile_url = $slug ? home_url( '/vendor/' . $slug ) : '';
 		$status_url  = StatusPage::url_for( $vendor_id );
 
+		// Přihlášení / panel prodejce. Funkce wc_* jsou dostupné jen když WC běží.
+		$login_url     = function_exists( 'wc_get_page_permalink' ) ? (string) wc_get_page_permalink( 'myaccount' ) : home_url( '/muj-ucet' );
+		$dashboard_url = function_exists( 'wc_get_account_endpoint_url' ) ? (string) wc_get_account_endpoint_url( 'vendor' ) : $login_url;
+
 		// E-maily se posílají z frontendu (anonymní žadatel), takže
 		// get_edit_post_link() vrací prázdno – nemá cap. Stavíme URL ručně,
 		// je to jen redirect endpoint který si admin login vyřeší.
@@ -122,6 +126,8 @@ final class EmailService {
 			'profile_url' => $profile_url,
 			'status_url'  => $status_url,
 			'edit_url'    => $edit_url,
+			'login_url'     => $login_url,
+			'dashboard_url' => $dashboard_url,
 			'site_name'   => (string) get_bloginfo( 'name' ),
 			'site_url'    => (string) home_url( '/' ),
 		];
