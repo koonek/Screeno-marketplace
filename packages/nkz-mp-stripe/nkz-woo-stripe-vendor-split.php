@@ -2,7 +2,7 @@
 /**
  * Plugin Name: NKZ Woo Stripe Vendor Split
  * Description: Rozdělení plateb mezi platformu a vendory přes Stripe Connect (separate charges & transfers).
- * Version: 0.7.0
+ * Version: 0.7.1
  * Author: NKZ
  * Requires at least: 6.2
  * Requires PHP: 8.1
@@ -15,7 +15,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'NKVSVS_VERSION', '0.7.0' );
+define( 'NKVSVS_VERSION', '0.7.1' );
 define( 'NKVSVS_PLUGIN_FILE', __FILE__ );
 define( 'NKVSVS_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'NKVSVS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );

@@ -244,6 +244,7 @@ final class Onboarding_Controller {
 		delete_post_meta( $vendor_id, '_nkv_stripe_account_status' );
 		delete_post_meta( $vendor_id, '_nkv_stripe_charges_enabled' );
 		delete_post_meta( $vendor_id, '_nkv_stripe_payouts_enabled' );
+		delete_post_meta( $vendor_id, '_nkv_stripe_transfers_capability' );
 		delete_post_meta( $vendor_id, '_nkv_stripe_requirements_due' );
 		// Bump attempt counter so the next create call uses a fresh Stripe idempotency key.
 		$attempt = (int) get_post_meta( $vendor_id, '_nkv_stripe_create_attempt', true );
@@ -358,7 +359,28 @@ final class Onboarding_Controller {
 		$disabled_reason = $account['requirements']['disabled_reason'] ?? null;
 		$currently_due   = $account['requirements']['currently_due'] ?? [];
 
-		if ( $charges_enabled && $payouts_enabled ) {
+		// Capability `transfers` musí být 'active', jinak transfer prodejci
+		// selže s „destination account needs transfers capability".
+		$transfers_state  = (string) ( $account['capabilities']['transfers'] ?? '' );
+		$transfers_active = ( 'active' === $transfers_state );
+
+		// Pokud capability chybí / je inactive (ne jen pending), znovu ji
+		// vyžádáme – řeší účty založené bez ní. Idempotentní.
+		if ( $transfers_state === '' || $transfers_state === 'inactive' ) {
+			try {
+				( new Stripe_Client() )->update_account( $account_id, [
+					'capabilities' => [ 'transfers' => [ 'requested' => 'true' ] ],
+				] );
+				Logger::info( 'Re-requested transfers capability', [ 'vendor' => $vendor_id, 'account' => $account_id ] );
+			} catch ( \Throwable $e ) {
+				Logger::error( 'Transfers capability re-request failed', [ 'vendor' => $vendor_id, 'err' => $e->getMessage() ] );
+			}
+		}
+
+		// „enabled" = může i přijímat transfery. Vyžadujeme charges+payouts
+		// I aktivní transfers capability (jinak je prodejce „aktivní" ale
+		// transfer mu nejde).
+		if ( $charges_enabled && $payouts_enabled && $transfers_active ) {
 			$status = 'enabled';
 		} elseif ( $disabled_reason && empty( $currently_due ) ) {
 			$status = 'restricted';
@@ -369,11 +391,12 @@ final class Onboarding_Controller {
 		update_post_meta( $vendor_id, '_nkv_stripe_account_status', $status );
 		update_post_meta( $vendor_id, '_nkv_stripe_charges_enabled', $charges_enabled ? 1 : 0 );
 		update_post_meta( $vendor_id, '_nkv_stripe_payouts_enabled', $payouts_enabled ? 1 : 0 );
+		update_post_meta( $vendor_id, '_nkv_stripe_transfers_capability', $transfers_active ? 1 : 0 );
 		update_post_meta( $vendor_id, '_nkv_stripe_requirements_due', wp_json_encode( $currently_due ) );
 
-		// KYC dokončené (charges+payouts) → aktivuj vendora čekajícího na KYC.
-		// Jen v bundle režimu s NKZ core; standalone adapter (Screeno) řídí
-		// stav prodejce ručně, takže tam nezasahujeme.
+		// KYC dokončené (charges+payouts+transfers) → aktivuj vendora čekajícího
+		// na KYC. Jen v bundle režimu s NKZ core; standalone adapter (Screeno)
+		// řídí stav prodejce ručně, takže tam nezasahujeme.
 		if ( 'enabled' === $status ) {
 			$this->maybe_activate_after_kyc( $vendor_id );
 		}
