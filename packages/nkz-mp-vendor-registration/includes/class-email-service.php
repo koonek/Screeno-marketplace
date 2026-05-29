@@ -186,9 +186,41 @@ final class EmailService {
 		$site_name = (string) get_bloginfo( 'name' );
 		$site_url  = (string) home_url( '/' );
 
-		$html_body = self::text_to_html( $body );
+		// Tokeny – Screeno přebije přes nkzmp/v1/email/tokens bez editace kódu.
+		$t = array_merge( [
+			'accent'      => '#0060FF',
+			'accent_ink'  => '#0048cc',
+			'bg'          => '#f3f0ea',   // teplý krémový rámec
+			'surface'     => '#ffffff',   // bílá karta
+			'text'        => '#111111',
+			'muted'       => 'rgba(17,17,17,0.55)',
+			'border'      => 'rgba(17,17,17,0.10)',
+			'radius'      => '12px',
+			'font'        => "'Helvetica Neue',Helvetica,Arial,sans-serif",
+			'logo'        => '',         // image URL; prázdné = textový kicker
+			'logo_height' => '32',
+			'footer_tag'  => __( 'Tento e-mail je automatický, ale my ne. Stačí odpovědět.', 'nkz-mp-vendor-registration' ),
+		], (array) apply_filters( 'nkzmp/v1/email/tokens', [] ) );
 
-		// Table-based email layout, inline styles pro Outlook/Gmail kompatibilitu.
+		$html_body = self::text_to_html( $body, $t );
+
+		// Header: buď logo, nebo textový kicker se site_name.
+		if ( $t['logo'] !== '' ) {
+			$header = sprintf(
+				'<img src="%s" alt="%s" height="%s" style="display:block;border:0;outline:none;text-decoration:none;height:%spx;width:auto;" />',
+				esc_url( (string) $t['logo'] ),
+				esc_attr( $site_name ),
+				esc_attr( (string) $t['logo_height'] ),
+				esc_attr( (string) $t['logo_height'] )
+			);
+		} else {
+			$header = sprintf(
+				'<div style="font-size:11px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:%s;">%s</div>',
+				esc_attr( (string) $t['accent'] ),
+				esc_html( $site_name )
+			);
+		}
+
 		ob_start();
 		?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
@@ -198,57 +230,46 @@ final class EmailService {
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title><?php echo esc_html( $subject ); ?></title>
 </head>
-<body style="margin:0;padding:0;background:#f5f5f5;font-family:Helvetica,Arial,sans-serif;color:#000;-webkit-font-smoothing:antialiased;">
+<body style="margin:0;padding:0;background:<?php echo esc_attr( (string) $t['bg'] ); ?>;font-family:<?php echo $t['font']; // phpcs:ignore ?>;color:<?php echo esc_attr( (string) $t['text'] ); ?>;-webkit-font-smoothing:antialiased;">
 
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#f5f5f5;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:<?php echo esc_attr( (string) $t['bg'] ); ?>;">
   <tr>
 	<td align="center" style="padding:40px 16px;">
 
-	  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="max-width:600px;width:100%;background:#ffffff;">
+	  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="max-width:600px;width:100%;background:<?php echo esc_attr( (string) $t['surface'] ); ?>;border:1px solid <?php echo esc_attr( (string) $t['border'] ); ?>;border-radius:<?php echo esc_attr( (string) $t['radius'] ); ?>;overflow:hidden;">
 
 		<!-- Header -->
 		<tr>
-		  <td style="padding:48px 48px 0;">
-			<div style="font-size:11px;font-weight:500;letter-spacing:0.14em;text-transform:uppercase;color:#0060FF;">
-			  <?php echo esc_html( $site_name ); ?>
-			</div>
-		  </td>
+		  <td style="padding:40px 44px 12px;"><?php echo $header; // phpcs:ignore ?></td>
 		</tr>
 
 		<!-- Headline -->
 		<tr>
-		  <td style="padding:24px 48px 0;">
-			<h1 style="margin:0;font-size:28px;font-weight:400;line-height:1.2;letter-spacing:-0.02em;color:#000;">
+		  <td style="padding:8px 44px 28px;">
+			<h1 style="margin:0;font-size:26px;font-weight:600;line-height:1.2;letter-spacing:-0.02em;color:<?php echo esc_attr( (string) $t['text'] ); ?>;">
 			  <?php echo esc_html( $subject ); ?>
 			</h1>
 		  </td>
 		</tr>
 
-		<!-- Divider -->
-		<tr>
-		  <td style="padding:32px 48px 0;">
-			<div style="height:1px;background:#000;line-height:1px;font-size:1px;">&nbsp;</div>
-		  </td>
-		</tr>
-
 		<!-- Body -->
 		<tr>
-		  <td style="padding:32px 48px;font-size:16px;line-height:1.65;color:#000;">
+		  <td style="padding:0 44px 36px;font-size:16px;line-height:1.65;color:<?php echo esc_attr( (string) $t['text'] ); ?>;">
 			<?php echo $html_body; // phpcs:ignore – pre-sanitized via text_to_html ?>
 		  </td>
 		</tr>
 
 		<!-- Footer -->
 		<tr>
-		  <td style="padding:32px 48px 48px;border-top:1px solid #000;font-size:13px;color:rgba(0,0,0,0.55);">
+		  <td style="padding:24px 44px 32px;border-top:1px solid <?php echo esc_attr( (string) $t['border'] ); ?>;font-size:13px;color:<?php echo esc_attr( (string) $t['muted'] ); ?>;">
 			<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
 			  <tr>
 				<td>
-				  <a href="<?php echo esc_url( $site_url ); ?>" style="color:rgba(0,0,0,0.55);text-decoration:none;border-bottom:1px solid rgba(0,0,0,0.2);">
+				  <a href="<?php echo esc_url( $site_url ); ?>" style="color:<?php echo esc_attr( (string) $t['muted'] ); ?>;text-decoration:none;">
 					<?php echo esc_html( preg_replace( '#^https?://#', '', $site_url ) ); ?>
 				  </a>
 				</td>
-				<td align="right" style="color:rgba(0,0,0,0.4);font-size:12px;">
+				<td align="right" style="color:<?php echo esc_attr( (string) $t['muted'] ); ?>;font-size:12px;">
 				  <?php echo esc_html( $site_name ); ?>
 				</td>
 			  </tr>
@@ -258,9 +279,11 @@ final class EmailService {
 
 	  </table>
 
-	  <div style="font-size:11px;color:rgba(0,0,0,0.35);padding:16px 0;">
-		<?php echo esc_html( __( 'Tento e-mail je automatický, ale my ne. Stačí odpovědět.', 'nkz-mp-vendor-registration' ) ); ?>
+	  <?php if ( $t['footer_tag'] !== '' ) : ?>
+	  <div style="font-size:11px;color:rgba(17,17,17,0.42);padding:16px 0;font-family:<?php echo $t['font']; // phpcs:ignore ?>;">
+		<?php echo esc_html( (string) $t['footer_tag'] ); ?>
 	  </div>
+	  <?php endif; ?>
 
 	</td>
   </tr>
@@ -273,31 +296,44 @@ final class EmailService {
 	}
 
 	/**
-	 * Bezpečná konverze plain-text-with-URLs na HTML s inline stylingem.
+	 * Bezpečná konverze plain-text-with-URLs na HTML.
+	 * URL na vlastním řádku = button (CTA). Inline URL = obyčejný link.
+	 *
+	 * @param array<string,string> $t tokens
 	 */
-	private static function text_to_html( string $text ): string {
-		$escaped = esc_html( $text );
+	private static function text_to_html( string $text, array $t = [] ): string {
+		$accent     = (string) ( $t['accent']     ?? '#0060FF' );
+		$accent_ink = (string) ( $t['accent_ink'] ?? '#0048cc' );
 
-		// Linkify URLs — accent modrou s podtržením.
-		$escaped = preg_replace_callback(
-			'#(https?://[^\s<]+)#i',
-			static function ( $m ) {
-				// Pokud je URL na samostatném řádku (potenciální CTA), styluj jako button.
-				return '<a href="' . esc_url( $m[1] ) . '" style="color:#0060FF;text-decoration:none;border-bottom:1px solid #0060FF;word-break:break-all;">' . esc_html( $m[1] ) . '</a>';
-			},
-			$escaped
-		);
-
-		// Bloky oddělené prázdným řádkem = <p>; samostatné newliny = <br>.
-		$blocks = preg_split( '/\n{2,}/', $escaped );
+		// Bloky oddělené prázdným řádkem.
+		$blocks = preg_split( '/\n{2,}/', trim( $text ) );
 		$html   = '';
 		foreach ( $blocks as $block ) {
 			$block = trim( $block );
 			if ( $block === '' ) {
 				continue;
 			}
-			$block = nl2br( $block, false );
-			$html .= '<p style="margin:0 0 18px;">' . $block . '</p>' . "\n";
+			// Celý blok = jedna URL → renderuj jako CTA button.
+			if ( preg_match( '#^(https?://\S+)$#i', $block, $m ) ) {
+				$url = $m[1];
+				$html .= '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:6px 0 22px;"><tr><td style="border-radius:8px;background:' . esc_attr( $accent ) . ';">'
+					. '<a href="' . esc_url( $url ) . '" style="display:inline-block;padding:13px 26px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:8px;background:' . esc_attr( $accent ) . ';">'
+					. esc_html__( 'Otevřít odkaz', 'nkz-mp-vendor-registration' )
+					. '</a>'
+					. '</td></tr></table>';
+				continue;
+			}
+			// Jinak: linkify inline URL a wrapni do <p>.
+			$escaped = esc_html( $block );
+			$escaped = preg_replace_callback(
+				'#(https?://[^\s<]+)#i',
+				static function ( $m ) use ( $accent, $accent_ink ) {
+					return '<a href="' . esc_url( $m[1] ) . '" style="color:' . esc_attr( $accent ) . ';text-decoration:none;border-bottom:1px solid ' . esc_attr( $accent ) . ';word-break:break-all;">' . esc_html( $m[1] ) . '</a>';
+				},
+				$escaped
+			);
+			$escaped = nl2br( $escaped, false );
+			$html   .= '<p style="margin:0 0 18px;">' . $escaped . '</p>' . "\n";
 		}
 		return $html;
 	}
