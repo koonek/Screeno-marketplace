@@ -70,16 +70,44 @@ final class Health {
 		$err = get_option( self::ERROR_OPTION, [] );
 		if ( is_array( $err ) && ! empty( $err['message'] ) ) {
 			$when = ! empty( $err['time'] ) ? human_time_diff( (int) $err['time'], time() ) : '';
+			$msg  = (string) $err['message'];
+
+			// Známé Packeta chyby přeložené do srozumitelné akce.
+			$hint = self::diagnose( $msg );
+
 			$rows[] = [
 				'label'  => __( 'Packeta API – poslední chyba', 'nkz-mp-packeta' ),
 				'state'  => 'fail',
 				'detail' => trim(
 					( $when !== '' ? sprintf( __( 'před %s: ', 'nkz-mp-packeta' ), $when ) : '' )
-					. (string) $err['message']
+					. ( $hint !== '' ? $hint . ' — ' : '' )
+					. $msg
 				),
 			];
 		}
 
 		return $rows;
+	}
+
+	/**
+	 * Mapování známých Packeta chybových zpráv na srozumitelnou akci.
+	 * Vrací prázdný string, pokud chybu nepoznáme (zobrazí se jen raw text).
+	 */
+	private static function diagnose( string $msg ): string {
+		$lower = strtolower( $msg );
+
+		if ( str_contains( $lower, 'not approved for posting' ) || str_contains( $lower, 'not active' ) || str_contains( $lower, 'wrong account state' ) ) {
+			return __( 'účet ještě není Packetou schválený pro zakládání zásilek – ozvi se Packeta podpoře, ať aktivuje "posting parcels"', 'nkz-mp-packeta' );
+		}
+		if ( str_contains( $lower, 'wrong api password' ) || str_contains( $lower, 'invalid api password' ) || str_contains( $lower, 'authentication' ) ) {
+			return __( 'špatné API heslo – zkontroluj že máš API heslo (ne widget klíč) z Packeta klient → Technická nastavení', 'nkz-mp-packeta' );
+		}
+		if ( str_contains( $lower, 'sender' ) && ( str_contains( $lower, 'unknown' ) || str_contains( $lower, 'invalid' ) ) ) {
+			return __( 'eshop label odesílatele neexistuje v Packetě – zkontroluj přesný název v Packeta klient → Nastavení → Eshopy', 'nkz-mp-packeta' );
+		}
+		if ( str_contains( $lower, 'addressid' ) || str_contains( $lower, 'point' ) ) {
+			return __( 'vybrané výdejní místo Packeta neuznává – obnov objednávku / nech zákazníka vybrat znovu', 'nkz-mp-packeta' );
+		}
+		return '';
 	}
 }
