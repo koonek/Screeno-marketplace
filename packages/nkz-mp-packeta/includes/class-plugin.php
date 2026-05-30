@@ -19,6 +19,7 @@ final class Plugin {
 		load_plugin_textdomain( 'nkz-mp-packeta', false, dirname( plugin_basename( NKZMP_PACKETA_FILE ) ) . '/languages' );
 
 		Settings::instance()->init();
+		Health::instance()->init();
 		CheckoutWidget::instance()->init();
 		OrderDisplay::instance()->init();
 		LabelController::instance()->init();

@@ -73,8 +73,10 @@ final class LabelController {
 		$client = new ApiClient( Settings::api_password() );
 		$pdf    = $client->label_pdf( (string) $packet['id'] );
 		if ( is_wp_error( $pdf ) ) {
+			Health::record_error( $pdf->get_error_message() );
 			$this->fail( $pdf->get_error_message() );
 		}
+		Health::clear_error();
 
 		nocache_headers();
 		header( 'Content-Type: application/pdf' );

@@ -95,8 +95,10 @@ final class LabelService {
 		$client = new ApiClient( Settings::api_password() );
 		$result = $client->create_packet( $attrs );
 		if ( is_wp_error( $result ) ) {
+			Health::record_error( $result->get_error_message() );
 			return $result;
 		}
+		Health::clear_error();
 
 		$record = [
 			'id'      => $result['id'],
@@ -230,8 +232,10 @@ final class LabelService {
 		$client = new ApiClient( Settings::api_password() );
 		$res    = $client->cancel_packet( (string) $packet['id'] );
 		if ( is_wp_error( $res ) ) {
+			Health::record_error( $res->get_error_message() );
 			return $res;
 		}
+		Health::clear_error();
 
 		$all = $order->get_meta( NKZMP_PACKETA_PACKETS_META );
 		if ( is_array( $all ) ) {
