@@ -139,7 +139,7 @@ final class EmailSettings {
 	}
 
 	/** Box „Poslat testovací e-mail" nad formulářem. */
-	private function render_test_box(): void {
+	private static function render_test_box(): void {
 		$admin_email = (string) get_option( 'admin_email' );
 		$to_default  = isset( $_GET['nkzmp_test_to'] ) ? sanitize_email( wp_unslash( $_GET['nkzmp_test_to'] ) ) : $admin_email;
 
@@ -267,7 +267,7 @@ final class EmailSettings {
 			}
 		}
 		?>
-		<?php $this->render_test_box(); ?>
+		<?php self::render_test_box(); ?>
 		<form method="post" action="options.php">
 			<?php settings_fields( 'nkzmp_email_templates' ); ?>
 

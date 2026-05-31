@@ -3,11 +3,11 @@
 > Živý stav projektu. Aktualizuj při větších milnících. Vše commitnuté na
 > branchi `claude/trusting-fermat-YBzZT`, PR #19 (Phase 1).
 
-## Aktuální verze (bundle 0.25.9)
+## Aktuální verze (bundle 0.25.10)
 
 | Modul | Verze |
 |---|---|
-| nkz-marketplace (core) | 0.10.18-dev |
+| nkz-marketplace (core) | 0.10.19-dev |
 | nkz-mp-stripe (adapter, slug nkz-woo-stripe-vendor-split) | 0.7.3 |
 | nkz-mp-storefront | 0.6.8 |
 | nkz-mp-vendor-registration | 0.5.11 |
@@ -15,7 +15,7 @@
 | nkz-mp-shipping | 0.2.0 |
 | nkz-mp-vendor-billing | 0.5.2 |
 | nkz-mp-packeta | 0.2.6 |
-| **nkz-mp-aoz-bundle** | **0.25.9** |
+| **nkz-mp-aoz-bundle** | **0.25.10** |
 
 Build: `./scripts/build-bundles.sh` → `dist/nkz-marketplace-aoz-<ver>.zip`.
 
