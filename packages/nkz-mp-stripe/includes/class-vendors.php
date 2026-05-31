@@ -38,15 +38,21 @@ final class Vendors {
 					'edit_item'     => __( 'Upravit prodejce', 'nkz-woo-stripe-vendor-split' ),
 				],
 				// `public => true` is required so Elementor Pro Loop Grid shows the CPT
-				// in its source dropdown. We disable URLs (rewrite + has_archive false)
-				// and 404 single requests in `block_single_vendor()` so no vendor data leaks.
+				// in its source dropdown. Single vendor profiles now have a pretty URL
+				// (`/prodejce/<slug>/`). Only ACTIVE vendors render publicly — every other
+				// status is 404'd in `block_single_vendor()` so unfinished/private vendor
+				// data never leaks. Sensitive meta (email, IČO, fees, Stripe IDs) is never
+				// exposed on the single template anyway.
 				'public'              => true,
 				'publicly_queryable'  => true,
 				'show_in_rest'        => true,
 				'exclude_from_search' => true,
 				'show_in_nav_menus'   => false,
 				'has_archive'         => false,
-				'rewrite'             => false,
+				'rewrite'             => [
+					'slug'       => self::rewrite_slug(),
+					'with_front' => false,
+				],
 				'show_ui'             => true,
 				'show_in_menu'        => true,
 				'menu_icon'           => 'dashicons-businessperson',
@@ -58,15 +64,66 @@ final class Vendors {
 	}
 
 	/**
-	 * 404 any direct front-end request for a single vendor post.
+	 * URL slug for single vendor profiles. Filterable so a site can move the
+	 * base (e.g. `/vendor/`) without code changes.
+	 */
+	public static function rewrite_slug(): string {
+		return (string) apply_filters( 'nkv_svs_vendor_rewrite_slug', 'prodejce' );
+	}
+
+	/**
+	 * Resolve the vendor post ID for a given context post.
+	 *
+	 * - On a vendor post → that post.
+	 * - On a product → the linked vendor via `_nkv_vendor_id`.
+	 * - Otherwise → 0.
+	 *
+	 * Lets the Elementor dynamic tags render vendor data on a product template,
+	 * not just on the vendor profile.
+	 */
+	public static function resolve_vendor_id( int $post_id = 0 ): int {
+		$post_id = $post_id ?: (int) get_the_ID();
+		if ( ! $post_id ) {
+			return 0;
+		}
+		$type = get_post_type( $post_id );
+		if ( self::POST_TYPE === $type ) {
+			return $post_id;
+		}
+		if ( 'product' === $type ) {
+			return (int) get_post_meta( $post_id, '_nkv_vendor_id', true );
+		}
+		return 0;
+	}
+
+	/**
+	 * Whether a vendor post may be shown on its public profile page.
+	 * Only published + active vendors are public; everything else 404s.
+	 */
+	public static function is_public_vendor( int $vendor_id ): bool {
+		if ( 'publish' !== get_post_status( $vendor_id ) ) {
+			return false;
+		}
+		$status = get_post_meta( $vendor_id, '_nkv_vendor_status', true ) ?: 'active';
+		return 'active' === $status;
+	}
+
+	/**
+	 * 404 any direct front-end request for a vendor that is not publicly
+	 * viewable (inactive, draft, trashed). Active vendors render normally so
+	 * Elementor's single template can build the public profile page.
 	 */
 	public function block_single_vendor(): void {
-		if ( is_singular( self::POST_TYPE ) ) {
-			global $wp_query;
-			$wp_query->set_404();
-			status_header( 404 );
-			nocache_headers();
+		if ( ! is_singular( self::POST_TYPE ) ) {
+			return;
 		}
+		if ( self::is_public_vendor( (int) get_queried_object_id() ) ) {
+			return;
+		}
+		global $wp_query;
+		$wp_query->set_404();
+		status_header( 404 );
+		nocache_headers();
 	}
 
 	/**
