@@ -2,11 +2,9 @@
 /**
  * Elementor Dynamic Tag: vendor public field (text).
  *
- * One tag with a field selector covering every PUBLIC vendor field, so the whole
- * set shows up under the "Prodejce" group in Elementor's dynamic content picker.
- *
- * Whitelist only — sensitive meta (email, fees, Stripe IDs, internal note) is not
- * selectable here, so it can never leak through this tag.
+ * One tag with a field selector covering every PUBLIC vendor field. Resolves the
+ * vendor from the current context (vendor post, or a product via `_nkv_vendor_id`).
+ * Whitelist only — sensitive meta is not selectable.
  *
  * @package NKVSVS
  */
@@ -17,31 +15,24 @@ defined( 'ABSPATH' ) || exit;
 
 final class Elementor_Vendor_Field_Tag extends \Elementor\Core\DynamicTags\Tag {
 
-	public function get_name(): string {
+	public function get_name() {
 		return 'nkv-vendor-field';
 	}
 
-	public function get_title(): string {
+	public function get_title() {
 		return __( 'Prodejce: Údaj', 'nkz-woo-stripe-vendor-split' );
 	}
 
-	public function get_group(): string {
+	public function get_group() {
 		return Elementor_Dynamic_Tags::GROUP;
 	}
 
-	/**
-	 * @return string[]
-	 */
-	public function get_categories(): array {
-		return [
-			\Elementor\Modules\DynamicTags\Module::TEXT_CATEGORY,
-		];
+	public function get_categories() {
+		return [ \Elementor\Modules\DynamicTags\Module::TEXT_CATEGORY ];
 	}
 
 	/**
-	 * Public fields selectable in this tag. Maps the Elementor select value to a
-	 * vendor meta key (or the special `title` = post title). Anything not listed
-	 * here is intentionally not exposable.
+	 * Public fields selectable here → vendor meta key (or `title` = post title).
 	 *
 	 * @return array<string,string>
 	 */
@@ -54,7 +45,7 @@ final class Elementor_Vendor_Field_Tag extends \Elementor\Core\DynamicTags\Tag {
 		];
 	}
 
-	protected function register_controls(): void {
+	protected function register_controls() {
 		$this->add_control(
 			'vendor_field',
 			[
@@ -66,7 +57,7 @@ final class Elementor_Vendor_Field_Tag extends \Elementor\Core\DynamicTags\Tag {
 		);
 	}
 
-	public function render(): void {
+	public function render() {
 		$vendor_id = Vendors::resolve_vendor_id();
 		if ( ! $vendor_id || ! Vendors::is_public_vendor( $vendor_id ) ) {
 			return;
@@ -87,7 +78,6 @@ final class Elementor_Vendor_Field_Tag extends \Elementor\Core\DynamicTags\Tag {
 			return;
 		}
 
-		// Bio keeps line breaks; short scalar fields stay plain text.
 		if ( 'bio' === $field ) {
 			echo wp_kses_post( wpautop( $value ) );
 		} else {

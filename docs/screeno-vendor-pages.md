@@ -1,6 +1,10 @@
 # Screeno – veřejné profilové stránky prodejců
 
+<<<<<<< HEAD
 Hotfix `0.6.5.3` zapíná veřejné profilové stránky prodejců s hezkou URL a
+=======
+Hotfix `0.6.5.4` zapíná veřejné profilové stránky prodejců s hezkou URL a
+>>>>>>> e4cd752 (0.6.5.4 fix: robustní registrace Elementor tagů (skupina Prodejce se nezobrazovala))
 přidává Elementor dynamické tagy pro veřejná pole prodejce.
 
 ## Co se mění
@@ -20,7 +24,11 @@ stavy a koncepty dál vrací 404.
 ## Nasazení (živý web)
 
 1. Záloha DB (standard před úpravou pluginu).
+<<<<<<< HEAD
 2. Nahraď soubory pluginu `nkz-woo-stripe-vendor-split` verzí `0.6.5.3`
+=======
+2. Nahraď soubory pluginu `nkz-woo-stripe-vendor-split` verzí `0.6.5.4`
+>>>>>>> e4cd752 (0.6.5.4 fix: robustní registrace Elementor tagů (skupina Prodejce se nezobrazovala))
    (upload zipu přes Pluginy → Přidat nový → Nahrát, nebo SFTP do
    `wp-content/plugins/nkz-woo-stripe-vendor-split/`).
 3. Hezké URL se aktivují samy – plugin po updatu jednou pročistí rewrite
