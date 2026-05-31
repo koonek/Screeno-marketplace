@@ -39,7 +39,7 @@ final class Elementor_Dynamic_Tags {
 			self::GROUP,
 			[ 'title' => __( 'Prodejce', 'nkz-woo-stripe-vendor-split' ) ]
 		);
-		$manager->register( new Elementor_Vendor_Bio_Tag() );
+		$manager->register( new Elementor_Vendor_Field_Tag() );
 		$manager->register( new Elementor_Vendor_Website_Tag() );
 	}
 
@@ -51,7 +51,7 @@ final class Elementor_Dynamic_Tags {
 			self::GROUP,
 			[ 'title' => __( 'Prodejce', 'nkz-woo-stripe-vendor-split' ) ]
 		);
-		$manager->register_tag( Elementor_Vendor_Bio_Tag::class );
+		$manager->register_tag( Elementor_Vendor_Field_Tag::class );
 		$manager->register_tag( Elementor_Vendor_Website_Tag::class );
 	}
 }
