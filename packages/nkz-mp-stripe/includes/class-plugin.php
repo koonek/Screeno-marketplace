@@ -30,6 +30,12 @@ final class Plugin {
 		Checkout_Guard::instance()->init();
 		Cron_Sync::instance()->init();
 		Elementor_Integration::instance()->init();
+		Elementor_Dynamic_Tags::instance()->init();
+
+		// Flush rewrite rules once after the vendor `/vendor/<slug>/` permalink
+		// was introduced/changed, so pretty URLs work after a plugin file update
+		// without anyone re-saving Settings → Permalinks. Runs after CPT registration.
+		add_action( 'init', [ $this, 'maybe_flush_rewrites' ], 99 );
 
 		// Domain / service layer hooks.
 		Transfer_Service::instance()->init();
@@ -47,6 +53,19 @@ final class Plugin {
 				}
 			);
 		}
+	}
+
+	/**
+	 * One-shot rewrite flush keyed on the plugin version. The vendor CPT is
+	 * registered at the default `init` priority (10); this runs at 99 so the
+	 * new rewrite rules already exist when we flush.
+	 */
+	public function maybe_flush_rewrites(): void {
+		if ( get_option( 'nkv_svs_rewrite_version' ) === NKVSVS_VERSION ) {
+			return;
+		}
+		flush_rewrite_rules( false );
+		update_option( 'nkv_svs_rewrite_version', NKVSVS_VERSION );
 	}
 
 	/**
