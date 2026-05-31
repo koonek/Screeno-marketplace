@@ -116,8 +116,14 @@ final class EmailService {
 			$edit_url = admin_url( 'post.php?post=' . $vendor_id . '&action=edit' );
 		}
 
+		$name          = (string) $vendor['name'];
+		$name_vocative = class_exists( \NKZMP\Services\VocativeService::class )
+			? \NKZMP\Services\VocativeService::get( $name, $vendor_id )
+			: $name;
+
 		return [
-			'name'        => (string) $vendor['name'],
+			'name'           => $name,
+			'name_vocative'  => $name_vocative,
 			'email'       => (string) $vendor['email'],
 			'ico'         => (string) get_post_meta( $vendor_id, '_nkv_vendor_ico', true ),
 			'website'     => (string) get_post_meta( $vendor_id, '_nkv_vendor_website', true ),

@@ -73,9 +73,14 @@ final class OrderNotifications {
 				$lines[]   = sprintf( '  %d× %s — %s', (int) $item->get_quantity(), $item->get_name(), wp_strip_all_tags( wc_price( $t, [ 'currency' => $order->get_currency() ] ) ) );
 			}
 
-			$site = (string) get_bloginfo( 'name' );
+			$site          = (string) get_bloginfo( 'name' );
+			$vendor_name   = (string) $vendor['name'];
+			$name_vocative = class_exists( \NKZMP\Services\VocativeService::class )
+				? \NKZMP\Services\VocativeService::get( $vendor_name, (int) $vendor_id )
+				: $vendor_name;
 			$vars = [
-				'name'            => (string) $vendor['name'],
+				'name'            => $vendor_name,
+				'name_vocative'   => $name_vocative,
 				'order_number'    => (string) $order->get_order_number(),
 				'order_date'      => $order->get_date_created() ? $order->get_date_created()->date_i18n( get_option( 'date_format' ) ) : '',
 				'items'           => implode( "\n", $lines ) . ( $pickup !== '' ? "\n\nDoručení na výdejní místo: " . $pickup : '' ),

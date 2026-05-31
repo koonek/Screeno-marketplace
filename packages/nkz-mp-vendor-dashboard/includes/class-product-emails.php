@@ -34,8 +34,12 @@ final class ProductEmails {
 		if ( ! $vendor || empty( $vendor['email'] ) ) {
 			return;
 		}
+		$vendor_name = (string) $vendor['name'];
 		$vars = [
-			'name'          => (string) $vendor['name'],
+			'name'          => $vendor_name,
+			'name_vocative' => class_exists( \NKZMP\Services\VocativeService::class )
+				? \NKZMP\Services\VocativeService::get( $vendor_name, $vendor_id )
+				: $vendor_name,
 			'product_name'  => $product->get_name(),
 			'dashboard_url' => wc_get_account_endpoint_url( 'vendor-products' ),
 			'site_name'     => (string) get_bloginfo( 'name' ),

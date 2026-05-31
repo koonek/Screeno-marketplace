@@ -234,7 +234,9 @@ final class EmailSettings {
 			'password_url'  => home_url( '/wp-login.php?action=rp&key=demo&login=jan.tvurce' ),
 			'product_name'  => 'Hrnek Ranní mlha',
 			'product_price' => '690 Kč',
+			'name_vocative' => 'Tvůrce',
 			'vendor_name'   => 'Jan Tvůrce',
+			'vendor_name_vocative' => 'Tvůrce',
 			'vendor_email'  => 'jan@example.cz',
 			'submit_kind'   => 'Nový produkt',
 			'order_number'  => '1042',
@@ -275,6 +277,26 @@ final class EmailSettings {
 				<?php esc_html_e( 'Texty všech e-mailů, které platforma rozesílá. Každá šablona má předmět a tělo. Placeholdery v složených závorkách se nahrazují za skutečné hodnoty při odeslání.', 'nkz-marketplace' ); ?>
 			</p>
 
+			<h2 style="margin-top:32px;"><?php esc_html_e( 'Oslovení v 5. pádu (vokativ)', 'nkz-marketplace' ); ?></h2>
+			<p style="color:rgba(0,0,0,0.6);max-width:720px;">
+				<?php
+				printf(
+					/* translators: 1: code placeholder, 2: external link */
+					wp_kses(
+						__( 'Placeholder %1$s vyplní jméno prodejce v 5. pádu (např. %3$s → %4$s). Personalizace běží přes externí službu %2$s — vlož sem API klíč (zaregistrovat se dá zdarma s testovacím limitem). Bez klíče se použije nominativ.', 'nkz-marketplace' ),
+						[ 'a' => [ 'href' => [], 'target' => [], 'rel' => [] ], 'code' => [] ]
+					),
+					'<code>{name_vocative}</code>',
+					'<a href="https://www.sklonovani-jmen.cz/" target="_blank" rel="noopener">sklonovani-jmen.cz</a>',
+					'<code>Jan</code>',
+					'<code>Jane</code>'
+				);
+				?>
+			</p>
+			<table class="form-table">
+				<?php self::text_row( $s, 'sklonovani_jmen_api_key', __( 'API klíč sklonovani-jmen.cz', 'nkz-marketplace' ) ); ?>
+			</table>
+
 			<?php foreach ( self::groups() as $group ) : ?>
 				<h2 style="margin-top:32px;"><?php echo esc_html( $group['label'] ); ?></h2>
 				<?php if ( ! empty( $group['hint'] ) ) : ?>
@@ -312,7 +334,7 @@ final class EmailSettings {
 	 * @return array<int,array{label:string,hint?:string,items:array<int,array{label:string,hint?:string,subject:string,body:string,placeholders?:string[]}>}>
 	 */
 	private static function groups(): array {
-		$reg_vars = [ 'name', 'email', 'ico', 'website', 'bio', 'stripe_link', 'profile_url', 'status_url', 'edit_url', 'login_url', 'dashboard_url', 'site_name', 'site_url' ];
+		$reg_vars = [ 'name', 'name_vocative', 'email', 'ico', 'website', 'bio', 'stripe_link', 'profile_url', 'status_url', 'edit_url', 'login_url', 'dashboard_url', 'site_name', 'site_url' ];
 
 		return [
 			[
@@ -343,7 +365,7 @@ final class EmailSettings {
 					[ 'label' => __( 'Prodejce: nastavení hesla k účtu', 'nkz-marketplace' ),
 					  'hint'  => __( 'Posílá se ihned po auto-create WP uživatele, obsahuje odkaz na nastavení hesla.', 'nkz-marketplace' ),
 					  'subject' => 'email_password_setup_subject', 'body' => 'email_password_setup_body',
-					  'placeholders' => [ 'name', 'username', 'password_url', 'login_url', 'site_name' ] ],
+					  'placeholders' => [ 'name', 'name_vocative', 'username', 'password_url', 'login_url', 'site_name' ] ],
 				],
 			],
 			[
@@ -351,10 +373,10 @@ final class EmailSettings {
 				'items' => [
 					[ 'label' => __( 'Prodejce: nový produkt přijat ke schválení', 'nkz-marketplace' ),
 					  'subject' => 'email_product_new_vendor_subject', 'body' => 'email_product_new_vendor_body',
-					  'placeholders' => [ 'name', 'product_name', 'dashboard_url', 'site_name' ] ],
+					  'placeholders' => [ 'name', 'name_vocative', 'product_name', 'dashboard_url', 'site_name' ] ],
 					[ 'label' => __( 'Prodejce: úprava produktu přijata ke schválení', 'nkz-marketplace' ),
 					  'subject' => 'email_product_edit_vendor_subject', 'body' => 'email_product_edit_vendor_body',
-					  'placeholders' => [ 'name', 'product_name', 'dashboard_url', 'site_name' ] ],
+					  'placeholders' => [ 'name', 'name_vocative', 'product_name', 'dashboard_url', 'site_name' ] ],
 					[ 'label' => __( 'Admin: produkt ke schválení', 'nkz-marketplace' ),
 					  'subject' => 'email_product_admin_subject', 'body' => 'email_product_admin_body',
 					  'placeholders' => [ 'product_name', 'product_price', 'vendor_name', 'vendor_email', 'dashboard_url', 'edit_url', 'submit_kind', 'site_name' ] ],
@@ -366,11 +388,11 @@ final class EmailSettings {
 					[ 'label' => __( 'Prodejce: nová objednávka', 'nkz-marketplace' ),
 					  'hint'  => __( 'Posílá se prodejci při přechodu objednávky na processing / completed (jen za jeho položky).', 'nkz-marketplace' ),
 					  'subject' => 'email_order_vendor_subject', 'body' => 'email_order_vendor_body',
-					  'placeholders' => [ 'name', 'order_number', 'order_date', 'items', 'subtotal', 'order_admin_url', 'site_name' ] ],
+					  'placeholders' => [ 'name', 'name_vocative', 'order_number', 'order_date', 'items', 'subtotal', 'order_admin_url', 'site_name' ] ],
 					[ 'label' => __( 'Zákazník: zásilka je na cestě (Zásilkovna)', 'nkz-marketplace' ),
 					  'hint'  => __( 'Posílá se zákazníkovi když prodejce podá zásilku přes Zásilkovnu (s tracking odkazem).', 'nkz-marketplace' ),
 					  'subject' => 'email_shipment_subject', 'body' => 'email_shipment_body',
-					  'placeholders' => [ 'name', 'vendor_name', 'order_number', 'tracking_code', 'tracking_url', 'pickup_point', 'site_name' ] ],
+					  'placeholders' => [ 'name', 'name_vocative', 'vendor_name', 'vendor_name_vocative', 'order_number', 'tracking_code', 'tracking_url', 'pickup_point', 'site_name' ] ],
 				],
 			],
 			[
