@@ -41,6 +41,8 @@ final class Elementor_Dynamic_Tags {
 		);
 		$manager->register( new Elementor_Vendor_Field_Tag() );
 		$manager->register( new Elementor_Vendor_Website_Tag() );
+		$manager->register( new Elementor_Vendor_Link_Tag() );
+		$manager->register( new Elementor_Vendor_Logo_Tag() );
 	}
 
 	/**
@@ -53,5 +55,7 @@ final class Elementor_Dynamic_Tags {
 		);
 		$manager->register_tag( Elementor_Vendor_Field_Tag::class );
 		$manager->register_tag( Elementor_Vendor_Website_Tag::class );
+		$manager->register_tag( Elementor_Vendor_Link_Tag::class );
+		$manager->register_tag( Elementor_Vendor_Logo_Tag::class );
 	}
 }
