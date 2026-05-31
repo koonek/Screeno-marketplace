@@ -34,6 +34,7 @@ final class EmailSettings {
 	public function init(): void {
 		add_action( 'admin_init', [ $this, 'register' ] );
 		add_action( 'admin_init', [ $this, 'maybe_migrate_legacy' ], 11 );
+		add_action( 'admin_init', [ $this, 'maybe_send_test' ], 12 );
 		add_filter( 'nkzmp/v1/admin/settings/tabs', [ $this, 'register_tab' ] );
 	}
 
@@ -126,6 +127,132 @@ final class EmailSettings {
 		return $tabs;
 	}
 
+	/** Mapa subject_key => lidský název pro výběr v test boxu. */
+	private static function template_choices(): array {
+		$out = [];
+		foreach ( self::groups() as $group ) {
+			foreach ( $group['items'] as $item ) {
+				$out[ $item['subject'] ] = $group['label'] . ' — ' . $item['label'];
+			}
+		}
+		return $out;
+	}
+
+	/** Box „Poslat testovací e-mail" nad formulářem. */
+	private function render_test_box(): void {
+		$admin_email = (string) get_option( 'admin_email' );
+		$to_default  = isset( $_GET['nkzmp_test_to'] ) ? sanitize_email( wp_unslash( $_GET['nkzmp_test_to'] ) ) : $admin_email;
+
+		if ( isset( $_GET['nkzmp_test_sent'] ) ) {
+			$ok = $_GET['nkzmp_test_sent'] === '1';
+			printf(
+				'<div class="notice notice-%s inline"><p>%s</p></div>',
+				$ok ? 'success' : 'error',
+				$ok
+					? esc_html__( 'Testovací e-mail odeslán. Pokud nedorazí, zkontroluj SMTP / spam.', 'nkz-marketplace' )
+					: esc_html__( 'Odeslání selhalo (wp_mail vrátil false). Zkontroluj SMTP nastavení.', 'nkz-marketplace' )
+			);
+		}
+		?>
+		<div style="background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:16px 20px;margin:8px 0 24px;max-width:760px;">
+			<h2 style="margin:0 0 6px;font-size:15px;"><?php esc_html_e( 'Poslat testovací e-mail', 'nkz-marketplace' ); ?></h2>
+			<p style="margin:0 0 12px;color:rgba(0,0,0,0.6);font-size:13px;">
+				<?php esc_html_e( 'Vybranou šablonu pošleme na zadaný e-mail s ukázkovými daty (placeholdery vyplníme vzorovými hodnotami). Uloží se aktuálně nastavené texty — neukládá změny formuláře, takže nejdřív ulož, pak testuj.', 'nkz-marketplace' ); ?>
+			</p>
+			<form method="post" action="" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+				<?php wp_nonce_field( 'nkzmp_email_test', 'nkzmp_email_test_nonce' ); ?>
+				<select name="nkzmp_test_template" style="min-width:340px;">
+					<?php foreach ( self::template_choices() as $key => $label ) : ?>
+						<option value="<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $label ); ?></option>
+					<?php endforeach; ?>
+				</select>
+				<input type="email" name="nkzmp_test_to" value="<?php echo esc_attr( $to_default ); ?>" placeholder="<?php esc_attr_e( 'kam poslat', 'nkz-marketplace' ); ?>" style="min-width:220px;" />
+				<button type="submit" class="button button-primary"><?php esc_html_e( 'Poslat test', 'nkz-marketplace' ); ?></button>
+			</form>
+		</div>
+		<?php
+	}
+
+	/** Zpracuje odeslání testovacího e-mailu. */
+	public function maybe_send_test(): void {
+		if ( ! isset( $_POST['nkzmp_email_test_nonce'] ) ) {
+			return;
+		}
+		if ( ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nkzmp_email_test_nonce'] ) ), 'nkzmp_email_test' ) ) {
+			return;
+		}
+		if ( ! current_user_can( Capabilities::MANAGE_VENDORS ) ) {
+			return;
+		}
+		$subject_key = isset( $_POST['nkzmp_test_template'] ) ? sanitize_key( wp_unslash( $_POST['nkzmp_test_template'] ) ) : '';
+		$to          = isset( $_POST['nkzmp_test_to'] ) ? sanitize_email( wp_unslash( $_POST['nkzmp_test_to'] ) ) : '';
+		if ( $subject_key === '' || ! is_email( $to ) ) {
+			$this->redirect_test( false, $to );
+		}
+		$body_key = preg_replace( '/_subject$/', '_body', $subject_key );
+
+		$vars    = self::sample_vars();
+		$subject = '[TEST] ' . self::interpolate( self::raw( $subject_key ), $vars );
+		$body    = self::interpolate( self::raw( (string) $body_key ), $vars );
+
+		$sent = false;
+		if ( class_exists( \NKZMP\Registration\EmailService::class ) ) {
+			\NKZMP\Registration\EmailService::send_raw( $to, $subject, $body );
+			$sent = true; // send_raw nevrací stav; bereme jako odesláno (wp_mail interně)
+		} else {
+			$sent = (bool) wp_mail( $to, $subject, $body, [ 'Content-Type: text/plain; charset=UTF-8' ] );
+		}
+		$this->redirect_test( $sent, $to );
+	}
+
+	private function redirect_test( bool $ok, string $to ): void {
+		$url = add_query_arg(
+			[ 'nkzmp_test_sent' => $ok ? '1' : '0', 'nkzmp_test_to' => rawurlencode( $to ) ],
+			SettingsHub::url( 'emails' )
+		);
+		wp_safe_redirect( $url );
+		exit;
+	}
+
+	/** Ukázková data pro všechny placeholdery napříč šablonami. */
+	private static function sample_vars(): array {
+		$site = (string) get_bloginfo( 'name' );
+		return [
+			'name'          => 'Jan Tvůrce',
+			'email'         => 'jan@example.cz',
+			'ico'           => '12345678',
+			'website'       => 'https://example.cz',
+			'bio'           => 'Dělám ručně malované hrnky a misky inspirované přírodou.',
+			'stripe_link'   => home_url( '/?nkzmp_demo=stripe' ),
+			'profile_url'   => home_url( '/vendor/jan-tvurce' ),
+			'status_url'    => home_url( '/stav-prihlasky/?token=demo' ),
+			'edit_url'      => admin_url( 'admin.php?page=nkz-marketplace-vendor&vendor_id=0' ),
+			'login_url'     => function_exists( 'wc_get_page_permalink' ) ? (string) wc_get_page_permalink( 'myaccount' ) : home_url( '/muj-ucet' ),
+			'dashboard_url' => function_exists( 'wc_get_account_endpoint_url' ) ? (string) wc_get_account_endpoint_url( 'vendor' ) : home_url( '/muj-ucet' ),
+			'reason_block'  => "Pro úplnost: kapacita letošního ročníku je naplněná.\n\n",
+			'username'      => 'jan.tvurce',
+			'password_url'  => home_url( '/wp-login.php?action=rp&key=demo&login=jan.tvurce' ),
+			'product_name'  => 'Hrnek Ranní mlha',
+			'product_price' => '690 Kč',
+			'vendor_name'   => 'Jan Tvůrce',
+			'vendor_email'  => 'jan@example.cz',
+			'submit_kind'   => 'Nový produkt',
+			'order_number'  => '1042',
+			'order_date'    => date_i18n( get_option( 'date_format' ) ),
+			'items'         => '  2× Hrnek Ranní mlha — 1 380 Kč',
+			'subtotal'      => '1 380 Kč',
+			'order_admin_url' => home_url( '/muj-ucet/vendor-orders' ),
+			'tracking_code' => 'Z1234567890',
+			'tracking_url'  => 'https://tracking.packeta.com/cs_CZ/?id=Z1234567890',
+			'pickup_point'  => 'Z-BOX Praha, Vinohradská 12',
+			'count'         => '3',
+			'detail'        => "Adapter: stripe\nDrift: 3 záznamy",
+			'tools_url'     => admin_url( 'admin.php?page=nkz-marketplace-tools' ),
+			'site_name'     => $site,
+			'site_url'      => home_url( '/' ),
+		];
+	}
+
 	public static function render_panel(): void {
 		if ( ! current_user_can( Capabilities::MANAGE_VENDORS ) ) {
 			return;
@@ -140,6 +267,7 @@ final class EmailSettings {
 			}
 		}
 		?>
+		<?php $this->render_test_box(); ?>
 		<form method="post" action="options.php">
 			<?php settings_fields( 'nkzmp_email_templates' ); ?>
 
