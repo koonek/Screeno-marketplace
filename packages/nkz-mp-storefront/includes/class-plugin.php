@@ -30,6 +30,7 @@ final class Plugin {
 		Strings::instance()->init();
 		CartGrouping::instance()->init();
 		ThankYou::instance()->init();
+		ShopLoop::instance()->init();
 
 		// Elementor integration je opt-in podle dostupnosti pluginu.
 		if ( did_action( 'elementor/loaded' ) || class_exists( \Elementor\Plugin::class ) ) {

@@ -387,39 +387,219 @@ body.woocommerce-checkout .required {
 	letter-spacing: -0.02em;
 	margin: 48px 0 24px;
 }
+/* Shop / category archive – clean kurátorský grid (Flér/Etsy estetika).
+ * Karta bez ohraničení v default state, jemný lift na hoveru. Vendor badge,
+ * cena druhotná. „Add to cart" button schovaný (vede přes single page). */
+.woocommerce ul.products,
+.woocommerce-page ul.products {
+	gap: 32px 24px;
+	display: grid !important;
+	grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)) !important;
+	float: none !important;
+	margin: 0 0 40px !important;
+	padding: 0 !important;
+	list-style: none !important;
+}
 .woocommerce ul.products li.product,
 .woocommerce-page ul.products li.product {
-	background: var(--nkzmp-color-surface);
-	border: 1px solid var(--nkzmp-color-border-soft);
-	border-radius: var(--nkzmp-radius);
-	overflow: hidden;
-	padding: 0 0 16px;
-	transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
-}
-.woocommerce ul.products li.product:hover {
-	transform: translateY(-3px);
-	box-shadow: var(--nkzmp-shadow);
-	border-color: var(--nkzmp-color-border);
-}
-.woocommerce ul.products li.product img {
+	background: transparent;
+	border: 0;
 	border-radius: 0;
-	margin: 0 0 16px;
+	overflow: visible;
+	padding: 0 !important;
+	margin: 0 !important;
+	width: auto !important;
+	float: none !important;
+	transition: none;
+}
+.woocommerce ul.products li.product a.woocommerce-LoopProduct-link {
+	display: block;
+	text-decoration: none;
+	color: inherit;
+}
+.woocommerce ul.products li.product .wp-post-image,
+.woocommerce ul.products li.product img {
+	border-radius: var(--nkzmp-radius);
+	margin: 0 0 14px;
 	background: var(--nkzmp-color-bg-warm);
+	aspect-ratio: 1 / 1;
+	object-fit: cover;
+	width: 100%;
+	height: auto;
+	transition: transform 0.4s ease, box-shadow 0.25s ease;
+	will-change: transform;
+}
+.woocommerce ul.products li.product:hover .wp-post-image,
+.woocommerce ul.products li.product:hover img {
+	transform: scale(1.025);
+	box-shadow: 0 12px 30px rgba(17,17,17,0.08);
 }
 .woocommerce ul.products li.product .woocommerce-loop-product__title {
-	padding: 0 16px;
-	font-size: 17px;
+	padding: 0;
+	margin: 4px 0 2px;
+	font-size: 16px;
 	font-weight: 500;
 	letter-spacing: -0.005em;
 	color: var(--nkzmp-color-text);
+	line-height: 1.35;
 }
 .woocommerce ul.products li.product .price {
-	padding: 0 16px;
-	color: var(--nkzmp-color-accent);
+	padding: 0;
+	margin: 6px 0 0;
+	color: var(--nkzmp-color-text);
 	font-weight: 600;
+	font-size: 15px;
+	font-variant-numeric: tabular-nums;
+	letter-spacing: -0.005em;
 }
-.woocommerce ul.products li.product .button {
-	margin: 12px 16px 0;
+.woocommerce ul.products li.product .price del {
+	color: var(--nkzmp-color-text-muted);
+	opacity: 0.7;
+	margin-right: 6px;
+	font-weight: 400;
+}
+.woocommerce ul.products li.product .price ins {
+	background: transparent;
+	color: var(--nkzmp-color-accent);
+	text-decoration: none;
+}
+/* Add-to-cart pod kartou – schovat na default a v archive contextu (cesta
+ * vede přes detail produktu). Sale badge taky decentnější. */
+.woocommerce ul.products li.product .button,
+.woocommerce ul.products li.product .add_to_cart_button,
+.woocommerce ul.products li.product .added_to_cart {
+	display: none !important;
+}
+.woocommerce ul.products li.product .onsale {
+	position: absolute;
+	top: 12px;
+	left: 12px;
+	right: auto;
+	min-height: 0;
+	min-width: 0;
+	padding: 4px 10px;
+	background: var(--nkzmp-color-text);
+	color: #fff;
+	border-radius: 999px;
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	line-height: 1.4;
+	margin: 0;
+	border: 0;
+}
+.woocommerce ul.products li.product { position: relative; }
+
+/* Vendor badge pod titulem (vkládá NKZMP\Storefront\ShopLoop). */
+.nkzmp-shop-vendor {
+	display: inline-block;
+	margin: 2px 0 0;
+	font-size: 12px;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	color: var(--nkzmp-color-text-muted);
+	text-decoration: none;
+	transition: color 0.15s;
+}
+.nkzmp-shop-vendor:hover { color: var(--nkzmp-color-accent); }
+.nkzmp-shop-vendor__by { opacity: 0.7; }
+.nkzmp-shop-vendor__name { font-weight: 600; color: var(--nkzmp-color-text); }
+.nkzmp-shop-vendor:hover .nkzmp-shop-vendor__name { color: var(--nkzmp-color-accent); }
+
+/* Intro řádek nad gridem. */
+.nkzmp-shop-intro {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 16px;
+	margin: 0 0 28px;
+	padding: 0 0 16px;
+	border-bottom: 1px solid var(--nkzmp-color-border-soft);
+}
+.nkzmp-shop-intro__lead {
+	font-size: 13px;
+	font-weight: 600;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var(--nkzmp-color-text-muted);
+	font-variant-numeric: tabular-nums;
+}
+
+/* Result count + orderby – decentní, do řady. */
+.woocommerce .woocommerce-result-count {
+	font-size: 12px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--nkzmp-color-text-muted);
+	margin: 0 0 20px;
+}
+.woocommerce .woocommerce-ordering {
+	margin: 0 0 20px;
+}
+.woocommerce .woocommerce-ordering select {
+	border: 1px solid var(--nkzmp-color-border-soft);
+	background: var(--nkzmp-color-surface);
+	border-radius: var(--nkzmp-radius-soft);
+	padding: 8px 14px;
+	font-size: 13px;
+	color: var(--nkzmp-color-text);
+	font-family: var(--nkzmp-font-family);
+	cursor: pointer;
+}
+
+/* CTA „Tvoříš taky?" pod gridem. */
+.nkzmp-shop-promo {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 24px;
+	flex-wrap: wrap;
+	background: var(--nkzmp-color-bg-warm);
+	border-radius: var(--nkzmp-radius);
+	padding: 28px 32px;
+	margin: 32px 0 48px;
+}
+.nkzmp-shop-promo__body { max-width: 580px; }
+.nkzmp-shop-promo__h {
+	margin: 0 0 6px;
+	font-size: 20px;
+	font-weight: 500;
+	letter-spacing: -0.015em;
+	color: var(--nkzmp-color-text);
+}
+.nkzmp-shop-promo__d {
+	margin: 0;
+	font-size: 14px;
+	line-height: 1.55;
+	color: var(--nkzmp-color-text-muted);
+}
+.nkzmp-shop-promo__cta {
+	display: inline-block;
+	padding: 12px 24px;
+	background: var(--nkzmp-color-accent);
+	color: #fff !important;
+	border-radius: 8px;
+	font-size: 14px;
+	font-weight: 600;
+	text-decoration: none;
+	letter-spacing: -0.005em;
+	transition: background 0.15s;
+	white-space: nowrap;
+}
+.nkzmp-shop-promo__cta:hover { background: var(--nkzmp-color-accent-hover); }
+
+/* Page title („Obchod") jako velký kurátorský headline. */
+.woocommerce .woocommerce-products-header__title,
+.woocommerce-page .woocommerce-products-header__title,
+.woocommerce-page.archive .page-title,
+.woocommerce.archive .page-title {
+	font-size: clamp(36px, 5vw, 56px) !important;
+	font-weight: 400 !important;
+	letter-spacing: -0.03em !important;
+	line-height: 1.05 !important;
+	margin: 0 0 20px !important;
+	color: var(--nkzmp-color-text) !important;
 }
 
 /* ─────────────────────────────────────────────────────────────
