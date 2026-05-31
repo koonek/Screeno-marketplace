@@ -2,8 +2,8 @@
 /**
  * Elementor Dynamic Tag: vendor logo (featured image of the vendor post).
  *
- * On a product the native "Featured Image" tag returns the product image, so
- * this tag resolves the product's vendor and returns the vendor's thumbnail.
+ * On a product the native "Featured Image" returns the product image, so this
+ * tag resolves the product's vendor and returns the vendor's thumbnail.
  *
  * @package NKVSVS
  */
@@ -14,32 +14,23 @@ defined( 'ABSPATH' ) || exit;
 
 final class Elementor_Vendor_Logo_Tag extends \Elementor\Core\DynamicTags\Data_Tag {
 
-	public function get_name(): string {
+	public function get_name() {
 		return 'nkv-vendor-logo';
 	}
 
-	public function get_title(): string {
+	public function get_title() {
 		return __( 'Prodejce: Logo', 'nkz-woo-stripe-vendor-split' );
 	}
 
-	public function get_group(): string {
+	public function get_group() {
 		return Elementor_Dynamic_Tags::GROUP;
 	}
 
-	/**
-	 * @return string[]
-	 */
-	public function get_categories(): array {
-		return [
-			\Elementor\Modules\DynamicTags\Module::IMAGE_CATEGORY,
-		];
+	public function get_categories() {
+		return [ \Elementor\Modules\DynamicTags\Module::IMAGE_CATEGORY ];
 	}
 
-	/**
-	 * @param array<string,mixed> $options
-	 * @return array{id:int,url:string}
-	 */
-	public function get_value( array $options = [] ): array {
+	public function get_value( array $options = [] ) {
 		$empty = [
 			'id'  => 0,
 			'url' => \Elementor\Utils::get_placeholder_image_src(),

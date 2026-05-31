@@ -2,13 +2,12 @@
 /**
  * Elementor Dynamic Tags for public vendor fields.
  *
- * The vendor public fields live under protected meta keys (`_nkv_vendor_bio`,
- * `_nkv_vendor_website`) which Elementor's generic "Custom Field" tag refuses to
- * list. These dedicated tags expose them in the Dynamic widget picker so a Single
- * (Theme Builder) template for the `nkv_vendor` CPT can render the public profile.
- *
- * Only public fields are exposed here — sensitive meta (email, IČO, fees, Stripe
- * IDs, internal note) is intentionally never registered as a dynamic tag.
+ * The vendor public fields live under protected meta keys (`_nkv_vendor_*`)
+ * which Elementor's generic "Custom Field" tag refuses to list. These dedicated
+ * tags expose the PUBLIC ones in the dynamic content picker (group "Prodejce")
+ * so a Theme Builder template for the vendor CPT — or a product — can render
+ * vendor data. Sensitive meta (email, fees, Stripe IDs, internal note) is never
+ * registered here.
  *
  * @package NKVSVS
  */
@@ -28,34 +27,43 @@ final class Elementor_Dynamic_Tags {
 		// Elementor 3.5+ registration API.
 		add_action( 'elementor/dynamic_tags/register', [ $this, 'register' ] );
 		// Back-compat for Elementor < 3.5.
-		add_action( 'elementor/dynamic_tags/register_tags', [ $this, 'register_legacy' ] );
+		add_action( 'elementor/dynamic_tags/register_tags', [ $this, 'register' ] );
 	}
 
 	/**
-	 * @param \Elementor\Core\DynamicTags\Manager $manager
+	 * Works with both the new (`register`) and legacy (`register_tag`) manager APIs.
+	 *
+	 * @param object $manager Elementor dynamic tags manager.
 	 */
 	public function register( $manager ): void {
-		$manager->register_group(
-			self::GROUP,
-			[ 'title' => __( 'Prodejce', 'nkz-woo-stripe-vendor-split' ) ]
-		);
-		$manager->register( new Elementor_Vendor_Field_Tag() );
-		$manager->register( new Elementor_Vendor_Website_Tag() );
-		$manager->register( new Elementor_Vendor_Link_Tag() );
-		$manager->register( new Elementor_Vendor_Logo_Tag() );
-	}
+		if ( ! is_object( $manager ) ) {
+			return;
+		}
 
-	/**
-	 * @param \Elementor\Core\DynamicTags\Manager $manager
-	 */
-	public function register_legacy( $manager ): void {
-		$manager->register_group(
-			self::GROUP,
-			[ 'title' => __( 'Prodejce', 'nkz-woo-stripe-vendor-split' ) ]
-		);
-		$manager->register_tag( Elementor_Vendor_Field_Tag::class );
-		$manager->register_tag( Elementor_Vendor_Website_Tag::class );
-		$manager->register_tag( Elementor_Vendor_Link_Tag::class );
-		$manager->register_tag( Elementor_Vendor_Logo_Tag::class );
+		if ( method_exists( $manager, 'register_group' ) ) {
+			$manager->register_group(
+				self::GROUP,
+				[ 'title' => __( 'Prodejce', 'nkz-woo-stripe-vendor-split' ) ]
+			);
+		}
+
+		$tags = [
+			Elementor_Vendor_Field_Tag::class,
+			Elementor_Vendor_Website_Tag::class,
+			Elementor_Vendor_Link_Tag::class,
+			Elementor_Vendor_Logo_Tag::class,
+		];
+
+		foreach ( $tags as $class ) {
+			try {
+				if ( method_exists( $manager, 'register' ) ) {
+					$manager->register( new $class() );
+				} elseif ( method_exists( $manager, 'register_tag' ) ) {
+					$manager->register_tag( $class );
+				}
+			} catch ( \Throwable $e ) {
+				error_log( '[nkz-vendor] Elementor tag registration failed: ' . $class . ' — ' . $e->getMessage() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+			}
+		}
 	}
 }
