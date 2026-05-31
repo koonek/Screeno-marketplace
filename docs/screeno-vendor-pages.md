@@ -1,6 +1,6 @@
 # Screeno – veřejné profilové stránky prodejců
 
-Hotfix `0.6.5.2` zapíná veřejné profilové stránky prodejců s hezkou URL a
+Hotfix `0.6.5.3` zapíná veřejné profilové stránky prodejců s hezkou URL a
 přidává Elementor dynamické tagy pro veřejná pole prodejce.
 
 ## Co se mění
@@ -20,7 +20,7 @@ stavy a koncepty dál vrací 404.
 ## Nasazení (živý web)
 
 1. Záloha DB (standard před úpravou pluginu).
-2. Nahraď soubory pluginu `nkz-woo-stripe-vendor-split` verzí `0.6.5.2`
+2. Nahraď soubory pluginu `nkz-woo-stripe-vendor-split` verzí `0.6.5.3`
    (upload zipu přes Pluginy → Přidat nový → Nahrát, nebo SFTP do
    `wp-content/plugins/nkz-woo-stripe-vendor-split/`).
 3. Hezké URL se aktivují samy – plugin po updatu jednou pročistí rewrite
@@ -42,10 +42,24 @@ stavy a koncepty dál vrací 404.
    - **Prodejce: Údaj** → v jeho nastavení přepni **Pole prodejce** na
      *Jméno / Bio / IČO/DIČ / Měna* (jeden tag, libovolné veřejné pole).
    - **Prodejce: Web** → pro odkaz (u widgetu **Tlačítko** ho dej do pole odkaz).
-   - **Obrázek / Featured Image** → logo (náhledový obrázek prodejce).
-4. Publikovat. Tagy **Prodejce: Údaj / Web** najdeš ve výběru dynamického
-   obsahu ve skupině **Prodejce** (ne v generickém *Custom Field* — chráněná
-   `_` meta tam WordPress nenabízí, proto tyto dedikované tagy).
+   - **Prodejce: Logo** → u widgetu **Obrázek** jako dynamický obsah.
+   - **Prodejce: Odkaz na profil** → odkaz na `/prodejce/<slug>/`.
+4. Publikovat. Všechny tagy najdeš ve výběru dynamického obsahu ve skupině
+   **Prodejce** (ne v generickém *Custom Field* — chráněná `_` meta tam
+   WordPress nenabízí, proto tyto dedikované tagy).
+
+## Zobrazení prodejce na stránce produktu
+
+Tytéž tagy fungují i v **šabloně produktu** (Theme Builder → Single Product
+nebo WooCommerce widgety). Tag si z produktu sám dohledá jeho prodejce přes
+vazbu `_nkv_vendor_id` (pole *Prodejce* v produktu → záložka NKZ).
+
+- **Prodejce: Údaj** (Jméno/IČO/Bio/Měna), **Prodejce: Logo**, **Prodejce: Web**
+  a **Prodejce: Odkaz na profil** vykreslí data prodejce navázaného na produkt.
+- Když produkt nemá prodejce (nebo je neaktivní), tagy nevypíší nic.
+
+Typické použití: na produkt přidat „Prodejce: Logo" + „Prodejce: Údaj = Jméno"
+a tlačítko s odkazem „Prodejce: Odkaz na profil".
 
 Výpis prodejců (Loop Grid) funguje beze změny přes Query ID `screeno_vendors`;
 odkaz na položku teď míří na hezkou URL profilu.

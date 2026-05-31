@@ -72,6 +72,31 @@ final class Vendors {
 	}
 
 	/**
+	 * Resolve the vendor post ID for a given context post.
+	 *
+	 * - On a vendor post → that post.
+	 * - On a product → the linked vendor via `_nkv_vendor_id`.
+	 * - Otherwise → 0.
+	 *
+	 * Lets the Elementor dynamic tags render vendor data on a product template,
+	 * not just on the vendor profile.
+	 */
+	public static function resolve_vendor_id( int $post_id = 0 ): int {
+		$post_id = $post_id ?: (int) get_the_ID();
+		if ( ! $post_id ) {
+			return 0;
+		}
+		$type = get_post_type( $post_id );
+		if ( self::POST_TYPE === $type ) {
+			return $post_id;
+		}
+		if ( 'product' === $type ) {
+			return (int) get_post_meta( $post_id, '_nkv_vendor_id', true );
+		}
+		return 0;
+	}
+
+	/**
 	 * Whether a vendor post may be shown on its public profile page.
 	 * Only published + active vendors are public; everything else 404s.
 	 */

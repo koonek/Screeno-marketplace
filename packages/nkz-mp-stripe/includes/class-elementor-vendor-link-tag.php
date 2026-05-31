@@ -1,6 +1,9 @@
 <?php
 /**
- * Elementor Dynamic Tag: vendor website URL (public).
+ * Elementor Dynamic Tag: link to the vendor profile (public).
+ *
+ * Works on a vendor post (links to itself) and on a product (links to the
+ * product's vendor). Lets a product template show a "Zobrazit prodejce" button.
  *
  * @package NKVSVS
  */
@@ -9,14 +12,14 @@ namespace NKVSVS;
 
 defined( 'ABSPATH' ) || exit;
 
-final class Elementor_Vendor_Website_Tag extends \Elementor\Core\DynamicTags\Data_Tag {
+final class Elementor_Vendor_Link_Tag extends \Elementor\Core\DynamicTags\Data_Tag {
 
 	public function get_name(): string {
-		return 'nkv-vendor-website';
+		return 'nkv-vendor-link';
 	}
 
 	public function get_title(): string {
-		return __( 'Prodejce: Web', 'nkz-woo-stripe-vendor-split' );
+		return __( 'Prodejce: Odkaz na profil', 'nkz-woo-stripe-vendor-split' );
 	}
 
 	public function get_group(): string {
@@ -40,6 +43,6 @@ final class Elementor_Vendor_Website_Tag extends \Elementor\Core\DynamicTags\Dat
 		if ( ! $vendor_id || ! Vendors::is_public_vendor( $vendor_id ) ) {
 			return '';
 		}
-		return esc_url( (string) get_post_meta( $vendor_id, '_nkv_vendor_website', true ) );
+		return (string) get_permalink( $vendor_id );
 	}
 }

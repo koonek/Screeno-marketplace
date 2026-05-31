@@ -67,7 +67,7 @@ final class Elementor_Vendor_Field_Tag extends \Elementor\Core\DynamicTags\Tag {
 	}
 
 	public function render(): void {
-		$vendor_id = (int) get_the_ID();
+		$vendor_id = Vendors::resolve_vendor_id();
 		if ( ! $vendor_id || ! Vendors::is_public_vendor( $vendor_id ) ) {
 			return;
 		}
