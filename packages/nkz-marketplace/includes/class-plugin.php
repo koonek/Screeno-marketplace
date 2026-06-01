@@ -92,6 +92,10 @@ final class Plugin {
 		\NKZMP\Reconciliation\Cron::instance()->init();
 		\NKZMP\Reconciliation\DriftNotifier::instance()->init();
 
+		// AOZ styling pro defaultní WooCommerce transakční e-maily
+		// (new order / processing / completed / refunded / customer note).
+		\NKZMP\Emails\WCEmailStyle::instance()->init();
+
 		// TODO Phase 0:
 		// - Product\Ownership admin UI panel + capability guard
 		// - Allocation\Service (Order → Allocation[])

@@ -69,10 +69,15 @@ final class StatusService {
 			) );
 		}
 
-		update_post_meta( $vendor_id, MetaKeys::STATUS, $to->value );
-
+		// IMPORTANT: $in_transition musí být nastaven PŘED update_post_meta,
+		// protože WP fire-uje updated_post_meta action synchronně uvnitř toho
+		// volání. MetaWatcher tento flag čte, aby nezasílal duplikátní event.
+		// Bez tohoto pořadí přijde status_changed 2× a všechny listenery
+		// (vč. EmailService) běží 2× → duplikované maily.
 		self::$in_transition = true;
 		try {
+			update_post_meta( $vendor_id, MetaKeys::STATUS, $to->value );
+
 			do_action(
 				'nkzmp/v1/vendor/status_changed',
 				$vendor_id,
