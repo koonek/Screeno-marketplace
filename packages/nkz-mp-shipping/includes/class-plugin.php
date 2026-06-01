@@ -22,5 +22,30 @@ final class Plugin {
 		VendorRateAdmin::instance()->init();
 		ProductShippingAdmin::instance()->init();
 		Settings::instance()->init();
+
+		// Když je v zóně dostupná naše per-vendor metoda, ostatní (Flat rate,
+		// Free shipping, …) z dostupných sazeb odstraníme – per-vendor je
+		// jediný model. Bez toho WC vybírá nejlevnější / první rate a souhrn
+		// se rozjede s per-vendor čísly v cart UI.
+		// Vypnutí: add_filter( 'nkzmp/v1/shipping/force_exclusive', '__return_false' );
+		add_filter( 'woocommerce_package_rates', [ $this, 'force_exclusive' ], 99, 2 );
+	}
+
+	/**
+	 * @param array<string,\WC_Shipping_Rate> $rates
+	 * @param array                           $package
+	 * @return array<string,\WC_Shipping_Rate>
+	 */
+	public function force_exclusive( array $rates, array $package ): array {
+		if ( ! apply_filters( 'nkzmp/v1/shipping/force_exclusive', true ) ) {
+			return $rates;
+		}
+		$ours = [];
+		foreach ( $rates as $id => $rate ) {
+			if ( $rate instanceof \WC_Shipping_Rate && $rate->get_method_id() === 'nkzmp_vendor_shipping' ) {
+				$ours[ $id ] = $rate;
+			}
+		}
+		return ! empty( $ours ) ? $ours : $rates;
 	}
 }
