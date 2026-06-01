@@ -88,8 +88,10 @@ final class Method extends \WC_Shipping_Method {
 
 		$total     = 0.0;
 		$breakdown = [];
+		$per_vendor = [];
 		foreach ( $vendor_products as $vendor_id => $products ) {
 			$cost = Rate::vendor_package_cost( (int) $vendor_id, $products );
+			$per_vendor[ (string) $vendor_id ] = (float) $cost;
 			if ( $cost <= 0 ) {
 				continue;
 			}
@@ -107,6 +109,9 @@ final class Method extends \WC_Shipping_Method {
 		if ( count( $breakdown ) > 1 ) {
 			$meta[ __( 'Rozpis', 'nkz-mp-shipping' ) ] = implode( ' · ', $breakdown );
 		}
+		// Structured breakdown – CartGrouping ho čte aby per-vendor čísla
+		// v UI košíku/pokladny seděla s WC totalem (jeden zdroj pravdy).
+		$meta['_nkzmp_vendor_breakdown'] = (string) wp_json_encode( $per_vendor );
 
 		$this->add_rate( [
 			'id'        => $this->get_rate_id(),

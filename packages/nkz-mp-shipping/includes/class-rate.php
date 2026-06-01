@@ -30,6 +30,7 @@ final class Rate {
 
 	public static function set_vendor_flat( int $vendor_id, float $amount ): void {
 		update_post_meta( $vendor_id, NKZMP_SHIPPING_VENDOR_RATE_META, $amount );
+		self::invalidate_shipping_cache();
 	}
 
 	public static function has_explicit_rate( int $vendor_id ): bool {
@@ -86,9 +87,22 @@ final class Rate {
 		}
 		if ( $amount === '' || $amount === null || ! is_numeric( $amount ) ) {
 			delete_post_meta( $product_id, NKZMP_SHIPPING_PRODUCT_OVERRIDE_META );
-			return;
+		} else {
+			update_post_meta( $product_id, NKZMP_SHIPPING_PRODUCT_OVERRIDE_META, (float) $amount );
 		}
-		update_post_meta( $product_id, NKZMP_SHIPPING_PRODUCT_OVERRIDE_META, (float) $amount );
+		self::invalidate_shipping_cache();
+	}
+
+	/**
+	 * Bumpne WC shipping transient version. WC bere package hash z toho,
+	 * co je v $package – nikoli z meta produktů. Když se nám změní override
+	 * nebo vendor flat, package hash zůstane stejný a WC vrátí cached rates.
+	 * Bumpem version znevalidneme všechny cache pro všechny zákazníky.
+	 */
+	public static function invalidate_shipping_cache(): void {
+		if ( class_exists( \WC_Cache_Helper::class ) ) {
+			\WC_Cache_Helper::get_transient_version( 'shipping', true );
+		}
 	}
 
 	/**
