@@ -69,23 +69,42 @@ final class CartGrouping {
 			return;
 		}
 
-		// Mapa vendorId → název pro hlavičky balíčků.
-		$names = [ '0' => (string) apply_filters( 'nkzmp/v1/storefront/platform_label', __( 'Obchod', 'nkz-mp-storefront' ) ) ];
+		// Mapa vendorId → název + fyzické produkty per vendor (pro výpočet dopravy).
+		$names           = [ '0' => (string) apply_filters( 'nkzmp/v1/storefront/platform_label', __( 'Obchod', 'nkz-mp-storefront' ) ) ];
+		$vendor_products = [];
+		$has_shipping_mod = class_exists( \NKZMP\Shipping\Rate::class );
 		foreach ( WC()->cart->get_cart() as $item ) {
 			$vid = self::item_vendor_id( $item );
 			if ( ! isset( $names[ (string) $vid ] ) && $vid > 0 ) {
 				$title = get_the_title( $vid );
 				$names[ (string) $vid ] = $title ?: ( '#' . $vid );
 			}
+			$product = $item['data'] ?? null;
+			if ( ! $product instanceof \WC_Product ) {
+				continue;
+			}
+			$needs = $has_shipping_mod ? \NKZMP\Shipping\Rate::product_requires_shipping( $product ) : true;
+			if ( $needs ) {
+				$vendor_products[ (string) $vid ][] = $product;
+			}
 		}
 
-		// Per-vendor poštovné: NEPOČÍTÁME samostatně, čteme z právě vybrané
-		// WC shipping rate (Method ukládá breakdown jako JSON do meta_data).
-		// Tím je zaručeno že per-vendor čísla v UI vždy sednou s celkovým
-		// WC totalem (WC rate je single source of truth). Když customer
-		// vybere jinou metodu (Free shipping / flat) bez breakdownu, řádek
-		// '+ Poštovné' v kartách prostě nezobrazíme – nezbývá kde brát čísla.
-		$shipping = self::shipping_breakdown_from_active_rate();
+		// Per-vendor poštovné – počítáme přes STEJNÝ Rate::vendor_package_cost
+		// jako shipping Method, takže UI sedí s WC totalem (oba čerstvé díky
+		// invalidaci shipping cache při změně override/flat).
+		$shipping = [];
+		if ( $has_shipping_mod ) {
+			foreach ( $vendor_products as $vid_str => $products ) {
+				$cost = \NKZMP\Shipping\Rate::vendor_package_cost( (int) $vid_str, $products );
+				if ( $cost > 0 ) {
+					// wc_price() vrací HTML s entitami (&nbsp;, &#269; …) – dekódovat
+					// na čistý text, jinak se v JS zobrazí syrové entity.
+					$shipping[ $vid_str ] = trim( html_entity_decode( wp_strip_all_tags( wc_price( $cost ) ), ENT_QUOTES, 'UTF-8' ) );
+				} else {
+					$shipping[ $vid_str ] = (string) __( 'zdarma', 'nkz-mp-storefront' );
+				}
+			}
+		}
 
 		wp_register_script( 'nkz-mp-cart-grouping', NKZMP_STOREFRONT_URL . 'assets/cart-grouping.js', [], NKZMP_STOREFRONT_VERSION, true );
 		wp_localize_script( 'nkz-mp-cart-grouping', 'nkzmpCartGroups', [
@@ -98,52 +117,6 @@ final class CartGrouping {
 			],
 		] );
 		wp_enqueue_script( 'nkz-mp-cart-grouping' );
-	}
-
-	/**
-	 * Vrátí mapu vendorId → formátovaná cena z aktuálně vybrané shipping rate.
-	 * Hledá v `WC()->cart->calculate_shipping()` packages → chosen rate s
-	 * naším `_nkzmp_vendor_breakdown` meta. Když není nic vybráno nebo není
-	 * to naše Method, vrátí prázdné pole (UI neukáže '+ Poštovné').
-	 *
-	 * @return array<string,string>
-	 */
-	private static function shipping_breakdown_from_active_rate(): array {
-		if ( ! function_exists( 'WC' ) || ! WC()->cart ) {
-			return [];
-		}
-		$packages = WC()->shipping() ? WC()->shipping()->get_packages() : [];
-		$chosen   = (array) ( WC()->session ? WC()->session->get( 'chosen_shipping_methods', [] ) : [] );
-
-		foreach ( $packages as $i => $package ) {
-			$rates    = $package['rates'] ?? [];
-			$chosen_id = $chosen[ $i ] ?? '';
-			$rate     = $chosen_id !== '' && isset( $rates[ $chosen_id ] )
-				? $rates[ $chosen_id ]
-				: ( ! empty( $rates ) ? reset( $rates ) : null );
-			if ( ! $rate instanceof \WC_Shipping_Rate ) {
-				continue;
-			}
-			$meta = $rate->get_meta_data();
-			if ( empty( $meta['_nkzmp_vendor_breakdown'] ) ) {
-				continue;
-			}
-			$decoded = json_decode( (string) $meta['_nkzmp_vendor_breakdown'], true );
-			if ( ! is_array( $decoded ) ) {
-				continue;
-			}
-			$out = [];
-			foreach ( $decoded as $vid => $cost ) {
-				$cost = (float) $cost;
-				if ( $cost > 0 ) {
-					$out[ (string) $vid ] = trim( html_entity_decode( wp_strip_all_tags( wc_price( $cost ) ), ENT_QUOTES, 'UTF-8' ) );
-				} else {
-					$out[ (string) $vid ] = (string) __( 'zdarma', 'nkz-mp-storefront' );
-				}
-			}
-			return $out;
-		}
-		return [];
 	}
 
 	/**
