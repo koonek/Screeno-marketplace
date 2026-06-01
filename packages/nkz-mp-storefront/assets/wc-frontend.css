@@ -443,6 +443,21 @@ body.woocommerce-checkout .required {
 	color: var(--nkzmp-color-text);
 	line-height: 1.35;
 }
+/* Titulek produktu i jako link uvnitř .woocommerce-LoopProduct-link – preferujeme
+ * neutrální barvu textu (thema obvykle obarvuje všechny <a> svým link color). */
+body.woocommerce ul.products li.product a,
+body.woocommerce ul.products li.product a:hover,
+body.woocommerce ul.products li.product a:visited,
+body.woocommerce ul.products li.product a:focus,
+body.woocommerce-page ul.products li.product a,
+body.woocommerce-page ul.products li.product a:hover,
+body.woocommerce-page ul.products li.product a:visited,
+body.woocommerce-page ul.products li.product a:focus,
+body.woocommerce ul.products li.product .woocommerce-loop-product__title,
+body.woocommerce-page ul.products li.product .woocommerce-loop-product__title {
+	color: var(--nkzmp-color-text) !important;
+	text-decoration: none !important;
+}
 .woocommerce ul.products li.product .price {
 	padding: 0;
 	margin: 6px 0 0;
@@ -451,6 +466,12 @@ body.woocommerce-checkout .required {
 	font-size: 15px;
 	font-variant-numeric: tabular-nums;
 	letter-spacing: -0.005em;
+}
+body.woocommerce ul.products li.product .price,
+body.woocommerce ul.products li.product .price *,
+body.woocommerce-page ul.products li.product .price,
+body.woocommerce-page ul.products li.product .price * {
+	color: var(--nkzmp-color-text) !important;
 }
 .woocommerce ul.products li.product .price del {
 	color: var(--nkzmp-color-text-muted);
@@ -465,9 +486,24 @@ body.woocommerce-checkout .required {
 }
 /* Add-to-cart pod kartou – schovat na default a v archive contextu (cesta
  * vede přes detail produktu). Sale badge taky decentnější. */
-.woocommerce ul.products li.product .button,
-.woocommerce ul.products li.product .add_to_cart_button,
-.woocommerce ul.products li.product .added_to_cart {
+body.woocommerce ul.products li.product .button,
+body.woocommerce ul.products li.product a.button,
+body.woocommerce ul.products li.product .add_to_cart_button,
+body.woocommerce ul.products li.product .ajax_add_to_cart,
+body.woocommerce ul.products li.product .added_to_cart,
+body.woocommerce ul.products li.product .product_type_simple,
+body.woocommerce ul.products li.product .product_type_variable,
+body.woocommerce ul.products li.product .product_type_grouped,
+body.woocommerce ul.products li.product .product_type_external,
+body.woocommerce-page ul.products li.product .button,
+body.woocommerce-page ul.products li.product a.button,
+body.woocommerce-page ul.products li.product .add_to_cart_button,
+body.woocommerce-page ul.products li.product .added_to_cart {
+	display: none !important;
+}
+/* Defaultní WC result-count schovat – náš intro řádek říká totéž lépe. */
+body.woocommerce .woocommerce-result-count,
+body.woocommerce-page .woocommerce-result-count {
 	display: none !important;
 }
 .woocommerce ul.products li.product .onsale {
