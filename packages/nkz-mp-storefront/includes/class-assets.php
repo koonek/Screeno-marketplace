@@ -28,7 +28,9 @@ final class Assets {
 	public function enqueue(): void {
 		$on_vendor = (bool) get_query_var( 'nkzmp_vendor_slug' ) || (bool) get_query_var( 'nkzmp_vendor_archive' );
 		$on_wc     = function_exists( 'is_woocommerce' ) && (
-			is_product() || is_cart() || is_checkout() || is_account_page() || self::is_order_received()
+			is_shop() || is_product_taxonomy()
+			|| is_product() || is_cart() || is_checkout() || is_account_page()
+			|| self::is_order_received()
 		);
 
 		if ( ! $on_vendor && ! $on_wc ) {

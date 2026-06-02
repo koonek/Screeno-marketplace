@@ -32,10 +32,12 @@ final class ShopLoop {
 		if ( ! apply_filters( 'nkzmp/v1/storefront/shop_loop', true ) ) {
 			return;
 		}
-		// Default WC sort dropdown odstranit – vykreslíme ho sami v intro
-		// toolbaru. Deferred na 'wp', aby v té době už WC mělo akce přidané.
+		// Default WC sort dropdown + result count odstranit – nahrazujeme je
+		// naším intro toolbarem ('Tvorby od X prodejců' + custom sort vpravo).
+		// Deferred na 'wp', aby v té době už WC mělo akce přidané.
 		add_action( 'wp', static function (): void {
 			remove_action( 'woocommerce_before_shop_loop', 'woocommerce_catalog_ordering', 30 );
+			remove_action( 'woocommerce_before_shop_loop', 'woocommerce_result_count', 20 );
 		} );
 
 		add_action( 'woocommerce_before_shop_loop', [ $this, 'intro_row' ], 5 );
