@@ -114,6 +114,10 @@ html body .woocommerce-error {
 	padding: 16px 18px 16px 52px !important;
 	font-family: inherit !important;
 	line-height: 1.5 !important;
+	max-width: var(--nkzmp-content-max, 1200px) !important;
+	margin-left: auto !important;
+	margin-right: auto !important;
+	box-sizing: border-box !important;
 }
 html body .woocommerce-error {
 	background: rgba(176,0,32,0.05) !important;
