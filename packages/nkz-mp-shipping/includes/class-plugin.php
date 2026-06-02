@@ -23,11 +23,10 @@ final class Plugin {
 		ProductShippingAdmin::instance()->init();
 		Settings::instance()->init();
 
-		// Když je v zóně dostupná naše per-vendor metoda, ostatní (Flat rate,
-		// Free shipping, …) z dostupných sazeb odstraníme – per-vendor je
-		// jediný model. Bez toho WC vybírá nejlevnější / první rate a souhrn
-		// se rozjede s per-vendor čísly v cart UI.
-		// Vypnutí: add_filter( 'nkzmp/v1/shipping/force_exclusive', '__return_false' );
+		// AOZ jede pouze Zásilkovnu – per-vendor metoda se v praxi nepoužívá.
+		// Filter je proto defaultně VYPNUTÝ. Pokud někdo do zóny per-vendor
+		// metodu přidá a chce ji exkluzivně, zapne:
+		// add_filter( 'nkzmp/v1/shipping/force_exclusive', '__return_true' );
 		add_filter( 'woocommerce_package_rates', [ $this, 'force_exclusive' ], 99, 2 );
 	}
 
@@ -37,7 +36,7 @@ final class Plugin {
 	 * @return array<string,\WC_Shipping_Rate>
 	 */
 	public function force_exclusive( array $rates, array $package ): array {
-		if ( ! apply_filters( 'nkzmp/v1/shipping/force_exclusive', true ) ) {
+		if ( ! apply_filters( 'nkzmp/v1/shipping/force_exclusive', false ) ) {
 			return $rates;
 		}
 		$ours = [];

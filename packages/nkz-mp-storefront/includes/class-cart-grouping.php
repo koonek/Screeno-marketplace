@@ -89,16 +89,15 @@ final class CartGrouping {
 			}
 		}
 
-		// Per-vendor poštovné – počítáme přes STEJNÝ Rate::vendor_package_cost
-		// jako shipping Method, takže UI sedí s WC totalem (oba čerstvé díky
-		// invalidaci shipping cache při změně override/flat).
+		// Per-vendor poštovné v kartách. Default VYPNUTO – AOZ jede pouze
+		// Zásilkovnu (jeden poplatek za celý balík), takže per-vendor čísla
+		// v kartách by uživatele jen mátla a nesedla by se souhrnem.
+		// Zapnutí: add_filter( 'nkzmp/v1/cart/show_per_vendor_shipping', '__return_true' );
 		$shipping = [];
-		if ( $has_shipping_mod ) {
+		if ( $has_shipping_mod && apply_filters( 'nkzmp/v1/cart/show_per_vendor_shipping', false ) ) {
 			foreach ( $vendor_products as $vid_str => $products ) {
 				$cost = \NKZMP\Shipping\Rate::vendor_package_cost( (int) $vid_str, $products );
 				if ( $cost > 0 ) {
-					// wc_price() vrací HTML s entitami (&nbsp;, &#269; …) – dekódovat
-					// na čistý text, jinak se v JS zobrazí syrové entity.
 					$shipping[ $vid_str ] = trim( html_entity_decode( wp_strip_all_tags( wc_price( $cost ) ), ENT_QUOTES, 'UTF-8' ) );
 				} else {
 					$shipping[ $vid_str ] = (string) __( 'zdarma', 'nkz-mp-storefront' );
