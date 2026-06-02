@@ -32,6 +32,12 @@ final class ShopLoop {
 		if ( ! apply_filters( 'nkzmp/v1/storefront/shop_loop', true ) ) {
 			return;
 		}
+		// Default WC sort dropdown odstranit – vykreslíme ho sami v intro
+		// toolbaru. Deferred na 'wp', aby v té době už WC mělo akce přidané.
+		add_action( 'wp', static function (): void {
+			remove_action( 'woocommerce_before_shop_loop', 'woocommerce_catalog_ordering', 30 );
+		} );
+
 		add_action( 'woocommerce_before_shop_loop', [ $this, 'intro_row' ], 5 );
 		add_action( 'woocommerce_after_shop_loop_item_title', [ $this, 'vendor_badge' ], 8 );
 		add_action( 'woocommerce_after_main_content', [ $this, 'become_vendor_cta' ], 5 );
@@ -59,6 +65,7 @@ final class ShopLoop {
 		$vendor_n    = self::active_vendor_count();
 
 		echo '<div class="nkzmp-shop-intro">';
+		echo '<div class="nkzmp-shop-intro__left">';
 		if ( $vendor_n > 0 ) {
 			printf(
 				'<span class="nkzmp-shop-intro__lead">%s</span>',
@@ -88,7 +95,18 @@ final class ShopLoop {
 				)
 			);
 		}
+		echo '</div>'; // .nkzmp-shop-intro__left
+
+		// Sort dropdown přesuneme do toolbaru (vpravo) – default WC ho
+		// vykresluje samostatně přes woocommerce_catalog_ordering, my ho
+		// tady duplikujeme do toolbaru a default skryjeme přes CSS níž.
+		echo '<div class="nkzmp-shop-intro__right">';
+		if ( function_exists( 'woocommerce_catalog_ordering' ) ) {
+			woocommerce_catalog_ordering();
+		}
 		echo '</div>';
+
+		echo '</div>'; // .nkzmp-shop-intro
 	}
 
 	public function vendor_badge(): void {

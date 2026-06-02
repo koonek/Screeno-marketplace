@@ -1725,3 +1725,230 @@ html body.woocommerce-checkout #payment ul.payment_methods li .payment_box {
 	background: var(--nkzmp-color-accent-hover);
 }
 
+/* ─────────────────────────────────────────────────────────────
+ * /obchod – redesign vrstva (AOZ kurátorský look)
+ *
+ * Cíl: čistá galerie, žádné theme accent linky uvnitř karet,
+ * decentní typografie. Tokeny var(--nkzmp-*) přebije Screeno
+ * v cílovém deployi přes filter `nkzmp/v1/storefront/tokens`,
+ * takže tato vrstva slouží jako AOZ default + bezpečný fallback.
+ *
+ * Selektory mají záměrně vysokou specificitu (html body...),
+ * aby přebily theme link/heading barvy na shopu.
+ * ───────────────────────────────────────────────────────────── */
+
+/* Breadcrumb decentně. */
+html body.woocommerce .woocommerce-breadcrumb,
+html body.woocommerce-page .woocommerce-breadcrumb {
+	font-size: 12px !important;
+	letter-spacing: 0.06em !important;
+	text-transform: uppercase !important;
+	color: var(--nkzmp-color-text-muted) !important;
+	margin: 0 0 28px !important;
+	padding: 0 !important;
+	border: 0 !important;
+}
+html body.woocommerce .woocommerce-breadcrumb a,
+html body.woocommerce-page .woocommerce-breadcrumb a {
+	color: var(--nkzmp-color-text-muted) !important;
+	text-decoration: none !important;
+	transition: color .15s;
+}
+html body.woocommerce .woocommerce-breadcrumb a:hover,
+html body.woocommerce-page .woocommerce-breadcrumb a:hover {
+	color: var(--nkzmp-color-text) !important;
+}
+
+/* Hero / page header – „Obchod" headline + intro counter. */
+html body.woocommerce.archive .woocommerce-products-header,
+html body.woocommerce-page.archive .woocommerce-products-header {
+	margin: 0 0 32px !important;
+	padding: 0 !important;
+	border: 0 !important;
+	text-align: left !important;
+}
+html body.woocommerce.archive .woocommerce-products-header__title,
+html body.woocommerce-page.archive .woocommerce-products-header__title,
+html body.woocommerce.archive .page-title,
+html body.woocommerce-page.archive .page-title {
+	font-size: clamp(40px, 6vw, 72px) !important;
+	font-weight: 400 !important;
+	letter-spacing: -0.035em !important;
+	line-height: 1 !important;
+	margin: 0 0 12px !important;
+	color: var(--nkzmp-color-text) !important;
+}
+
+/* Intro toolbar: counter vlevo, sort vpravo, jeden border zespoda. */
+html body.woocommerce .nkzmp-shop-intro,
+html body.woocommerce-page .nkzmp-shop-intro {
+	display: flex !important;
+	flex-wrap: wrap;
+	align-items: center !important;
+	justify-content: space-between !important;
+	gap: 16px !important;
+	margin: 0 0 32px !important;
+	padding: 0 0 20px !important;
+	border-bottom: 1px solid var(--nkzmp-color-border-soft) !important;
+}
+html body .nkzmp-shop-intro__lead {
+	font-size: 12px !important;
+	font-weight: 600 !important;
+	letter-spacing: 0.14em !important;
+	text-transform: uppercase !important;
+	color: var(--nkzmp-color-text-muted) !important;
+	font-variant-numeric: tabular-nums !important;
+}
+
+/* Sort dropdown přemístit do toolbaru (vpravo, na úrovni counteru). */
+html body.woocommerce .woocommerce-ordering,
+html body.woocommerce-page .woocommerce-ordering {
+	float: none !important;
+	margin: 0 !important;
+}
+html body.woocommerce .woocommerce-ordering select,
+html body.woocommerce-page .woocommerce-ordering select {
+	border: 1px solid var(--nkzmp-color-border-soft) !important;
+	background: var(--nkzmp-color-surface) !important;
+	border-radius: 999px !important;
+	padding: 10px 36px 10px 16px !important;
+	font-size: 13px !important;
+	color: var(--nkzmp-color-text) !important;
+	font-family: var(--nkzmp-font-family) !important;
+	cursor: pointer;
+	min-width: 200px;
+	appearance: none;
+	-webkit-appearance: none;
+	background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'><path d='M1 1.5L6 6.5L11 1.5' stroke='%23111' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/></svg>") !important;
+	background-repeat: no-repeat !important;
+	background-position: right 14px center !important;
+	background-size: 12px 8px !important;
+	transition: border-color .15s, box-shadow .15s;
+}
+html body.woocommerce .woocommerce-ordering select:hover,
+html body.woocommerce .woocommerce-ordering select:focus {
+	border-color: var(--nkzmp-color-text) !important;
+	outline: 0 !important;
+	box-shadow: 0 0 0 3px rgba(0,96,255,0.10) !important;
+}
+
+/* Karta – tvrdé override barev titulu / ceny / vendor badge,
+ * aby téma (Storefront / TwentyTwentyOne) nemělo šanci. */
+html body.woocommerce ul.products li.product .woocommerce-loop-product__title,
+html body.woocommerce ul.products li.product .woocommerce-loop-product__title a,
+html body.woocommerce-page ul.products li.product .woocommerce-loop-product__title,
+html body.woocommerce-page ul.products li.product .woocommerce-loop-product__title a,
+html body.woocommerce ul.products li.product a.woocommerce-LoopProduct-link .woocommerce-loop-product__title,
+html body.woocommerce-page ul.products li.product a.woocommerce-LoopProduct-link .woocommerce-loop-product__title {
+	font-size: 16px !important;
+	font-weight: 500 !important;
+	letter-spacing: -0.005em !important;
+	line-height: 1.35 !important;
+	color: var(--nkzmp-color-text) !important;
+	margin: 4px 0 2px !important;
+}
+html body.woocommerce ul.products li.product .price,
+html body.woocommerce ul.products li.product .price *,
+html body.woocommerce ul.products li.product bdi,
+html body.woocommerce ul.products li.product .price bdi,
+html body.woocommerce-page ul.products li.product .price,
+html body.woocommerce-page ul.products li.product .price *,
+html body.woocommerce-page ul.products li.product bdi,
+html body.woocommerce-page ul.products li.product .price bdi {
+	color: var(--nkzmp-color-text) !important;
+	font-weight: 600 !important;
+	font-size: 15px !important;
+	font-variant-numeric: tabular-nums !important;
+}
+
+/* Hover karty: drobný lift, jemný stín. Image už má scale (řešeno výše). */
+html body.woocommerce ul.products li.product,
+html body.woocommerce-page ul.products li.product {
+	transition: transform .25s ease !important;
+}
+html body.woocommerce ul.products li.product:hover,
+html body.woocommerce-page ul.products li.product:hover {
+	transform: translateY(-2px) !important;
+}
+
+/* Vendor badge – malé caps, vlevo pod titulkem, hover accent. */
+html body .nkzmp-shop-vendor {
+	margin-top: 2px !important;
+	font-size: 11px !important;
+	letter-spacing: 0.08em !important;
+	text-transform: uppercase !important;
+	color: var(--nkzmp-color-text-muted) !important;
+}
+html body .nkzmp-shop-vendor__by { opacity: 0.6 !important; }
+html body .nkzmp-shop-vendor__name {
+	font-weight: 600 !important;
+	color: var(--nkzmp-color-text) !important;
+}
+
+/* Pagination – pill buttons. */
+html body.woocommerce nav.woocommerce-pagination,
+html body.woocommerce-page nav.woocommerce-pagination {
+	margin: 24px 0 56px !important;
+	text-align: center !important;
+}
+html body.woocommerce nav.woocommerce-pagination ul,
+html body.woocommerce-page nav.woocommerce-pagination ul {
+	display: inline-flex !important;
+	gap: 6px !important;
+	border: 0 !important;
+	background: transparent !important;
+}
+html body.woocommerce nav.woocommerce-pagination ul li,
+html body.woocommerce-page nav.woocommerce-pagination ul li {
+	border: 0 !important;
+	background: transparent !important;
+	overflow: visible !important;
+}
+html body.woocommerce nav.woocommerce-pagination ul li a,
+html body.woocommerce nav.woocommerce-pagination ul li span,
+html body.woocommerce-page nav.woocommerce-pagination ul li a,
+html body.woocommerce-page nav.woocommerce-pagination ul li span {
+	display: inline-flex !important;
+	align-items: center;
+	justify-content: center;
+	min-width: 40px !important;
+	height: 40px !important;
+	padding: 0 14px !important;
+	background: var(--nkzmp-color-surface) !important;
+	border: 1px solid var(--nkzmp-color-border-soft) !important;
+	border-radius: 999px !important;
+	color: var(--nkzmp-color-text) !important;
+	font-size: 13px !important;
+	font-weight: 600 !important;
+	text-decoration: none !important;
+	transition: background .15s, border-color .15s, color .15s;
+}
+html body.woocommerce nav.woocommerce-pagination ul li a:hover,
+html body.woocommerce-page nav.woocommerce-pagination ul li a:hover {
+	border-color: var(--nkzmp-color-text) !important;
+	background: var(--nkzmp-color-bg-warm) !important;
+}
+html body.woocommerce nav.woocommerce-pagination ul li span.current,
+html body.woocommerce-page nav.woocommerce-pagination ul li span.current {
+	background: var(--nkzmp-color-text) !important;
+	border-color: var(--nkzmp-color-text) !important;
+	color: #fff !important;
+}
+
+/* CTA "Tvoříš taky?" – ze surface card na accent-soft, větší vizuál. */
+html body .nkzmp-shop-promo {
+	background: var(--nkzmp-color-accent-soft) !important;
+	border: 1px solid rgba(0,96,255,0.12) !important;
+	padding: 36px 40px !important;
+	margin: 40px 0 56px !important;
+}
+html body .nkzmp-shop-promo__h {
+	font-size: 24px !important;
+	font-weight: 500 !important;
+	letter-spacing: -0.02em !important;
+}
+html body .nkzmp-shop-promo__d {
+	font-size: 15px !important;
+	line-height: 1.6 !important;
+}
+
