@@ -1952,3 +1952,57 @@ html body .nkzmp-shop-promo__d {
 	line-height: 1.6 !important;
 }
 
+/* ─────────────────────────────────────────────────────────────
+ * Hello Elementor / Elementor Pro fallback
+ *
+ * Elementor Site Settings → Global Colors injektuje --e-global-color-*
+ * na :root a theme/widgets přes ně barví linky a nadpisy. Naše
+ * standardní `body.woocommerce` selektory mají často nižší kaskádní
+ * prioritu než Elementor stylesheet, který se enqueue až po nás.
+ *
+ * Tato vrstva přebije všechny inline / Elementor color na titulech,
+ * cenách a vendor badge uvnitř product karet. Cílíme pouze na archivu
+ * (.woocommerce-shop / archive), abychom nezasáhli editor.
+ * ───────────────────────────────────────────────────────────── */
+
+body.woocommerce-shop ul.products li.product :is(h1,h2,h3,h4,a,span,bdi,p,div),
+body.archive.woocommerce ul.products li.product :is(h1,h2,h3,h4,a,span,bdi,p,div),
+body.tax-product_cat ul.products li.product :is(h1,h2,h3,h4,a,span,bdi,p,div),
+body.tax-product_tag ul.products li.product :is(h1,h2,h3,h4,a,span,bdi,p,div) {
+	color: var(--nkzmp-color-text) !important;
+}
+/* Vendor badge výjimka – chceme decentní muted, ne plný text color. */
+body.woocommerce-shop ul.products li.product a.nkzmp-shop-vendor,
+body.archive.woocommerce ul.products li.product a.nkzmp-shop-vendor,
+body.tax-product_cat ul.products li.product a.nkzmp-shop-vendor,
+body.tax-product_tag ul.products li.product a.nkzmp-shop-vendor {
+	color: var(--nkzmp-color-text-muted) !important;
+}
+body.woocommerce-shop ul.products li.product a.nkzmp-shop-vendor:hover,
+body.archive.woocommerce ul.products li.product a.nkzmp-shop-vendor:hover {
+	color: var(--nkzmp-color-accent) !important;
+}
+
+/* Hello Elementor (a default WC) ukazuje vlastní "Showing all X results"
+ * jako .woocommerce-result-count. Náš counter v intro toolbaru tu samou
+ * informaci dává hezčí formou, takže default skrýt nataženě. */
+body.woocommerce-shop .woocommerce-result-count,
+body.archive.woocommerce .woocommerce-result-count,
+body.tax-product_cat .woocommerce-result-count,
+body.tax-product_tag .woocommerce-result-count {
+	display: none !important;
+}
+
+/* Elementor Hello: page title („Obchod") občas vykresluje jako .entry-title
+ * nebo .elementor-heading-title. Sjednotit s naším H1 stylem. */
+body.woocommerce-shop .entry-title,
+body.archive.woocommerce .entry-title,
+body.woocommerce-shop .elementor-heading-title,
+body.archive.woocommerce .elementor-heading-title {
+	font-size: clamp(40px, 6vw, 72px) !important;
+	font-weight: 400 !important;
+	letter-spacing: -0.035em !important;
+	line-height: 1 !important;
+	color: var(--nkzmp-color-text) !important;
+}
+
