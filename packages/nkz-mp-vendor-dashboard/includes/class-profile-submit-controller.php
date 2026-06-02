@@ -84,14 +84,24 @@ final class ProfileSubmitController {
 			}
 		}
 
-		// Profilová fotka.
-		if ( ! empty( $_FILES['profile_image']['name'] ) ) {
+		// Profilová fotka (avatar) + cover banner.
+		$has_upload = ! empty( $_FILES['profile_image']['name'] ) || ! empty( $_FILES['cover_image']['name'] );
+		if ( $has_upload ) {
 			require_once ABSPATH . 'wp-admin/includes/file.php';
 			require_once ABSPATH . 'wp-admin/includes/media.php';
 			require_once ABSPATH . 'wp-admin/includes/image.php';
-			$att_id = media_handle_upload( 'profile_image', $vendor_id );
-			if ( ! is_wp_error( $att_id ) ) {
-				set_post_thumbnail( $vendor_id, $att_id );
+
+			if ( ! empty( $_FILES['profile_image']['name'] ) ) {
+				$att_id = media_handle_upload( 'profile_image', $vendor_id );
+				if ( ! is_wp_error( $att_id ) ) {
+					set_post_thumbnail( $vendor_id, $att_id );
+				}
+			}
+			if ( ! empty( $_FILES['cover_image']['name'] ) ) {
+				$cover_att_id = media_handle_upload( 'cover_image', $vendor_id );
+				if ( ! is_wp_error( $cover_att_id ) ) {
+					update_post_meta( $vendor_id, '_nkzmp_vendor_cover_id', (int) $cover_att_id );
+				}
 			}
 		}
 

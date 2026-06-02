@@ -1873,11 +1873,22 @@ html body.woocommerce-page ul.products li.product:hover {
 
 /* Vendor badge – malé caps, vlevo pod titulkem, hover accent. */
 html body .nkzmp-shop-vendor {
-	margin-top: 2px !important;
+	display: inline-flex !important;
+	align-items: center !important;
+	gap: 8px !important;
+	margin-top: 4px !important;
 	font-size: 11px !important;
 	letter-spacing: 0.08em !important;
 	text-transform: uppercase !important;
 	color: var(--nkzmp-color-text-muted) !important;
+}
+html body .nkzmp-shop-vendor__avatar {
+	width: 22px !important;
+	height: 22px !important;
+	border-radius: 50% !important;
+	object-fit: cover !important;
+	background: var(--nkzmp-color-bg-warm) !important;
+	flex-shrink: 0 !important;
 }
 html body .nkzmp-shop-vendor__by { opacity: 0.6 !important; }
 html body .nkzmp-shop-vendor__name {

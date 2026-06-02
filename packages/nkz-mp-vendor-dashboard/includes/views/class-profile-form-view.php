@@ -24,6 +24,7 @@ final class ProfileFormView {
 		$bio       = (string) $vendor['bio'];
 		$website   = (string) $vendor['website'];
 		$thumb_id  = get_post_thumbnail_id( $vendor_id );
+		$cover_id  = (int) get_post_meta( $vendor_id, '_nkzmp_vendor_cover_id', true );
 
 		$shipping_active = defined( 'NKZMP_SHIPPING_VENDOR_RATE_META' );
 		$shipping_rate   = $shipping_active ? get_post_meta( $vendor_id, NKZMP_SHIPPING_VENDOR_RATE_META, true ) : '';
@@ -78,15 +79,26 @@ final class ProfileFormView {
 				</section>
 
 				<section class="nkzmp-vd-form-section">
-					<header class="nkzmp-vd-form-shead"><span class="num">02</span><h2><?php esc_html_e( 'Profilová fotka', 'nkz-mp-vendor-dashboard' ); ?></h2></header>
+					<header class="nkzmp-vd-form-shead"><span class="num">02</span><h2><?php esc_html_e( 'Vizuál profilu', 'nkz-mp-vendor-dashboard' ); ?></h2></header>
 
 					<div class="nkzmp-vd-image-featured-wrap">
-						<label class="nkzmp-vd-img-label"><?php esc_html_e( 'Hlavní obrázek profilu', 'nkz-mp-vendor-dashboard' ); ?></label>
+						<label class="nkzmp-vd-img-label"><?php esc_html_e( 'Cover (hlavní banner)', 'nkz-mp-vendor-dashboard' ); ?></label>
+						<?php if ( $cover_id ) : ?>
+							<div class="nkzmp-vd-img-thumb" style="width:100%;max-width:480px;">
+								<?php echo wp_get_attachment_image( $cover_id, 'large', false, [ 'style' => 'display:block;width:100%;aspect-ratio:3/1;object-fit:cover;border-radius:8px;' ] ); ?>
+							</div>
+						<?php endif; ?>
+						<input type="file" name="cover_image" accept="image/*" />
+						<small><?php esc_html_e( 'Široký banner v hlavičce tvojí stránky. Doporučené 2400 × 800 px (poměr 3:1), JPG/PNG/WebP, do 4 MB.', 'nkz-mp-vendor-dashboard' ); ?></small>
+					</div>
+
+					<div class="nkzmp-vd-image-featured-wrap" style="margin-top:24px;">
+						<label class="nkzmp-vd-img-label"><?php esc_html_e( 'Avatar / logo', 'nkz-mp-vendor-dashboard' ); ?></label>
 						<?php if ( $thumb_id ) : ?>
-							<div class="nkzmp-vd-img-thumb"><?php echo wp_get_attachment_image( $thumb_id, [ 200, 200 ], false, [ 'style' => 'object-fit:cover;width:200px;height:200px;' ] ); ?></div>
+							<div class="nkzmp-vd-img-thumb"><?php echo wp_get_attachment_image( $thumb_id, [ 160, 160 ], false, [ 'style' => 'object-fit:cover;width:160px;height:160px;border-radius:50%;' ] ); ?></div>
 						<?php endif; ?>
 						<input type="file" name="profile_image" accept="image/*" />
-						<small><?php esc_html_e( 'Logo nebo fotka tvojí tvorby. Čtvercová vychází nejlíp.', 'nkz-mp-vendor-dashboard' ); ?></small>
+						<small><?php esc_html_e( 'Logo nebo portrét. Čtvercová fotka 400 × 400 px je ideální, ale zobrazí se kruhem.', 'nkz-mp-vendor-dashboard' ); ?></small>
 					</div>
 				</section>
 

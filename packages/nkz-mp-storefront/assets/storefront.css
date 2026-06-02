@@ -56,26 +56,71 @@
 	background: var(--nkzmp-color-bg);
 }
 
-/* Vendor header — měkká karta s teplým podkladem místo černého borderu */
+/* Vendor header — cover banner s overlapping avatarem + body pod ním.
+ * Bez coveru: clean layout jen s avatarem vlevo a meta vpravo. */
 .nkzmp-vendor-header {
-	display: grid;
-	grid-template-columns: 260px 1fr;
-	gap: var(--nkzmp-gap-xl);
-	align-items: center;
 	margin-bottom: var(--nkzmp-gap-xl);
-	padding: var(--nkzmp-gap-lg);
+	background: transparent;
+	border: 0;
+	border-radius: 0;
+	padding: 0;
+}
+.nkzmp-vendor-header__cover {
+	position: relative;
+	overflow: hidden;
+	border-radius: var(--nkzmp-radius);
+	background: var(--nkzmp-color-bg-warm);
+	aspect-ratio: 3 / 1;
+	margin-bottom: 0;
+}
+.nkzmp-vendor-header__cover img {
+	display: block;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+.nkzmp-vendor-header__body {
+	display: grid;
+	grid-template-columns: 180px 1fr;
+	gap: var(--nkzmp-gap-lg);
+	align-items: start;
+	padding: 0 var(--nkzmp-gap-md);
+}
+/* Bez coveru: stačí menší padding, avatar zarovnaný k textu. */
+.nkzmp-vendor-header:not(.has-cover) .nkzmp-vendor-header__body {
+	align-items: center;
+	padding: var(--nkzmp-gap-lg) var(--nkzmp-gap-md);
 	background: var(--nkzmp-color-bg-warm);
 	border: 1px solid var(--nkzmp-color-border-soft);
 	border-radius: var(--nkzmp-radius);
 }
-@media (max-width: 720px) {
-	.nkzmp-vendor-header { grid-template-columns: 1fr; gap: var(--nkzmp-gap-lg); padding: var(--nkzmp-gap-md); }
+/* S coverem: avatar přesahuje banner nahoru (overlap). */
+.nkzmp-vendor-header__avatar {
+	width: 160px;
+	height: 160px;
+	border-radius: 50%;
+	overflow: hidden;
+	background: var(--nkzmp-color-surface);
+	border: 4px solid var(--nkzmp-color-surface);
+	box-shadow: 0 4px 16px rgba(17,17,17,0.08);
+	flex-shrink: 0;
 }
-.nkzmp-vendor-header__image img {
-	width: 100%;
-	height: auto;
+.nkzmp-vendor-header.has-cover .nkzmp-vendor-header__avatar {
+	margin-top: -80px;
+}
+.nkzmp-vendor-header__avatar img {
 	display: block;
-	border-radius: var(--nkzmp-radius-soft);
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+.nkzmp-vendor-header__meta {
+	padding-top: 16px;
+}
+@media (max-width: 720px) {
+	.nkzmp-vendor-header__body { grid-template-columns: 1fr; gap: var(--nkzmp-gap-md); }
+	.nkzmp-vendor-header__avatar { width: 120px; height: 120px; }
+	.nkzmp-vendor-header.has-cover .nkzmp-vendor-header__avatar { margin-top: -60px; }
 }
 .nkzmp-vendor-header__name { margin: 0 0 var(--nkzmp-gap-md); font-size: var(--nkzmp-font-h1); font-weight: 500; letter-spacing: -0.03em; line-height: 1.08; }
 .nkzmp-vendor-header__web {

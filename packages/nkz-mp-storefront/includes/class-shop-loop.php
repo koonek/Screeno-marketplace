@@ -131,10 +131,16 @@ final class ShopLoop {
 		if ( ! $post ) {
 			return;
 		}
-		$name = (string) $post->post_title;
-		$url  = $post->post_name !== '' ? home_url( '/vendor/' . $post->post_name ) : '';
+		$name      = (string) $post->post_title;
+		$url       = $post->post_name !== '' ? home_url( '/vendor/' . $post->post_name ) : '';
+		$avatar_id = (int) get_post_thumbnail_id( $vid );
+		$avatar    = $avatar_id ? wp_get_attachment_image( $avatar_id, [ 48, 48 ], false, [
+			'class' => 'nkzmp-shop-vendor__avatar',
+			'alt'   => esc_attr( $name ),
+		] ) : '';
 
 		echo '<a class="nkzmp-shop-vendor" href="' . esc_url( $url ) . '" rel="author">';
+		echo $avatar; // already escaped by wp_get_attachment_image
 		echo '<span class="nkzmp-shop-vendor__by">' . esc_html__( 'od', 'nkz-mp-storefront' ) . '</span> ';
 		echo '<span class="nkzmp-shop-vendor__name">' . esc_html( $name ) . '</span>';
 		echo '</a>';
