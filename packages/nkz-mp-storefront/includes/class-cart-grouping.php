@@ -89,12 +89,14 @@ final class CartGrouping {
 			}
 		}
 
-		// Per-vendor poštovné v kartách. Default VYPNUTO – AOZ jede pouze
-		// Zásilkovnu (jeden poplatek za celý balík), takže per-vendor čísla
-		// v kartách by uživatele jen mátla a nesedla by se souhrnem.
-		// Zapnutí: add_filter( 'nkzmp/v1/cart/show_per_vendor_shipping', '__return_true' );
+		// Per-vendor poštovné v kartách. AOZ: každý vendor posílá svůj
+		// balíček přes Zásilkovnu samostatně, takže každá karta má vlastní
+		// sazbu (vendor flat + případný product override, MAX strategie).
+		// Souhrn vpravo navíc přepisuje cenu Packety na součet těchto sazeb
+		// (viz shipping/Plugin::override_packetery_cost), takže UI sedí.
+		// Vypnutí: add_filter( 'nkzmp/v1/cart/show_per_vendor_shipping', '__return_false' );
 		$shipping = [];
-		if ( $has_shipping_mod && apply_filters( 'nkzmp/v1/cart/show_per_vendor_shipping', false ) ) {
+		if ( $has_shipping_mod && apply_filters( 'nkzmp/v1/cart/show_per_vendor_shipping', true ) ) {
 			foreach ( $vendor_products as $vid_str => $products ) {
 				$cost = \NKZMP\Shipping\Rate::vendor_package_cost( (int) $vid_str, $products );
 				if ( $cost > 0 ) {
