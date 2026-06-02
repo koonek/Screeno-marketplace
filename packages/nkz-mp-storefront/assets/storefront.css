@@ -57,70 +57,85 @@
 }
 
 /* Vendor header — cover banner s overlapping avatarem + body pod ním.
- * Bez coveru: clean layout jen s avatarem vlevo a meta vpravo. */
-.nkzmp-vendor-header {
-	margin-bottom: var(--nkzmp-gap-xl);
-	background: transparent;
-	border: 0;
-	border-radius: 0;
-	padding: 0;
+ * Bez coveru: clean layout jen s avatarem vlevo a meta vpravo.
+ *
+ * !important + html body specificita: na AOZ je v theme child stylu
+ * (.aez-vendor-page) vlastní CSS systém pro vendor page, který by
+ * jinak vyhrával díky pořadí načtení. */
+html body .nkzmp-vendor-header {
+	margin-bottom: var(--nkzmp-gap-xl) !important;
+	background: transparent !important;
+	border: 0 !important;
+	border-radius: 0 !important;
+	padding: 0 !important;
+	display: block !important;
 }
-.nkzmp-vendor-header__cover {
-	position: relative;
-	overflow: hidden;
-	border-radius: var(--nkzmp-radius);
-	background: var(--nkzmp-color-bg-warm);
-	aspect-ratio: 3 / 1;
-	margin-bottom: 0;
+html body .nkzmp-vendor-header__cover {
+	position: relative !important;
+	display: block !important;
+	overflow: hidden !important;
+	width: 100% !important;
+	border-radius: var(--nkzmp-radius) !important;
+	background: var(--nkzmp-color-bg-warm) !important;
+	aspect-ratio: 3 / 1 !important;
+	margin: 0 0 0 !important;
 }
-.nkzmp-vendor-header__cover img {
-	display: block;
-	width: 100%;
-	height: 100%;
-	object-fit: cover;
+html body .nkzmp-vendor-header__cover img {
+	display: block !important;
+	width: 100% !important;
+	height: 100% !important;
+	object-fit: cover !important;
+	border-radius: 0 !important;
+	aspect-ratio: auto !important;
 }
-.nkzmp-vendor-header__body {
-	display: grid;
-	grid-template-columns: 180px 1fr;
-	gap: var(--nkzmp-gap-lg);
-	align-items: start;
-	padding: 0 var(--nkzmp-gap-md);
+html body .nkzmp-vendor-header__body {
+	display: grid !important;
+	grid-template-columns: 180px 1fr !important;
+	gap: var(--nkzmp-gap-lg) !important;
+	align-items: start !important;
+	padding: 0 var(--nkzmp-gap-md) !important;
 }
 /* Bez coveru: stačí menší padding, avatar zarovnaný k textu. */
-.nkzmp-vendor-header:not(.has-cover) .nkzmp-vendor-header__body {
-	align-items: center;
-	padding: var(--nkzmp-gap-lg) var(--nkzmp-gap-md);
-	background: var(--nkzmp-color-bg-warm);
-	border: 1px solid var(--nkzmp-color-border-soft);
-	border-radius: var(--nkzmp-radius);
+html body .nkzmp-vendor-header:not(.has-cover) .nkzmp-vendor-header__body {
+	align-items: center !important;
+	padding: var(--nkzmp-gap-lg) var(--nkzmp-gap-md) !important;
+	background: var(--nkzmp-color-bg-warm) !important;
+	border: 1px solid var(--nkzmp-color-border-soft) !important;
+	border-radius: var(--nkzmp-radius) !important;
 }
-/* S coverem: avatar přesahuje banner nahoru (overlap). */
-.nkzmp-vendor-header__avatar {
-	width: 160px;
-	height: 160px;
-	border-radius: 50%;
-	overflow: hidden;
-	background: var(--nkzmp-color-surface);
-	border: 4px solid var(--nkzmp-color-surface);
-	box-shadow: 0 4px 16px rgba(17,17,17,0.08);
-	flex-shrink: 0;
+/* Avatar – kruh, fix rozměry. */
+html body .nkzmp-vendor-header__avatar {
+	width: 160px !important;
+	height: 160px !important;
+	border-radius: 50% !important;
+	overflow: hidden !important;
+	background: var(--nkzmp-color-surface) !important;
+	border: 4px solid var(--nkzmp-color-surface) !important;
+	box-shadow: 0 4px 16px rgba(17,17,17,0.08) !important;
+	flex-shrink: 0 !important;
+	display: block !important;
+	box-sizing: content-box !important;
 }
-.nkzmp-vendor-header.has-cover .nkzmp-vendor-header__avatar {
-	margin-top: -80px;
+html body .nkzmp-vendor-header.has-cover .nkzmp-vendor-header__avatar {
+	margin-top: -80px !important;
+	position: relative !important;
+	z-index: 2 !important;
 }
-.nkzmp-vendor-header__avatar img {
-	display: block;
-	width: 100%;
-	height: 100%;
-	object-fit: cover;
+html body .nkzmp-vendor-header__avatar img {
+	display: block !important;
+	width: 100% !important;
+	height: 100% !important;
+	object-fit: cover !important;
+	border-radius: 50% !important;
+	aspect-ratio: 1 / 1 !important;
 }
-.nkzmp-vendor-header__meta {
-	padding-top: 16px;
+html body .nkzmp-vendor-header__meta {
+	padding-top: 16px !important;
 }
 @media (max-width: 720px) {
-	.nkzmp-vendor-header__body { grid-template-columns: 1fr; gap: var(--nkzmp-gap-md); }
-	.nkzmp-vendor-header__avatar { width: 120px; height: 120px; }
-	.nkzmp-vendor-header.has-cover .nkzmp-vendor-header__avatar { margin-top: -60px; }
+	html body .nkzmp-vendor-header__body { grid-template-columns: 1fr !important; gap: var(--nkzmp-gap-md) !important; }
+	html body .nkzmp-vendor-header__avatar { width: 120px !important; height: 120px !important; }
+	html body .nkzmp-vendor-header.has-cover .nkzmp-vendor-header__avatar { margin-top: -60px !important; }
 }
 .nkzmp-vendor-header__name { margin: 0 0 var(--nkzmp-gap-md); font-size: var(--nkzmp-font-h1); font-weight: 500; letter-spacing: -0.03em; line-height: 1.08; }
 .nkzmp-vendor-header__web {

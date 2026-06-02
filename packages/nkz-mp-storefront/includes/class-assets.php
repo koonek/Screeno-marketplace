@@ -26,7 +26,7 @@ final class Assets {
 	}
 
 	public function enqueue(): void {
-		$on_vendor = (bool) get_query_var( 'nkzmp_vendor_slug' ) || (bool) get_query_var( 'nkzmp_vendor_archive' );
+		$on_vendor = self::is_vendor_page();
 		$on_wc     = function_exists( 'is_woocommerce' ) && (
 			is_shop() || is_product_taxonomy()
 			|| is_product() || is_cart() || is_checkout() || is_account_page()
@@ -97,5 +97,25 @@ final class Assets {
 
 	private static function is_order_received(): bool {
 		return function_exists( 'is_wc_endpoint_url' ) && is_wc_endpoint_url( 'order-received' );
+	}
+
+	/**
+	 * Vendor page detekce robustně:
+	 *  - query vars (po flush permalinks – standardní cesta)
+	 *  - is_singular pro vendor post type (Dokan/náš)
+	 *  - URL path fallback (pre-flush nebo když rewrite hooky padly)
+	 */
+	private static function is_vendor_page(): bool {
+		if ( get_query_var( 'nkzmp_vendor_slug' ) || get_query_var( 'nkzmp_vendor_archive' ) ) {
+			return true;
+		}
+		if ( function_exists( 'is_singular' ) && is_singular( [ 'nkzmp_vendor', 'nkv_vendor' ] ) ) {
+			return true;
+		}
+		$path = isset( $_SERVER['REQUEST_URI'] ) ? wp_parse_url( (string) $_SERVER['REQUEST_URI'], PHP_URL_PATH ) : '';
+		if ( is_string( $path ) && preg_match( '#/vendor(/|s/?$|/?$)#', (string) $path ) ) {
+			return true;
+		}
+		return false;
 	}
 }
