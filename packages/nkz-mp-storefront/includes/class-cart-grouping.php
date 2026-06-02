@@ -33,6 +33,18 @@ final class CartGrouping {
 		add_filter( 'woocommerce_cart_item_class', [ $this, 'row_class' ], 10, 3 );
 		add_filter( 'woocommerce_cart_item_name', [ $this, 'tag_name' ], 10, 3 );
 		add_action( 'wp_enqueue_scripts', [ $this, 'enqueue' ], 20 );
+
+		// Skryj WC kalkulačku dopravy v košíku ("Změnit adresu" / Země /
+		// Město / PSČ). AOZ jede výhradně Zásilkovnu – výdejnu vybírá widget
+		// Packety, takže adresní kalkulačka je zbytečná a matoucí.
+		// Vypnutí: add_filter( 'nkzmp/v1/cart/hide_shipping_calc', '__return_false' );
+		if ( apply_filters( 'nkzmp/v1/cart/hide_shipping_calc', true ) ) {
+			add_filter( 'pre_option_woocommerce_enable_shipping_calc', static fn() => 'no' );
+			add_filter( 'woocommerce_shipping_calculator_enable_country', '__return_false' );
+			add_filter( 'woocommerce_shipping_calculator_enable_state', '__return_false' );
+			add_filter( 'woocommerce_shipping_calculator_enable_city', '__return_false' );
+			add_filter( 'woocommerce_shipping_calculator_enable_postcode', '__return_false' );
+		}
 	}
 
 	/**
