@@ -192,7 +192,7 @@ final class ShopFilters {
 		);
 		echo '</div>';
 		printf(
-			'<div class="nkzmp-filters__range"><input type="range" min="%1$d" max="%2$d" value="%3$d" data-nkzmp-range="min"><input type="range" min="%1$d" max="%2$d" value="%4$d" data-nkzmp-range="max"></div>',
+			'<div class="nkzmp-filters__range"><div class="nkzmp-filters__range-bg"></div><div class="nkzmp-filters__range-fill" data-nkzmp-range-fill></div><input type="range" min="%1$d" max="%2$d" value="%3$d" data-nkzmp-range="min"><input type="range" min="%1$d" max="%2$d" value="%4$d" data-nkzmp-range="max"></div>',
 			(int) $bounds['min'],
 			(int) $bounds['max'],
 			(int) $cur_min,

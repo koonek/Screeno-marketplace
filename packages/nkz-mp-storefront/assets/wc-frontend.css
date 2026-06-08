@@ -394,35 +394,41 @@ body.woocommerce-checkout .required {
 /* Shop / category archive – clean kurátorský grid (Flér/Etsy estetika).
  * Karta bez ohraničení v default state, jemný lift na hoveru. Vendor badge,
  * cena druhotná. „Add to cart" button schovaný (vede přes single page). */
-.woocommerce ul.products,
-.woocommerce-page ul.products {
-	gap: 32px 24px;
+html body .woocommerce ul.products,
+html body.woocommerce ul.products,
+html body .woocommerce-page ul.products,
+html body.woocommerce-page ul.products {
+	gap: 32px 24px !important;
 	display: grid !important;
 	grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)) !important;
-	justify-items: start !important;
+	justify-items: stretch !important;
 	justify-content: start !important;
+	text-align: left !important;
 	float: none !important;
 	margin: 0 0 40px !important;
 	padding: 0 !important;
 	list-style: none !important;
 }
-/* Default WC `li.product.last` ma float:right / margin-left:auto a v gridu
- * by posouvalo jednu polozku doprava (typicky na 'Souvisejici produkty'
- * kde je casto 1 item). Vynulujeme. */
-.woocommerce ul.products li.product.first,
-.woocommerce ul.products li.product.last,
-.woocommerce-page ul.products li.product.first,
-.woocommerce-page ul.products li.product.last {
+/* Default WC `li.product.first/.last` ma float + clear + inline-block
+ * centrovani od tematu, ktere v gridu delaji mezery. Tvrde vynulovat. */
+html body .woocommerce ul.products li.product,
+html body.woocommerce ul.products li.product,
+html body .woocommerce ul.products li.product.first,
+html body .woocommerce ul.products li.product.last,
+html body .woocommerce-page ul.products li.product.first,
+html body .woocommerce-page ul.products li.product.last {
 	float: none !important;
 	clear: none !important;
-	margin-left: 0 !important;
-	margin-right: 0 !important;
-	width: 100% !important;
+	display: block !important;
+	margin: 0 !important;
+	width: auto !important;
 }
 /* Mobile: vzdy 2 sloupce vedle sebe (auto-fill by spadlo na 1 pri <480px). */
 @media (max-width: 720px) {
-	.woocommerce ul.products,
-	.woocommerce-page ul.products {
+	html body .woocommerce ul.products,
+	html body.woocommerce ul.products,
+	html body .woocommerce-page ul.products,
+	html body.woocommerce-page ul.products {
 		grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
 		gap: 24px 12px !important;
 	}
@@ -2223,16 +2229,46 @@ html body .nkzmp-filters__range {
 	height: 24px !important;
 	margin-top: 12px !important;
 }
+/* Šedý podklad track + modrý fill mezi thumby (fill polohu řídí JS). */
+html body .nkzmp-filters__range-bg,
+html body .nkzmp-filters__range-fill {
+	position: absolute !important;
+	top: 50% !important;
+	height: 4px !important;
+	transform: translateY(-50%) !important;
+	border-radius: 999px !important;
+	pointer-events: none !important;
+}
+html body .nkzmp-filters__range-bg {
+	left: 0 !important;
+	right: 0 !important;
+	background: var(--nkzmp-color-border) !important;
+}
+html body .nkzmp-filters__range-fill {
+	left: 0 !important;
+	right: 0 !important;
+	background: var(--nkzmp-color-accent) !important;
+}
 html body .nkzmp-filters__range input[type="range"] {
 	position: absolute !important;
 	left: 0 !important;
 	top: 8px !important;
 	width: 100% !important;
+	height: 4px !important;
 	margin: 0 !important;
 	background: transparent !important;
 	pointer-events: none !important;
 	-webkit-appearance: none !important;
 	appearance: none !important;
+}
+/* WebKit track musí být transparentní, ať prosvítá náš bg/fill. */
+html body .nkzmp-filters__range input[type="range"]::-webkit-slider-runnable-track {
+	background: transparent !important;
+	border: 0 !important;
+}
+html body .nkzmp-filters__range input[type="range"]::-moz-range-track {
+	background: transparent !important;
+	border: 0 !important;
 }
 html body .nkzmp-filters__range input[type="range"]::-webkit-slider-thumb {
 	-webkit-appearance: none !important;

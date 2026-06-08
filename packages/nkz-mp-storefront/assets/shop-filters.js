@@ -166,6 +166,24 @@
 		var iMax = form.querySelector( '[data-nkzmp-price="max"]' );
 		if ( rMin && iMin && iMin.value !== '' ) { rMin.value = iMin.value; }
 		if ( rMax && iMax && iMax.value !== '' ) { rMax.value = iMax.value; }
+		updateRangeFill();
+	}
+
+	// Modrý fill mezi thumby – levý/pravý okraj podle hodnot vůči bounds.
+	function updateRangeFill() {
+		var rMin = form.querySelector( '[data-nkzmp-range="min"]' );
+		var rMax = form.querySelector( '[data-nkzmp-range="max"]' );
+		var fill = form.querySelector( '[data-nkzmp-range-fill]' );
+		if ( ! rMin || ! rMax || ! fill ) { return; }
+		var lo  = parseFloat( rMin.min );
+		var hi  = parseFloat( rMin.max );
+		var span = hi - lo;
+		if ( span <= 0 ) { return; }
+		var a = ( parseFloat( rMin.value ) - lo ) / span * 100;
+		var b = ( parseFloat( rMax.value ) - lo ) / span * 100;
+		if ( a > b ) { var t = a; a = b; b = t; }
+		fill.style.left  = a + '%';
+		fill.style.right = ( 100 - b ) + '%';
 	}
 
 	function syncInputsFromRange() {
@@ -180,6 +198,7 @@
 		if ( lo > hi ) { var tmp = lo; lo = hi; hi = tmp; }
 		iMin.value = lo;
 		iMax.value = hi;
+		updateRangeFill();
 	}
 
 	// Vymazat filtry.
@@ -262,4 +281,7 @@
 			if ( e.key === 'Escape' ) { closeDrawer(); }
 		} );
 	}
+
+	// Init modrého fillu slideru podle počátečních hodnot.
+	updateRangeFill();
 } )();
