@@ -1914,34 +1914,50 @@ html body .nkzmp-shop-vendor__avatar {
 	flex-shrink: 0 !important;
 }
 
-/* Single product page: vendor badge pod titulem.
- * Vetsi avatar (36px), regular case typografie, hover na accent. */
+/* Single product page: vendor karta pod titulem.
+ * Sjednocena karta avatar | (jmeno + bio) – cela klikatelna na vendor page.
+ * Bio uvnitr karty, at se nezamenuje s popisem produktu. */
 html body .nkzmp-single-vendor {
-	display: inline-flex !important;
-	align-items: center !important;
-	gap: 12px !important;
-	margin: 4px 0 20px !important;
-	padding: 6px 14px 6px 6px !important;
+	display: flex !important;
+	align-items: flex-start !important;
+	gap: 14px !important;
+	margin: 4px 0 24px !important;
+	padding: 14px 18px 14px 14px !important;
 	background: var(--nkzmp-color-bg-warm) !important;
 	border: 1px solid var(--nkzmp-color-border-soft) !important;
-	border-radius: 999px !important;
+	border-radius: 16px !important;
 	color: var(--nkzmp-color-text) !important;
 	text-decoration: none !important;
 	font-size: 14px !important;
-	line-height: 1.2 !important;
+	line-height: 1.45 !important;
 	transition: border-color 0.15s ease, background 0.15s ease !important;
+	max-width: 560px !important;
 }
 html body .nkzmp-single-vendor:hover {
 	border-color: var(--nkzmp-color-accent) !important;
 	background: var(--nkzmp-color-surface) !important;
 }
 html body .nkzmp-single-vendor__avatar {
-	width: 36px !important;
-	height: 36px !important;
+	width: 44px !important;
+	height: 44px !important;
 	border-radius: 50% !important;
 	object-fit: cover !important;
 	background: var(--nkzmp-color-surface) !important;
 	flex-shrink: 0 !important;
+	margin-top: 2px !important;
+}
+html body .nkzmp-single-vendor__body {
+	display: flex !important;
+	flex-direction: column !important;
+	gap: 4px !important;
+	min-width: 0 !important;
+	flex: 1 1 auto !important;
+}
+html body .nkzmp-single-vendor__head {
+	display: flex !important;
+	align-items: baseline !important;
+	gap: 6px !important;
+	flex-wrap: wrap !important;
 }
 html body .nkzmp-single-vendor__by {
 	color: var(--nkzmp-color-text-muted) !important;
@@ -1949,20 +1965,12 @@ html body .nkzmp-single-vendor__by {
 }
 html body .nkzmp-single-vendor__name {
 	font-weight: 500 !important;
-}
-/* Bio pod pillem – krátký kurátorský popis prodejce. */
-html body .nkzmp-single-vendor-wrap {
-	display: block !important;
-	margin: 4px 0 20px !important;
-}
-html body .nkzmp-single-vendor-wrap .nkzmp-single-vendor {
-	margin: 0 0 10px !important;
+	color: var(--nkzmp-color-text) !important;
 }
 html body .nkzmp-single-vendor__bio {
 	margin: 0 !important;
-	max-width: 60ch !important;
 	color: var(--nkzmp-color-text-muted) !important;
-	font-size: 14px !important;
+	font-size: 13px !important;
 	line-height: 1.5 !important;
 }
 html body .nkzmp-shop-vendor__by { opacity: 0.6 !important; }

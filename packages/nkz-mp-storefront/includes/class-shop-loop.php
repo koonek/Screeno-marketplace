@@ -183,8 +183,22 @@ final class ShopLoop {
 			] )
 			: '';
 
+		// Single product: jedna sjednocena karta (avatar + jmeno + bio), cela klikatelna.
 		if ( $context === 'single' ) {
-			echo '<div class="nkzmp-single-vendor-wrap">';
+			echo '<a class="nkzmp-single-vendor" href="' . esc_url( $vendor['url'] ) . '" rel="author">';
+			echo $avatar; // already escaped by wp_get_attachment_image
+			echo '<div class="nkzmp-single-vendor__body">';
+			echo '<div class="nkzmp-single-vendor__head">';
+			echo '<span class="nkzmp-single-vendor__by">' . esc_html__( 'od', 'nkz-mp-storefront' ) . '</span> ';
+			echo '<span class="nkzmp-single-vendor__name">' . esc_html( $vendor['name'] ) . '</span>';
+			echo '</div>';
+			if ( ! empty( $vendor['bio'] ) ) {
+				$bio = wp_trim_words( wp_strip_all_tags( (string) $vendor['bio'] ), 28, '…' );
+				echo '<p class="nkzmp-single-vendor__bio">' . esc_html( $bio ) . '</p>';
+			}
+			echo '</div>';
+			echo '</a>';
+			return;
 		}
 
 		echo '<a class="' . esc_attr( $class ) . '" href="' . esc_url( $vendor['url'] ) . '" rel="author">';
@@ -192,16 +206,6 @@ final class ShopLoop {
 		echo '<span class="' . esc_attr( $class ) . '__by">' . esc_html__( 'od', 'nkz-mp-storefront' ) . '</span> ';
 		echo '<span class="' . esc_attr( $class ) . '__name">' . esc_html( $vendor['name'] ) . '</span>';
 		echo '</a>';
-
-		if ( $context === 'single' && ! empty( $vendor['bio'] ) ) {
-			$bio = wp_strip_all_tags( (string) $vendor['bio'] );
-			$bio = wp_trim_words( $bio, 28, '…' );
-			echo '<p class="nkzmp-single-vendor__bio">' . esc_html( $bio ) . '</p>';
-		}
-
-		if ( $context === 'single' ) {
-			echo '</div>';
-		}
 	}
 
 	public function become_vendor_cta(): void {
