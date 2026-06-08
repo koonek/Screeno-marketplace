@@ -399,10 +399,25 @@ body.woocommerce-checkout .required {
 	gap: 32px 24px;
 	display: grid !important;
 	grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)) !important;
+	justify-items: start !important;
+	justify-content: start !important;
 	float: none !important;
 	margin: 0 0 40px !important;
 	padding: 0 !important;
 	list-style: none !important;
+}
+/* Default WC `li.product.last` ma float:right / margin-left:auto a v gridu
+ * by posouvalo jednu polozku doprava (typicky na 'Souvisejici produkty'
+ * kde je casto 1 item). Vynulujeme. */
+.woocommerce ul.products li.product.first,
+.woocommerce ul.products li.product.last,
+.woocommerce-page ul.products li.product.first,
+.woocommerce-page ul.products li.product.last {
+	float: none !important;
+	clear: none !important;
+	margin-left: 0 !important;
+	margin-right: 0 !important;
+	width: 100% !important;
 }
 /* Mobile: vzdy 2 sloupce vedle sebe (auto-fill by spadlo na 1 pri <480px). */
 @media (max-width: 720px) {
