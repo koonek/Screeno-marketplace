@@ -1935,6 +1935,21 @@ html body .nkzmp-single-vendor__by {
 html body .nkzmp-single-vendor__name {
 	font-weight: 500 !important;
 }
+/* Bio pod pillem – krátký kurátorský popis prodejce. */
+html body .nkzmp-single-vendor-wrap {
+	display: block !important;
+	margin: 4px 0 20px !important;
+}
+html body .nkzmp-single-vendor-wrap .nkzmp-single-vendor {
+	margin: 0 0 10px !important;
+}
+html body .nkzmp-single-vendor__bio {
+	margin: 0 !important;
+	max-width: 60ch !important;
+	color: var(--nkzmp-color-text-muted) !important;
+	font-size: 14px !important;
+	line-height: 1.5 !important;
+}
 html body .nkzmp-shop-vendor__by { opacity: 0.6 !important; }
 html body .nkzmp-shop-vendor__name {
 	font-weight: 600 !important;

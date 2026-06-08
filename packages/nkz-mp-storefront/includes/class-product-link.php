@@ -18,10 +18,11 @@ final class ProductLink {
 	}
 
 	public function init(): void {
-		if ( 'yes' !== Settings::get()['enable_product_link'] ) {
-			return;
-		}
-		add_action( 'woocommerce_single_product_summary', [ $this, 'render_link' ], 25 );
+		// Nahrazeno novejsim 'single_vendor_badge' (avatar + jmeno pill)
+		// v ShopLoop @woocommerce_single_product_summary:6. Tato trida
+		// uz se nevykresluje, at na produktu neni dvakrat "od / Prodejce".
+		// Settings flag 'enable_product_link' nechan kvuli zpetne kompatibilite.
+		return;
 	}
 
 	public function render_link(): void {

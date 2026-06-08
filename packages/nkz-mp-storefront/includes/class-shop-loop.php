@@ -158,11 +158,17 @@ final class ShopLoop {
 		if ( ! $post ) {
 			return null;
 		}
+		$bio = (string) get_post_meta( $vid, '_nkzmp_vendor_bio', true );
+		if ( $bio === '' ) {
+			$bio = (string) get_post_meta( $vid, '_nkv_vendor_bio', true );
+		}
+
 		return [
 			'id'        => $vid,
 			'name'      => (string) $post->post_title,
 			'url'       => $post->post_name !== '' ? home_url( '/vendor/' . $post->post_name ) : '',
 			'avatar_id' => (int) get_post_thumbnail_id( $vid ),
+			'bio'       => $bio,
 		];
 	}
 
@@ -177,11 +183,25 @@ final class ShopLoop {
 			] )
 			: '';
 
+		if ( $context === 'single' ) {
+			echo '<div class="nkzmp-single-vendor-wrap">';
+		}
+
 		echo '<a class="' . esc_attr( $class ) . '" href="' . esc_url( $vendor['url'] ) . '" rel="author">';
 		echo $avatar; // already escaped by wp_get_attachment_image
 		echo '<span class="' . esc_attr( $class ) . '__by">' . esc_html__( 'od', 'nkz-mp-storefront' ) . '</span> ';
 		echo '<span class="' . esc_attr( $class ) . '__name">' . esc_html( $vendor['name'] ) . '</span>';
 		echo '</a>';
+
+		if ( $context === 'single' && ! empty( $vendor['bio'] ) ) {
+			$bio = wp_strip_all_tags( (string) $vendor['bio'] );
+			$bio = wp_trim_words( $bio, 28, '…' );
+			echo '<p class="nkzmp-single-vendor__bio">' . esc_html( $bio ) . '</p>';
+		}
+
+		if ( $context === 'single' ) {
+			echo '</div>';
+		}
 	}
 
 	public function become_vendor_cta(): void {
