@@ -404,6 +404,14 @@ body.woocommerce-checkout .required {
 	padding: 0 !important;
 	list-style: none !important;
 }
+/* Mobile: vzdy 2 sloupce vedle sebe (auto-fill by spadlo na 1 pri <480px). */
+@media (max-width: 720px) {
+	.woocommerce ul.products,
+	.woocommerce-page ul.products {
+		grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+		gap: 24px 12px !important;
+	}
+}
 .woocommerce ul.products li.product,
 .woocommerce-page ul.products li.product {
 	background: transparent;
@@ -1889,6 +1897,43 @@ html body .nkzmp-shop-vendor__avatar {
 	object-fit: cover !important;
 	background: var(--nkzmp-color-bg-warm) !important;
 	flex-shrink: 0 !important;
+}
+
+/* Single product page: vendor badge pod titulem.
+ * Vetsi avatar (36px), regular case typografie, hover na accent. */
+html body .nkzmp-single-vendor {
+	display: inline-flex !important;
+	align-items: center !important;
+	gap: 12px !important;
+	margin: 4px 0 20px !important;
+	padding: 6px 14px 6px 6px !important;
+	background: var(--nkzmp-color-bg-warm) !important;
+	border: 1px solid var(--nkzmp-color-border-soft) !important;
+	border-radius: 999px !important;
+	color: var(--nkzmp-color-text) !important;
+	text-decoration: none !important;
+	font-size: 14px !important;
+	line-height: 1.2 !important;
+	transition: border-color 0.15s ease, background 0.15s ease !important;
+}
+html body .nkzmp-single-vendor:hover {
+	border-color: var(--nkzmp-color-accent) !important;
+	background: var(--nkzmp-color-surface) !important;
+}
+html body .nkzmp-single-vendor__avatar {
+	width: 36px !important;
+	height: 36px !important;
+	border-radius: 50% !important;
+	object-fit: cover !important;
+	background: var(--nkzmp-color-surface) !important;
+	flex-shrink: 0 !important;
+}
+html body .nkzmp-single-vendor__by {
+	color: var(--nkzmp-color-text-muted) !important;
+	font-size: 13px !important;
+}
+html body .nkzmp-single-vendor__name {
+	font-weight: 500 !important;
 }
 html body .nkzmp-shop-vendor__by { opacity: 0.6 !important; }
 html body .nkzmp-shop-vendor__name {

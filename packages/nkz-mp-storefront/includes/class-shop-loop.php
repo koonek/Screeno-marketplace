@@ -44,6 +44,10 @@ final class ShopLoop {
 		add_action( 'woocommerce_after_shop_loop_item_title', [ $this, 'vendor_badge' ], 8 );
 		add_action( 'woocommerce_after_main_content', [ $this, 'become_vendor_cta' ], 5 );
 
+		// Single product page: vendor badge hned pod titulem (priority 6,
+		// mezi title @5 a price @10). Větší varianta s 36px avatarem.
+		add_action( 'woocommerce_single_product_summary', [ $this, 'single_vendor_badge' ], 6 );
+
 		// Invalidace cache počtu aktivních vendorů.
 		add_action( 'save_post_nkzmp_vendor', [ __CLASS__, 'forget_count' ] );
 		add_action( 'deleted_post', [ __CLASS__, 'forget_count' ] );
@@ -115,9 +119,32 @@ final class ShopLoop {
 		if ( ! self::applicable() ) {
 			return;
 		}
+		$vendor = self::resolve_current_product_vendor();
+		if ( $vendor === null ) {
+			return;
+		}
+		self::render_vendor_badge( $vendor, 'shop' );
+	}
+
+	/** Single product summary: vendor badge pod titulem produktu. */
+	public function single_vendor_badge(): void {
+		if ( ! function_exists( 'is_product' ) || ! is_product() ) {
+			return;
+		}
+		$vendor = self::resolve_current_product_vendor();
+		if ( $vendor === null ) {
+			return;
+		}
+		self::render_vendor_badge( $vendor, 'single' );
+	}
+
+	/**
+	 * @return array{id:int,name:string,url:string,avatar_id:int}|null
+	 */
+	private static function resolve_current_product_vendor(): ?array {
 		global $product;
 		if ( ! $product instanceof \WC_Product ) {
-			return;
+			return null;
 		}
 		$pid = $product->get_parent_id() ?: $product->get_id();
 		$vid = (int) get_post_meta( $pid, '_nkzmp_vendor_id', true );
@@ -125,24 +152,35 @@ final class ShopLoop {
 			$vid = (int) get_post_meta( $pid, '_nkv_vendor_id', true );
 		}
 		if ( $vid <= 0 ) {
-			return;
+			return null;
 		}
 		$post = get_post( $vid );
 		if ( ! $post ) {
-			return;
+			return null;
 		}
-		$name      = (string) $post->post_title;
-		$url       = $post->post_name !== '' ? home_url( '/vendor/' . $post->post_name ) : '';
-		$avatar_id = (int) get_post_thumbnail_id( $vid );
-		$avatar    = $avatar_id ? wp_get_attachment_image( $avatar_id, [ 48, 48 ], false, [
-			'class' => 'nkzmp-shop-vendor__avatar',
-			'alt'   => esc_attr( $name ),
-		] ) : '';
+		return [
+			'id'        => $vid,
+			'name'      => (string) $post->post_title,
+			'url'       => $post->post_name !== '' ? home_url( '/vendor/' . $post->post_name ) : '',
+			'avatar_id' => (int) get_post_thumbnail_id( $vid ),
+		];
+	}
 
-		echo '<a class="nkzmp-shop-vendor" href="' . esc_url( $url ) . '" rel="author">';
+	/** Render badge ve 2 variantách: 'shop' (uppercase mini) nebo 'single' (větší pod titulem). */
+	private static function render_vendor_badge( array $vendor, string $context ): void {
+		$class    = $context === 'single' ? 'nkzmp-single-vendor' : 'nkzmp-shop-vendor';
+		$avatar_size = $context === 'single' ? [ 80, 80 ] : [ 48, 48 ];
+		$avatar = $vendor['avatar_id']
+			? wp_get_attachment_image( $vendor['avatar_id'], $avatar_size, false, [
+				'class' => $class . '__avatar',
+				'alt'   => esc_attr( $vendor['name'] ),
+			] )
+			: '';
+
+		echo '<a class="' . esc_attr( $class ) . '" href="' . esc_url( $vendor['url'] ) . '" rel="author">';
 		echo $avatar; // already escaped by wp_get_attachment_image
-		echo '<span class="nkzmp-shop-vendor__by">' . esc_html__( 'od', 'nkz-mp-storefront' ) . '</span> ';
-		echo '<span class="nkzmp-shop-vendor__name">' . esc_html( $name ) . '</span>';
+		echo '<span class="' . esc_attr( $class ) . '__by">' . esc_html__( 'od', 'nkz-mp-storefront' ) . '</span> ';
+		echo '<span class="' . esc_attr( $class ) . '__name">' . esc_html( $vendor['name'] ) . '</span>';
 		echo '</a>';
 	}
 
