@@ -31,6 +31,12 @@ final class Plugin {
 		CartGrouping::instance()->init();
 		ThankYou::instance()->init();
 		ShopLoop::instance()->init();
+		ShopFilters::instance()->init();
+
+		// Cache filtrů (cenové rozpětí, seznam prodejců) invalidovat při
+		// uložení/smazání produktu.
+		add_action( 'save_post_product', [ ShopFilters::class, 'forget_cache' ] );
+		add_action( 'deleted_post', [ ShopFilters::class, 'forget_cache' ] );
 
 		// Elementor integration je opt-in podle dostupnosti pluginu.
 		if ( did_action( 'elementor/loaded' ) || class_exists( \Elementor\Plugin::class ) ) {
