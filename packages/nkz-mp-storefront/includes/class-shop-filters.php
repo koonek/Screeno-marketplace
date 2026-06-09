@@ -127,6 +127,9 @@ final class ShopFilters {
 		// No-JS submit.
 		echo '<noscript><button type="submit" class="nkzmp-filters__submit">' . esc_html__( 'Použít filtry', 'nkz-mp-storefront' ) . '</button></noscript>';
 
+		// Mobilni "Hotovo" - viditelne jen v bottom-sheet rezimu (CSS).
+		echo '<button type="button" class="nkzmp-filters__done" data-nkzmp-done>' . esc_html__( 'Hotovo', 'nkz-mp-storefront' ) . '</button>';
+
 		echo '</form>';
 	}
 

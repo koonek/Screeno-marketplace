@@ -280,6 +280,14 @@
 		document.addEventListener( 'keydown', function ( e ) {
 			if ( e.key === 'Escape' ) { closeDrawer(); }
 		} );
+		// "Hotovo" zavře sheet.
+		var done = form.querySelector( '[data-nkzmp-done]' );
+		if ( done ) {
+			done.addEventListener( 'click', function ( e ) {
+				e.preventDefault();
+				closeDrawer();
+			} );
+		}
 	}
 
 	// Init modrého fillu slideru podle počátečních hodnot.
