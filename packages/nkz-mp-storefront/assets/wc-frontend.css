@@ -412,12 +412,21 @@ html body.woocommerce-page ul.products {
 	padding: 0 !important;
 	list-style: none !important;
 }
-/* Prazdne deti (clearfix divy, hidden li) negenerovat sloty. */
+/* Prazdne / non-product deti v ul.products – schovat, at neberou grid slot.
+ * Nektery theme / WC hook vklada <li class="clear"> nebo divider <div>
+ * jako prvni dite a v gridu to bere bunku → mezera u 'prvniho produktu'. */
+html body .woocommerce ul.products > :not(li.product),
+html body .woocommerce-page ul.products > :not(li.product),
 html body .woocommerce ul.products > *:empty,
 html body .woocommerce-page ul.products > *:empty,
 html body .woocommerce ul.products > .clear,
 html body .woocommerce-page ul.products > .clear {
 	display: none !important;
+}
+/* Pojistka: prvni opravdovy product = vzdy do sloupce 1. */
+html body .woocommerce ul.products li.product:first-of-type,
+html body .woocommerce-page ul.products li.product:first-of-type {
+	grid-column-start: 1 !important;
 }
 /* Default WC `li.product.first/.last` ma float + clear + inline-block
  * centrovani od tematu, ktere v gridu delaji mezery. Tvrde vynulovat. */
