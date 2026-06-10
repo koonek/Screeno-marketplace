@@ -431,6 +431,17 @@ html body.woocommerce-page ul.products {
 	padding: 0 !important;
 	list-style: none !important;
 }
+/* WC default ma na ul.products::before/::after content:" "; display:table
+ * jako clearfix pro float layout. V gridu je to ale plnohodnotny grid item,
+ * ktery zabira prvni bunku → odsud cela ta mezera u 'prvniho produktu'. */
+html body .woocommerce ul.products::before,
+html body .woocommerce ul.products::after,
+html body .woocommerce-page ul.products::before,
+html body .woocommerce-page ul.products::after {
+	display: none !important;
+	content: none !important;
+}
+
 /* Prazdne / non-product deti v ul.products – schovat, at neberou grid slot.
  * Nektery theme / WC hook vklada <li class="clear"> nebo divider <div>
  * jako prvni dite a v gridu to bere bunku → mezera u 'prvniho produktu'. */
