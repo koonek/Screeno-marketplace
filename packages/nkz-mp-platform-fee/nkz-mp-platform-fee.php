@@ -45,7 +45,55 @@ add_action( 'plugins_loaded', static function (): void {
 	}
 	add_action( 'woocommerce_cart_calculate_fees', 'nkzmp_platform_fee_apply' );
 	add_filter( 'woocommerce_cart_totals_fee_label', 'nkzmp_platform_fee_tooltip_label', 10, 2 );
+	add_action( 'woocommerce_order_refunded', 'nkzmp_platform_fee_on_refund', 10, 2 );
 }, 20 );
+
+/**
+ * Po refundu připomene v order notes, že servisní poplatek zůstává platformě
+ * (pokud ho admin do refundu neručně nezahrnul). Admin nic neztrácí, jen
+ * dostane audit-friendly stopu.
+ */
+function nkzmp_platform_fee_on_refund( int $order_id, int $refund_id ): void {
+	$order  = wc_get_order( $order_id );
+	$refund = wc_get_order( $refund_id );
+	if ( ! $order || ! $refund ) {
+		return;
+	}
+	$label = (string) apply_filters(
+		'nkzmp/v1/platform_fee/label',
+		__( 'Servisní poplatek', 'nkz-mp-platform-fee' )
+	);
+	$order_fee = 0.0;
+	foreach ( $order->get_fees() as $fee ) {
+		if ( $fee->get_name() === $label ) {
+			$order_fee += (float) $fee->get_total();
+		}
+	}
+	if ( $order_fee <= 0 ) {
+		return;
+	}
+	$refunded_fee = 0.0;
+	foreach ( $refund->get_fees() as $fee ) {
+		if ( $fee->get_name() === $label ) {
+			$refunded_fee += abs( (float) $fee->get_total() );
+		}
+	}
+	$remaining = $order_fee - $refunded_fee;
+	if ( $remaining <= 0.005 ) {
+		$order->add_order_note( sprintf(
+			/* translators: %s = částka */
+			__( 'Servisní poplatek (%s) byl plně refundován.', 'nkz-mp-platform-fee' ),
+			wc_price( $order_fee, [ 'currency' => $order->get_currency() ] )
+		) );
+		return;
+	}
+	$order->add_order_note( sprintf(
+		/* translators: 1: zůstávající fee 2: celkový fee */
+		__( 'Pozn: Servisní poplatek %1$s (z %2$s) zůstává platformě. Pokud chcete refundovat i poplatek, ručně ho přidejte v dalším refundu.', 'nkz-mp-platform-fee' ),
+		wc_price( $remaining, [ 'currency' => $order->get_currency() ] ),
+		wc_price( $order_fee, [ 'currency' => $order->get_currency() ] )
+	) );
+}
 
 /**
  * Vrátí text tooltipu (filtrovatelný).

@@ -32,8 +32,8 @@ final class HealthChecks {
 		if ( empty( $s['webhook_secret'] ) ) {
 			$rows[] = [
 				'label'  => __( 'Billing webhook', 'nkz-mp-vendor-billing' ),
-				'state'  => 'warn',
-				'detail' => __( 'chybí signing secret – renewaly nemusí dojít', 'nkz-mp-vendor-billing' ),
+				'state'  => 'fail',
+				'detail' => __( 'chybí signing secret – Stripe webhook je odmítán (503), renewaly se vůbec neprojeví', 'nkz-mp-vendor-billing' ),
 			];
 		}
 

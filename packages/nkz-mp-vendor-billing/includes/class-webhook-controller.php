@@ -46,14 +46,26 @@ final class WebhookController {
 	public function handle( \WP_REST_Request $req ) {
 		$payload = $req->get_body();
 
-		// Signature verification. Pokud je v Settings signing secret, podpis se
-		// VYŽADUJE (jinak 400). Bez secretu projde (dev/staging bez webhook secretu).
-		$secret = (string) Settings::get()['webhook_secret'];
-		if ( $secret !== '' ) {
+		// Signature verification – hard fail bez secretu (chrání produkci před
+		// zapomenutou konfigurací). V dev prostředí (WP_DEBUG nebo filtr) lze
+		// fallback povolit, ale jen explicitně.
+		$secret      = (string) Settings::get()['webhook_secret'];
+		$allow_unsig = (bool) apply_filters(
+			'nkzmp/v1/billing/webhook/allow_unsigned',
+			defined( 'WP_DEBUG' ) && WP_DEBUG && ( ! defined( 'WP_ENV' ) || 'production' !== WP_ENV )
+		);
+		if ( '' === $secret ) {
+			if ( ! $allow_unsig ) {
+				error_log( '[NKZMP Billing] webhook secret not configured – rejecting' );
+				return new \WP_REST_Response( [ 'ok' => false, 'error' => 'webhook_secret_not_configured' ], 503 );
+			}
+			// dev fallback – jen warning
+			error_log( '[NKZMP Billing] webhook running WITHOUT signature verification (dev mode)' );
+		} else {
 			$sig = (string) $req->get_header( 'stripe_signature' );
 			if ( ! Signature::verify( $payload, $sig, $secret ) ) {
 				error_log( '[NKZMP Billing] webhook signature mismatch' );
-				return new \WP_REST_Response( [ 'ok' => false, 'error' => 'invalid signature' ], 400 );
+				return new \WP_REST_Response( [ 'ok' => false, 'error' => 'invalid_signature' ], 400 );
 			}
 		}
 
