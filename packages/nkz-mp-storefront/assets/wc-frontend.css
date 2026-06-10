@@ -384,6 +384,8 @@ body.woocommerce-checkout .required {
 .woocommerce div.product .product_meta a:hover { color: var(--nkzmp-color-accent-hover); }
 
 /* Related products */
+html body.woocommerce .related,
+html body.woocommerce .upsells,
 html body .woocommerce .related,
 html body .woocommerce .upsells {
 	clear: both !important;
@@ -395,6 +397,8 @@ html body .woocommerce .upsells {
 	float: none !important;
 	display: block !important;
 }
+html body.woocommerce .related ul.products,
+html body.woocommerce .upsells ul.products,
 html body .woocommerce .related ul.products,
 html body .woocommerce .upsells ul.products {
 	width: 100% !important;
@@ -433,7 +437,15 @@ html body.woocommerce-page ul.products {
 }
 /* WC default ma na ul.products::before/::after content:" "; display:table
  * jako clearfix pro float layout. V gridu je to ale plnohodnotny grid item,
- * ktery zabira prvni bunku → odsud cela ta mezera u 'prvniho produktu'. */
+ * ktery zabira prvni bunku → odsud cela ta mezera u 'prvniho produktu'.
+ * Pozn: body sam ma class .woocommerce, proto selektor bez mezery
+ * (body.woocommerce) + univerzalni fallback bez tridy. */
+html body ul.products::before,
+html body ul.products::after,
+html body.woocommerce ul.products::before,
+html body.woocommerce ul.products::after,
+html body.woocommerce-page ul.products::before,
+html body.woocommerce-page ul.products::after,
 html body .woocommerce ul.products::before,
 html body .woocommerce ul.products::after,
 html body .woocommerce-page ul.products::before,
@@ -445,12 +457,9 @@ html body .woocommerce-page ul.products::after {
 /* Prazdne / non-product deti v ul.products – schovat, at neberou grid slot.
  * Nektery theme / WC hook vklada <li class="clear"> nebo divider <div>
  * jako prvni dite a v gridu to bere bunku → mezera u 'prvniho produktu'. */
-html body .woocommerce ul.products > :not(li.product),
-html body .woocommerce-page ul.products > :not(li.product),
-html body .woocommerce ul.products > *:empty,
-html body .woocommerce-page ul.products > *:empty,
-html body .woocommerce ul.products > .clear,
-html body .woocommerce-page ul.products > .clear {
+html body ul.products > :not(li.product),
+html body ul.products > *:empty,
+html body ul.products > .clear {
 	display: none !important;
 }
 /* Pojistka: vsechny .product maji auto column placement (negrid zadny
