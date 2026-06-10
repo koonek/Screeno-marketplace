@@ -384,6 +384,25 @@ body.woocommerce-checkout .required {
 .woocommerce div.product .product_meta a:hover { color: var(--nkzmp-color-accent-hover); }
 
 /* Related products */
+html body .woocommerce .related,
+html body .woocommerce .upsells {
+	clear: both !important;
+	width: 100% !important;
+	max-width: 100% !important;
+	margin-left: 0 !important;
+	margin-right: 0 !important;
+	text-align: left !important;
+	float: none !important;
+	display: block !important;
+}
+html body .woocommerce .related ul.products,
+html body .woocommerce .upsells ul.products {
+	width: 100% !important;
+	max-width: 100% !important;
+	margin-left: 0 !important;
+	margin-right: 0 !important;
+	float: none !important;
+}
 .woocommerce .related h2,
 .woocommerce .upsells h2 {
 	font-size: clamp(22px, 3vw, 32px);
@@ -423,10 +442,13 @@ html body .woocommerce ul.products > .clear,
 html body .woocommerce-page ul.products > .clear {
 	display: none !important;
 }
-/* Pojistka: prvni opravdovy product = vzdy do sloupce 1. */
-html body .woocommerce ul.products li.product:first-of-type,
-html body .woocommerce-page ul.products li.product:first-of-type {
-	grid-column-start: 1 !important;
+/* Pojistka: vsechny .product maji auto column placement (negrid zadny
+ * theme/WC nastaveny grid-column-start na .first/.last). */
+html body .woocommerce ul.products li.product,
+html body .woocommerce-page ul.products li.product {
+	grid-column: auto !important;
+	grid-row: auto !important;
+	justify-self: stretch !important;
 }
 /* Default WC `li.product.first/.last` ma float + clear + inline-block
  * centrovani od tematu, ktere v gridu delaji mezery. Tvrde vynulovat. */
