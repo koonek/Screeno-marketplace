@@ -48,6 +48,17 @@ final class ShopLoop {
 		// mezi title @5 a price @10). Větší varianta s 36px avatarem.
 		add_action( 'woocommerce_single_product_summary', [ $this, 'single_vendor_badge' ], 6 );
 
+		// Breadcrumb „Domů" na WC stránkách vede na marketplace landing
+		// místo rootu webu – obchod je sekce marketplace, ne celého webu.
+		// Override: add_filter( 'nkzmp/v1/storefront/breadcrumb_home_url', ... )
+		add_filter( 'woocommerce_breadcrumb_home_url', static function ( $url ) {
+			return (string) apply_filters(
+				'nkzmp/v1/storefront/breadcrumb_home_url',
+				home_url( '/marketplace/' ),
+				$url
+			);
+		} );
+
 		// Invalidace cache počtu aktivních vendorů.
 		add_action( 'save_post_nkzmp_vendor', [ __CLASS__, 'forget_count' ] );
 		add_action( 'deleted_post', [ __CLASS__, 'forget_count' ] );
