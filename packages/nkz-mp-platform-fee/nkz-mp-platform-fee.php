@@ -2,7 +2,7 @@
 /**
  * Plugin Name: NKZ Marketplace – Platform Fee
  * Description: 1% servisní poplatek z mezisoučtu produktů, min 5 Kč. Platí kupující, jde celý platformě. Konfigurovatelné přes filtry.
- * Version: 0.1.0
+ * Version: 0.2.0
  * Author: NKZ
  * Requires at least: 6.2
  * Requires PHP: 8.1
@@ -34,7 +34,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'NKZMP_PLATFORM_FEE_VERSION', '0.1.0' );
+define( 'NKZMP_PLATFORM_FEE_VERSION', '0.2.0' );
 
 add_action( 'plugins_loaded', static function (): void {
 	if ( ! class_exists( 'WooCommerce' ) ) {
@@ -46,7 +46,78 @@ add_action( 'plugins_loaded', static function (): void {
 	add_action( 'woocommerce_cart_calculate_fees', 'nkzmp_platform_fee_apply' );
 	add_filter( 'woocommerce_cart_totals_fee_label', 'nkzmp_platform_fee_tooltip_label', 10, 2 );
 	add_action( 'woocommerce_order_refunded', 'nkzmp_platform_fee_on_refund', 10, 2 );
+	// WC Blocks (Cart/Checkout) – server-side filter se nepoužije, tooltip nalepíme JSkem v DOM.
+	add_action( 'wp_enqueue_scripts', 'nkzmp_platform_fee_enqueue_tooltip_js' );
 }, 20 );
+
+/**
+ * Tooltip JS pro WC Blocks rendering. Skript je inline a běží jen na
+ * stránkách Košík/Pokladna. MutationObserver hlídá pozdní rendering blocks.
+ */
+function nkzmp_platform_fee_enqueue_tooltip_js(): void {
+	if ( ! function_exists( 'is_cart' ) ) {
+		return;
+	}
+	if ( ! is_cart() && ! is_checkout() ) {
+		return;
+	}
+	$label   = (string) apply_filters(
+		'nkzmp/v1/platform_fee/label',
+		__( 'Servisní poplatek', 'nkz-mp-platform-fee' )
+	);
+	$tooltip = nkzmp_platform_fee_tooltip_text();
+	if ( '' === $tooltip ) {
+		return;
+	}
+	$data = wp_json_encode( [
+		'label'   => $label,
+		'tooltip' => $tooltip,
+	] );
+	$icon_style = 'display:inline-block;width:16px;height:16px;line-height:16px;text-align:center;border-radius:50%;background:#e6e6e6;color:#333;font-size:11px;font-weight:600;cursor:help;vertical-align:middle;margin-left:6px;font-family:serif;font-style:italic;';
+	$js = <<<JS
+(function(){
+	var cfg = $data;
+	var marker = 'nkzmpFeeTooltip';
+	function buildIcon(){
+		var i = document.createElement('span');
+		i.className = 'nkzmp-fee-tooltip';
+		i.setAttribute('tabindex','0');
+		i.setAttribute('role','img');
+		i.setAttribute('aria-label', cfg.tooltip);
+		i.setAttribute('title', cfg.tooltip);
+		i.textContent = 'i';
+		i.style.cssText = '$icon_style';
+		i.dataset[marker] = '1';
+		return i;
+	}
+	function decorate(){
+		// 1) WC Blocks (modern Cart/Checkout)
+		document.querySelectorAll('.wc-block-components-totals-item__label').forEach(function(el){
+			if (el.textContent.trim() === cfg.label && !el.querySelector('[data-' + marker.replace(/([A-Z])/g,'-\$1').toLowerCase() + ']')) {
+				el.appendChild(buildIcon());
+			}
+		});
+		// 2) Classic shortcode (fallback – server filter by mel zafungovat, ale jistota)
+		document.querySelectorAll('.cart_totals .fee th, .woocommerce-checkout-review-order-table .fee th').forEach(function(el){
+			if (el.textContent.trim() === cfg.label && !el.querySelector('.nkzmp-fee-tooltip')) {
+				el.appendChild(buildIcon());
+			}
+		});
+	}
+	if (document.readyState === 'loading') {
+		document.addEventListener('DOMContentLoaded', decorate);
+	} else {
+		decorate();
+	}
+	// WC Blocks rerenderují po každé změně – sledujeme DOM.
+	var mo = new MutationObserver(function(){ decorate(); });
+	mo.observe(document.body, { childList: true, subtree: true });
+})();
+JS;
+	wp_register_script( 'nkzmp-platform-fee-tooltip', '', [], NKZMP_PLATFORM_FEE_VERSION, true );
+	wp_enqueue_script( 'nkzmp-platform-fee-tooltip' );
+	wp_add_inline_script( 'nkzmp-platform-fee-tooltip', $js );
+}
 
 /**
  * Po refundu připomene v order notes, že servisní poplatek zůstává platformě
