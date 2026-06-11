@@ -34,7 +34,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'NKZMP_PLATFORM_FEE_VERSION', '0.2.1' );
+define( 'NKZMP_PLATFORM_FEE_VERSION', '0.2.2' );
 
 add_action( 'plugins_loaded', static function (): void {
 	if ( ! class_exists( 'WooCommerce' ) ) {
@@ -94,18 +94,29 @@ function nkzmp_platform_fee_enqueue_tooltip_js(): void {
 		i.textContent = 'i';
 		return i;
 	}
+	function alreadyDecorated(el){
+		return el.querySelector && el.querySelector('[data-nkzmp-fee]');
+	}
 	function decorate(){
-		// WC Blocks
+		// 1) WC Blocks (modern Checkout)
 		document.querySelectorAll('.wc-block-components-totals-item__label').forEach(function(el){
-			if (el.textContent.trim() === cfg.label && !el.querySelector('[data-nkzmp-fee]')) {
+			if (el.textContent.trim() === cfg.label && !alreadyDecorated(el)) {
 				el.appendChild(buildIcon());
 			}
 		});
-		// Classic shortcode fallback
+		// 2) Classic shortcode
 		document.querySelectorAll('.cart_totals .fee th, .woocommerce-checkout-review-order-table .fee th').forEach(function(el){
-			if (el.textContent.trim() === cfg.label && !el.querySelector('[data-nkzmp-fee]')) {
+			if (el.textContent.trim() === cfg.label && !alreadyDecorated(el)) {
 				el.appendChild(buildIcon());
 			}
+		});
+		// 3) Generic fallback – custom theme / Elementor / AOZ cart template.
+		// Najde leaf element jehoz vlastni textContent presne == label.
+		document.querySelectorAll('span, div, th, td, p, dt, dd, label, strong').forEach(function(el){
+			if (alreadyDecorated(el)) return;
+			if (el.children.length !== 0) return;
+			if (el.textContent.trim() !== cfg.label) return;
+			el.appendChild(buildIcon());
 		});
 	}
 	if (document.readyState === 'loading') {
