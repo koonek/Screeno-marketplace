@@ -34,7 +34,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'NKZMP_PLATFORM_FEE_VERSION', '0.2.0' );
+define( 'NKZMP_PLATFORM_FEE_VERSION', '0.2.1' );
 
 add_action( 'plugins_loaded', static function (): void {
 	if ( ! class_exists( 'WooCommerce' ) ) {
@@ -51,14 +51,13 @@ add_action( 'plugins_loaded', static function (): void {
 }, 20 );
 
 /**
- * Tooltip JS pro WC Blocks rendering. Skript je inline a běží jen na
- * stránkách Košík/Pokladna. MutationObserver hlídá pozdní rendering blocks.
+ * Tooltip JS+CSS pro WC Blocks rendering. Skript je inline a běží na
+ * frontendu (idempotentní – pokud na stránce není fee row, nic neudělá).
+ * Použivá CSS popover místo nativního title – konzistentní vzhled napříč
+ * prohlížeči, nepřekrývá další obsah, lépe vypadá.
  */
 function nkzmp_platform_fee_enqueue_tooltip_js(): void {
-	if ( ! function_exists( 'is_cart' ) ) {
-		return;
-	}
-	if ( ! is_cart() && ! is_checkout() ) {
+	if ( is_admin() ) {
 		return;
 	}
 	$label   = (string) apply_filters(
@@ -73,33 +72,38 @@ function nkzmp_platform_fee_enqueue_tooltip_js(): void {
 		'label'   => $label,
 		'tooltip' => $tooltip,
 	] );
-	$icon_style = 'display:inline-block;width:16px;height:16px;line-height:16px;text-align:center;border-radius:50%;background:#e6e6e6;color:#333;font-size:11px;font-weight:600;cursor:help;vertical-align:middle;margin-left:6px;font-family:serif;font-style:italic;';
+	$css = '
+.nkzmp-fee-tooltip{position:relative;display:inline-block;width:16px;height:16px;line-height:16px;text-align:center;border-radius:50%;background:#e6e6e6;color:#333;font-size:11px;font-weight:600;cursor:help;vertical-align:middle;margin-left:6px;font-family:Georgia,serif;font-style:italic;outline:none;}
+.nkzmp-fee-tooltip:hover,.nkzmp-fee-tooltip:focus{background:#d0d0d0;}
+.nkzmp-fee-tooltip::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 10px);left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:10px 14px;border-radius:6px;font-size:12px;font-weight:400;font-style:normal;font-family:inherit;line-height:1.45;white-space:normal;width:260px;text-align:left;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .15s ease,visibility .15s ease;z-index:99999;box-shadow:0 4px 14px rgba(0,0,0,.15);}
+.nkzmp-fee-tooltip::before{content:"";position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);border:6px solid transparent;border-top-color:#1a1a1a;opacity:0;visibility:hidden;transition:opacity .15s ease,visibility .15s ease;z-index:99999;}
+.nkzmp-fee-tooltip:hover::after,.nkzmp-fee-tooltip:focus::after,.nkzmp-fee-tooltip:hover::before,.nkzmp-fee-tooltip:focus::before{opacity:1;visibility:visible;}
+@media (max-width:600px){.nkzmp-fee-tooltip::after{width:200px;left:auto;right:-8px;transform:none;}.nkzmp-fee-tooltip::before{left:auto;right:0;transform:none;}}
+';
 	$js = <<<JS
 (function(){
 	var cfg = $data;
-	var marker = 'nkzmpFeeTooltip';
 	function buildIcon(){
 		var i = document.createElement('span');
 		i.className = 'nkzmp-fee-tooltip';
 		i.setAttribute('tabindex','0');
-		i.setAttribute('role','img');
+		i.setAttribute('role','button');
 		i.setAttribute('aria-label', cfg.tooltip);
-		i.setAttribute('title', cfg.tooltip);
+		i.setAttribute('data-tip', cfg.tooltip);
+		i.setAttribute('data-nkzmp-fee', '1');
 		i.textContent = 'i';
-		i.style.cssText = '$icon_style';
-		i.dataset[marker] = '1';
 		return i;
 	}
 	function decorate(){
-		// 1) WC Blocks (modern Cart/Checkout)
+		// WC Blocks
 		document.querySelectorAll('.wc-block-components-totals-item__label').forEach(function(el){
-			if (el.textContent.trim() === cfg.label && !el.querySelector('[data-' + marker.replace(/([A-Z])/g,'-\$1').toLowerCase() + ']')) {
+			if (el.textContent.trim() === cfg.label && !el.querySelector('[data-nkzmp-fee]')) {
 				el.appendChild(buildIcon());
 			}
 		});
-		// 2) Classic shortcode (fallback – server filter by mel zafungovat, ale jistota)
+		// Classic shortcode fallback
 		document.querySelectorAll('.cart_totals .fee th, .woocommerce-checkout-review-order-table .fee th').forEach(function(el){
-			if (el.textContent.trim() === cfg.label && !el.querySelector('.nkzmp-fee-tooltip')) {
+			if (el.textContent.trim() === cfg.label && !el.querySelector('[data-nkzmp-fee]')) {
 				el.appendChild(buildIcon());
 			}
 		});
@@ -109,11 +113,18 @@ function nkzmp_platform_fee_enqueue_tooltip_js(): void {
 	} else {
 		decorate();
 	}
-	// WC Blocks rerenderují po každé změně – sledujeme DOM.
-	var mo = new MutationObserver(function(){ decorate(); });
+	var scheduled = false;
+	var mo = new MutationObserver(function(){
+		if (scheduled) return;
+		scheduled = true;
+		requestAnimationFrame(function(){ scheduled = false; decorate(); });
+	});
 	mo.observe(document.body, { childList: true, subtree: true });
 })();
 JS;
+	wp_register_style( 'nkzmp-platform-fee-tooltip', false, [], NKZMP_PLATFORM_FEE_VERSION );
+	wp_enqueue_style( 'nkzmp-platform-fee-tooltip' );
+	wp_add_inline_style( 'nkzmp-platform-fee-tooltip', $css );
 	wp_register_script( 'nkzmp-platform-fee-tooltip', '', [], NKZMP_PLATFORM_FEE_VERSION, true );
 	wp_enqueue_script( 'nkzmp-platform-fee-tooltip' );
 	wp_add_inline_script( 'nkzmp-platform-fee-tooltip', $js );
