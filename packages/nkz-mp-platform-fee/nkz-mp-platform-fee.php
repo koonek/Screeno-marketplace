@@ -34,7 +34,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'NKZMP_PLATFORM_FEE_VERSION', '0.2.3' );
+define( 'NKZMP_PLATFORM_FEE_VERSION', '0.2.4' );
 
 add_action( 'plugins_loaded', static function (): void {
 	if ( ! class_exists( 'WooCommerce' ) ) {
@@ -75,12 +75,10 @@ function nkzmp_platform_fee_enqueue_tooltip_js(): void {
 	$css = '
 .nkzmp-fee-tooltip{position:relative;display:inline-block;width:16px;height:16px;line-height:16px;text-align:center;border-radius:50%;background:#e6e6e6;color:#333;font-size:11px;font-weight:600;cursor:help;vertical-align:middle;margin-left:6px;font-family:Georgia,serif;font-style:italic;outline:none;flex:0 0 auto;}
 .nkzmp-fee-tooltip:hover,.nkzmp-fee-tooltip:focus{background:#d0d0d0;}
-.nkzmp-fee-tooltip::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 10px);left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:10px 14px;border-radius:6px;font-size:12px;font-weight:400;font-style:normal;font-family:inherit;line-height:1.45;white-space:normal;width:260px;text-align:left;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .15s ease,visibility .15s ease;z-index:99999;box-shadow:0 4px 14px rgba(0,0,0,.15);}
-.nkzmp-fee-tooltip::before{content:"";position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);border:6px solid transparent;border-top-color:#1a1a1a;opacity:0;visibility:hidden;transition:opacity .15s ease,visibility .15s ease;z-index:99999;}
+.nkzmp-fee-tooltip::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 10px);right:-8px;left:auto;background:#1a1a1a;color:#fff;padding:10px 14px;border-radius:6px;font-size:12px;font-weight:400;font-style:normal;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;line-height:1.45;white-space:normal;width:max-content;max-width:280px;text-align:left;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .15s ease,visibility .15s ease;z-index:99999;box-shadow:0 4px 14px rgba(0,0,0,.15);}
+.nkzmp-fee-tooltip::before{content:"";position:absolute;bottom:calc(100% + 4px);right:2px;left:auto;border:6px solid transparent;border-top-color:#1a1a1a;opacity:0;visibility:hidden;transition:opacity .15s ease,visibility .15s ease;z-index:99999;}
 .nkzmp-fee-tooltip:hover::after,.nkzmp-fee-tooltip:focus::after,.nkzmp-fee-tooltip:hover::before,.nkzmp-fee-tooltip:focus::before{opacity:1;visibility:visible;}
-/* Responsive table pattern: label je z ::before na td[data-title]. Ikona jako prvni dite TD se posune pres margin-right:auto, aby sedela vedle pseudo-labelu a cena zustala vpravo. */
-td[data-title] > .nkzmp-fee-tooltip:first-child{margin-left:8px;margin-right:auto;}
-@media (max-width:600px){.nkzmp-fee-tooltip::after{width:200px;left:auto;right:-8px;transform:none;}.nkzmp-fee-tooltip::before{left:auto;right:0;transform:none;}}
+@media (max-width:600px){.nkzmp-fee-tooltip::after{max-width:240px;}}
 ';
 	$js = <<<JS
 (function(){
@@ -100,29 +98,28 @@ td[data-title] > .nkzmp-fee-tooltip:first-child{margin-left:8px;margin-right:aut
 		return el.querySelector && el.querySelector('[data-nkzmp-fee]');
 	}
 	function decorate(){
-		// 1) WC Blocks (modern Checkout)
+		// 1) Fee radky v tabulce – preferujeme <th> (label), fallback td[data-title].
+		document.querySelectorAll('tr.fee, tr[class*="fee"]').forEach(function(tr){
+			if (alreadyDecorated(tr)) return;
+			var th = tr.querySelector('th');
+			if (th && th.textContent.trim() === cfg.label) {
+				th.appendChild(buildIcon());
+				return;
+			}
+			// fallback: visible label via ::before data-title (responsive pattern)
+			var td = tr.querySelector('td[data-title]');
+			if (td && (td.getAttribute('data-title') || '').trim() === cfg.label) {
+				td.insertBefore(buildIcon(), td.firstChild);
+			}
+		});
+		// 2) WC Blocks (modern Checkout)
 		document.querySelectorAll('.wc-block-components-totals-item__label').forEach(function(el){
 			if (el.textContent.trim() === cfg.label && !alreadyDecorated(el)) {
 				el.appendChild(buildIcon());
 			}
 		});
-		// 2) Classic shortcode
-		document.querySelectorAll('.cart_totals .fee th, .woocommerce-checkout-review-order-table .fee th').forEach(function(el){
-			if (el.textContent.trim() === cfg.label && !alreadyDecorated(el)) {
-				el.appendChild(buildIcon());
-			}
-		});
-		// 3) Responsive table pattern (AOZ cart): label je z ::before via data-title.
-		// Vlozime ikonu jako prvni dite TD, CSS pak margin-right:auto.
-		document.querySelectorAll('td[data-title]').forEach(function(el){
-			if (alreadyDecorated(el)) return;
-			var t = (el.getAttribute('data-title') || '').trim();
-			if (t !== cfg.label) return;
-			el.insertBefore(buildIcon(), el.firstChild);
-		});
-		// 4) Generic fallback – custom theme / Elementor.
-		// Najde leaf element jehoz vlastni textContent presne == label.
-		document.querySelectorAll('span, div, th, td, p, dt, dd, label, strong').forEach(function(el){
+		// 3) Generic leaf fallback (custom theme / Elementor).
+		document.querySelectorAll('span, div, p, dt, dd, label, strong').forEach(function(el){
 			if (alreadyDecorated(el)) return;
 			if (el.children.length !== 0) return;
 			if (el.textContent.trim() !== cfg.label) return;
