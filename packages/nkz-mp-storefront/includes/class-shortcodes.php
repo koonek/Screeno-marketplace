@@ -173,7 +173,20 @@ final class Shortcodes {
 		$GLOBALS['nkzmp_force_shop_loop'] = true;
 		$uid = 'nkzmp-cats-' . wp_unique_id();
 		$style = self::grid_style_for( $uid, $columns, (string) $a['color'] );
-		$out = $style . '<div id="' . esc_attr( $uid ) . '" class="woocommerce nkzmp-product-categories">' . do_shortcode( $inner ) . '</div>';
+		$rendered = do_shortcode( $inner );
+		// Belt-and-suspenders: i kdyby WC filter selhal, smazneme <li> obsahujici excludovane kategorie podle nazvu termu.
+		if ( $exclude_ids ) {
+			$excl_names = [];
+			foreach ( $exclude_ids as $eid ) {
+				$t = get_term( $eid, 'product_cat' );
+				if ( $t && ! is_wp_error( $t ) ) {
+					$excl_names[] = $t->name;
+				}
+			}
+			$rendered = self::strip_categories_by_name( $rendered, $excl_names );
+		}
+		$debug = sprintf( '<!-- nkzmp_product_categories v%s exclude_ids=%s -->', NKZMP_STOREFRONT_VERSION, implode( ',', $exclude_ids ) );
+		$out = $debug . $style . '<div id="' . esc_attr( $uid ) . '" class="woocommerce nkzmp-product-categories">' . $rendered . '</div>';
 		unset( $GLOBALS['nkzmp_force_shop_loop'] );
 
 		if ( ! $show_count ) {
@@ -183,6 +196,57 @@ final class Shortcodes {
 			remove_filter( 'woocommerce_product_categories_shortcode_args', $exclude_filter );
 		}
 
+		return $out;
+	}
+
+	/**
+	 * Vystrihne <li> kategoriove karty, ktere maji <h2> textovou shodou s nazvem v $names.
+	 * Pouziva DOMDocument – odolne vuci ruzne strukture WC sablon.
+	 */
+	private static function strip_categories_by_name( string $html, array $names ): string {
+		if ( empty( $names ) || trim( $html ) === '' ) {
+			return $html;
+		}
+		$names_lc = array_map( static fn( $n ) => mb_strtolower( trim( $n ) ), $names );
+		$prev = libxml_use_internal_errors( true );
+		$doc  = new \DOMDocument( '1.0', 'UTF-8' );
+		// Wrapper + meta encoding hint, jinak DOMDocument scrambluje UTF-8.
+		$doc->loadHTML( '<?xml encoding="UTF-8"?><div id="nkzmp-wrap">' . $html . '</div>' );
+		libxml_clear_errors();
+		libxml_use_internal_errors( $prev );
+
+		$xpath = new \DOMXPath( $doc );
+		$titles = $xpath->query( '//li[contains(@class,"product-category")]//*[self::h2 or self::h3 or self::span][contains(concat(" ",normalize-space(@class)," ")," woocommerce-loop-category__title ")]' );
+		if ( ! $titles ) {
+			return $html;
+		}
+		$removed = false;
+		foreach ( $titles as $t ) {
+			$text = mb_strtolower( trim( $t->textContent ) );
+			// Strip pripadny "(count)" suffix, kdyby uzivatel show_count=yes.
+			$text = preg_replace( '/\s*\(\d+\)\s*$/u', '', $text );
+			if ( in_array( $text, $names_lc, true ) ) {
+				$li = $t;
+				while ( $li && strtolower( $li->nodeName ) !== 'li' ) {
+					$li = $li->parentNode;
+				}
+				if ( $li && $li->parentNode ) {
+					$li->parentNode->removeChild( $li );
+					$removed = true;
+				}
+			}
+		}
+		if ( ! $removed ) {
+			return $html;
+		}
+		$wrap = $doc->getElementById( 'nkzmp-wrap' );
+		if ( ! $wrap ) {
+			return $html;
+		}
+		$out = '';
+		foreach ( $wrap->childNodes as $child ) {
+			$out .= $doc->saveHTML( $child );
+		}
 		return $out;
 	}
 
