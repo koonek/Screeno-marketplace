@@ -45,6 +45,7 @@ cp -r "$PACKAGES_DIR/nkz-mp-shipping"            "$AOZ_DIR/modules/nkz-mp-shippi
 cp -r "$PACKAGES_DIR/nkz-mp-vendor-billing"      "$AOZ_DIR/modules/nkz-mp-vendor-billing"
 cp -r "$PACKAGES_DIR/nkz-mp-packeta"             "$AOZ_DIR/modules/nkz-mp-packeta"
 cp -r "$PACKAGES_DIR/nkz-mp-platform-fee"        "$AOZ_DIR/modules/nkz-mp-platform-fee"
+cp -r "$PACKAGES_DIR/nkz-mp-antibot"             "$AOZ_DIR/modules/nkz-mp-antibot"
 cp     "$PACKAGES_DIR/nkz-mp-aoz-bundle/nkz-mp-aoz-bundle.php" "$AOZ_DIR/"
 cp     "$PACKAGES_DIR/nkz-mp-aoz-bundle/README.md"             "$AOZ_DIR/"
 

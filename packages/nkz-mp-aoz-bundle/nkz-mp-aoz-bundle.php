@@ -2,7 +2,7 @@
 /**
  * Plugin Name: NKZ Marketplace AOZ
  * Description: Kompletní bundle pro Art of život – core + Stripe adapter + storefront. Phase 1 add-ony (registration, billing, shipping) přibydou s upgrady.
- * Version: 0.31.5
+ * Version: 0.32.0
  * Author: NKZ
  * Requires at least: 6.2
  * Requires PHP: 8.1
@@ -18,7 +18,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'NKZMP_AOZ_BUNDLE_VERSION', '0.31.5' );
+define( 'NKZMP_AOZ_BUNDLE_VERSION', '0.32.0' );
 define( 'NKZMP_AOZ_BUNDLE_DIR', plugin_dir_path( __FILE__ ) );
 define( 'NKZMP_AOZ_BUNDLE_FILE', __FILE__ );
 
@@ -38,6 +38,7 @@ $nkzmp_aoz_modules = [
 	'modules/nkz-mp-vendor-billing/nkz-mp-vendor-billing.php',
 	'modules/nkz-mp-packeta/nkz-mp-packeta.php',
 	'modules/nkz-mp-platform-fee/nkz-mp-platform-fee.php',
+	'modules/nkz-mp-antibot/nkz-mp-antibot.php',
 ];
 
 foreach ( $nkzmp_aoz_modules as $relative ) {
