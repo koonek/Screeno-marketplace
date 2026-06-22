@@ -70,6 +70,10 @@ final class ShopLoop {
 		if ( ! function_exists( 'is_shop' ) ) {
 			return false;
 		}
+		// Shortcode [nkzmp_latest_products] může vynutit shop-loop chování i mimo /obchod/.
+		if ( ! empty( $GLOBALS['nkzmp_force_shop_loop'] ) ) {
+			return true;
+		}
 		return is_shop() || is_product_taxonomy();
 	}
 
