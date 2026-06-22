@@ -205,11 +205,11 @@ final class Shortcodes {
 		}
 		return sprintf(
 			'<style>'
-			. '#%1$s ul.products{display:grid;grid-template-columns:repeat(%2$d,minmax(0,1fr));gap:24px;list-style:none;padding:0;margin:0;}'
-			. '#%1$s ul.products li{width:auto!important;float:none!important;margin:0!important;clear:none!important;}'
+			. '#%1$s ul.products{display:grid!important;grid-template-columns:repeat(%2$d,minmax(0,1fr))!important;gap:24px!important;list-style:none!important;padding:0!important;margin:0!important;}'
+			. '#%1$s ul.products li{width:auto!important;float:none!important;margin:0!important;clear:none!important;max-width:none!important;flex:none!important;}'
 			. '%5$s'
-			. '@media (max-width:980px){#%1$s ul.products{grid-template-columns:repeat(%3$d,minmax(0,1fr));}}'
-			. '@media (max-width:600px){#%1$s ul.products{grid-template-columns:repeat(%4$d,minmax(0,1fr));}}'
+			. '@media (max-width:980px){#%1$s ul.products{grid-template-columns:repeat(%3$d,minmax(0,1fr))!important;}}'
+			. '@media (max-width:600px){#%1$s ul.products{grid-template-columns:repeat(%4$d,minmax(0,1fr))!important;}}'
 			. '</style>',
 			esc_attr( $uid ),
 			$columns,
