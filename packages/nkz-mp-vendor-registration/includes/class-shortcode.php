@@ -96,10 +96,37 @@ final class Shortcode {
 		$lead      = Settings::get()['form_lead'];
 		$terms_url = Settings::get()['terms_url'];
 
+		self::render_steps_intro();
+
 		$file = NKZMP_REGISTRATION_DIR . 'templates/form.php';
 		if ( is_readable( $file ) ) {
 			include $file;
 		}
 		return (string) ob_get_clean();
+	}
+
+	/**
+	 * 3-step intro karta nad formularem.
+	 * Cena se cte z billing modulu, % z stripe split modulu (default_fee_percent).
+	 */
+	private static function render_steps_intro(): void {
+		$amount  = 0;
+		$percent = 0.0;
+		if ( class_exists( \NKZMP\Billing\Settings::class ) ) {
+			$bs = \NKZMP\Billing\Settings::get();
+			$amount = (int) ( $bs['amount'] ?? 0 );
+		}
+		if ( class_exists( \NKVSVS\Plugin::class ) ) {
+			$ss = \NKVSVS\Plugin::settings();
+			$percent = (float) ( $ss['default_fee_percent'] ?? 0 );
+		}
+		$amount  = (int) apply_filters( 'nkzmp/v1/registration/steps/amount', $amount );
+		$percent = (float) apply_filters( 'nkzmp/v1/registration/steps/percent', $percent );
+		$percent_str = rtrim( rtrim( number_format( $percent, 2, ',', '' ), '0' ), ',' );
+
+		$file = NKZMP_REGISTRATION_DIR . 'templates/steps-intro.php';
+		if ( is_readable( $file ) ) {
+			include $file;
+		}
 	}
 }
