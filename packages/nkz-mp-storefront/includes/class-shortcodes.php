@@ -2,9 +2,10 @@
 /**
  * Shortcodes pro vkládání marketplace komponent kdekoli na webu.
  *
- * [nkzmp_latest_products limit="4" columns="4" category=""]
+ * [nkzmp_latest_products limit="4" columns="4" category="" button="no"]
  *   Grid nejnovějších produktů (orderby=date desc), stejný card markup jako
- *   /obchod/ – obrázek, název, „OD <prodejce>" badge, cena.
+ *   /obchod/ – obrázek, název, „OD <prodejce>" badge, cena. Tlačítko
+ *   „Přidat do košíku / Číst více" je default vypnuté (teaser na landingu).
  *
  * @package NKZMP\Storefront
  */
@@ -38,7 +39,10 @@ final class Shortcodes {
 			'category' => '',
 			'orderby'  => 'date',
 			'order'    => 'DESC',
+			'button'   => 'no',
 		], (array) $atts, 'nkzmp_latest_products' );
+
+		$show_button = in_array( strtolower( (string) $a['button'] ), [ 'yes', 'true', '1' ], true );
 
 		$inner = sprintf(
 			'[products limit="%d" columns="%d" orderby="%s" order="%s"%s]',
@@ -55,7 +59,17 @@ final class Shortcodes {
 
 		// Vynucení shop-loop hooků (vendor badge "OD ...") i mimo /obchod/.
 		$GLOBALS['nkzmp_force_shop_loop'] = true;
+
+		// Tlacitko 'Pridat do kosiku / Cist vice' default off.
+		if ( ! $show_button ) {
+			remove_action( 'woocommerce_after_shop_loop_item', 'woocommerce_template_loop_add_to_cart', 10 );
+		}
+
 		$out = '<div class="woocommerce nkzmp-latest-products">' . do_shortcode( $inner ) . '</div>';
+
+		if ( ! $show_button ) {
+			add_action( 'woocommerce_after_shop_loop_item', 'woocommerce_template_loop_add_to_cart', 10 );
+		}
 		unset( $GLOBALS['nkzmp_force_shop_loop'] );
 
 		return $out;
