@@ -20,12 +20,12 @@ defined( 'ABSPATH' ) || exit;
 .nkzmp-steps__head{display:flex;align-items:center;justify-content:space-between;gap:12px;}
 .nkzmp-steps__pill{display:inline-block;padding:6px 14px;border:1px solid rgba(255,255,255,0.55);border-radius:999px;font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:#fff;}
 .nkzmp-steps__title{font-size:24px;line-height:1.2;font-weight:700;margin:8px 0 4px;color:inherit;}
-.nkzmp-steps__price{font-size:48px;line-height:1;font-weight:700;letter-spacing:-0.02em;}
+.nkzmp-steps__price{font-size:32px;line-height:1;font-weight:700;letter-spacing:-0.02em;}
 .nkzmp-steps__price-meta{font-size:13px;opacity:0.85;line-height:1.4;margin-top:8px;}
 .nkzmp-steps__desc{font-size:14px;line-height:1.5;color:rgba(17,17,17,0.65);margin:0;}
 .nkzmp-steps__card--accent .nkzmp-steps__desc{color:rgba(255,255,255,0.92);}
 .nkzmp-steps__price-row{display:flex;align-items:flex-end;gap:16px;margin-top:8px;}
-@media (max-width:880px){.nkzmp-steps{grid-template-columns:1fr;gap:16px;}.nkzmp-steps__price{font-size:36px;}}
+@media (max-width:880px){.nkzmp-steps{grid-template-columns:1fr;gap:16px;}.nkzmp-steps__price{font-size:28px;}}
 </style>
 
 <div class="nkzmp-steps" aria-label="Jak to funguje">
