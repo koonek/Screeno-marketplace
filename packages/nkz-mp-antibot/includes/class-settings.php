@@ -55,6 +55,18 @@ final class Settings {
 	}
 
 	public function register_menu(): void {
+		// Pod hlavni NKZ Marketplace menu (pokud existuje), jinak fallback do Settings.
+		if ( defined( 'NKZMP_ADMIN_MENU_SLUG' ) ) {
+			add_submenu_page(
+				NKZMP_ADMIN_MENU_SLUG,
+				__( 'Antibot', 'nkz-mp-antibot' ),
+				__( 'Antibot', 'nkz-mp-antibot' ),
+				'manage_options',
+				'nkzmp-antibot',
+				[ $this, 'render_page' ]
+			);
+			return;
+		}
 		add_options_page(
 			__( 'NKZ Marketplace – Antibot', 'nkz-mp-antibot' ),
 			__( 'NKZ Antibot', 'nkz-mp-antibot' ),
