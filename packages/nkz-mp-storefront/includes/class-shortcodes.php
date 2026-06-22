@@ -7,6 +7,10 @@
  *   /obchod/ – obrázek, název, „OD <prodejce>" badge, cena. Tlačítko
  *   „Přidat do košíku / Číst více" je default vypnuté (teaser na landingu).
  *
+ * [nkzmp_product_categories limit="6" columns="4" parent="0" hide_empty="yes"]
+ *   Grid kategorií produktů. Wrappuje WC builtin [product_categories] +
+ *   vynuti storefront CSS i mimo /obchod/.
+ *
  * @package NKZMP\Storefront
  */
 
@@ -24,6 +28,7 @@ final class Shortcodes {
 
 	public function init(): void {
 		add_shortcode( 'nkzmp_latest_products', [ $this, 'latest_products' ] );
+		add_shortcode( 'nkzmp_product_categories', [ $this, 'product_categories' ] );
 	}
 
 	/**
@@ -70,6 +75,46 @@ final class Shortcodes {
 		if ( ! $show_button ) {
 			add_action( 'woocommerce_after_shop_loop_item', 'woocommerce_template_loop_add_to_cart', 10 );
 		}
+		unset( $GLOBALS['nkzmp_force_shop_loop'] );
+
+		return $out;
+	}
+
+	/**
+	 * @param array<string,string> $atts
+	 */
+	public function product_categories( $atts = [] ): string {
+		if ( ! function_exists( 'WC' ) ) {
+			return '';
+		}
+		$a = shortcode_atts( [
+			'limit'      => '6',
+			'columns'    => '4',
+			'parent'     => '0',
+			'orderby'    => 'name',
+			'order'      => 'ASC',
+			'hide_empty' => 'yes',
+			'ids'        => '',
+		], (array) $atts, 'nkzmp_product_categories' );
+
+		$hide_empty = in_array( strtolower( (string) $a['hide_empty'] ), [ 'yes', 'true', '1' ], true ) ? '1' : '0';
+
+		$inner = sprintf(
+			'[product_categories number="%d" columns="%d" parent="%s" orderby="%s" order="%s" hide_empty="%s"%s]',
+			(int) $a['limit'],
+			(int) $a['columns'],
+			esc_attr( $a['parent'] ),
+			esc_attr( $a['orderby'] ),
+			esc_attr( $a['order'] ),
+			$hide_empty,
+			$a['ids'] !== '' ? ' ids="' . esc_attr( $a['ids'] ) . '"' : ''
+		);
+
+		Assets::ensure_storefront_css();
+		Assets::ensure_wc_css();
+
+		$GLOBALS['nkzmp_force_shop_loop'] = true;
+		$out = '<div class="woocommerce nkzmp-product-categories">' . do_shortcode( $inner ) . '</div>';
 		unset( $GLOBALS['nkzmp_force_shop_loop'] );
 
 		return $out;
