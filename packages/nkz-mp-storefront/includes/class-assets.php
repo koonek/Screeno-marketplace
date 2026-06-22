@@ -37,28 +37,41 @@ final class Assets {
 			return;
 		}
 
+		self::ensure_storefront_css();
+		if ( $on_wc && apply_filters( 'nkzmp/v1/storefront/style_wc', true ) ) {
+			self::ensure_wc_css();
+		}
+	}
+
+	/** Vynutí storefront CSS – idempotentní. Volá se i mimo WC stránky (shortcode). */
+	public static function ensure_storefront_css(): void {
+		if ( wp_style_is( 'nkz-mp-storefront', 'enqueued' ) ) {
+			return;
+		}
 		wp_enqueue_style(
 			'nkz-mp-storefront',
 			NKZMP_STOREFRONT_URL . 'assets/storefront.css',
 			[],
 			NKZMP_STOREFRONT_VERSION
 		);
-
-		// Token override jako inline <style> – přebíjí :root defaulty v storefront.css.
 		$inline = self::tokens_css();
 		if ( $inline !== '' ) {
 			wp_add_inline_style( 'nkz-mp-storefront', $inline );
 		}
+	}
 
-		// WC frontend styling jen na WC stránkách + pokud není explicitně vypnut.
-		if ( $on_wc && apply_filters( 'nkzmp/v1/storefront/style_wc', true ) ) {
-			wp_enqueue_style(
-				'nkz-mp-storefront-wc',
-				NKZMP_STOREFRONT_URL . 'assets/wc-frontend.css',
-				[ 'nkz-mp-storefront' ],
-				NKZMP_STOREFRONT_VERSION
-			);
+	/** Vynutí WC styling – idempotentní. */
+	public static function ensure_wc_css(): void {
+		if ( wp_style_is( 'nkz-mp-storefront-wc', 'enqueued' ) ) {
+			return;
 		}
+		self::ensure_storefront_css();
+		wp_enqueue_style(
+			'nkz-mp-storefront-wc',
+			NKZMP_STOREFRONT_URL . 'assets/wc-frontend.css',
+			[ 'nkz-mp-storefront' ],
+			NKZMP_STOREFRONT_VERSION
+		);
 	}
 
 	/**

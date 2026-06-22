@@ -49,6 +49,10 @@ final class Shortcodes {
 			$a['category'] !== '' ? ' category="' . esc_attr( $a['category'] ) . '"' : ''
 		);
 
+		// Vynutit storefront CSS (Assets standardne ladi jen na WC strankach).
+		Assets::ensure_storefront_css();
+		Assets::ensure_wc_css();
+
 		// Vynucení shop-loop hooků (vendor badge "OD ...") i mimo /obchod/.
 		$GLOBALS['nkzmp_force_shop_loop'] = true;
 		$out = '<div class="woocommerce nkzmp-latest-products">' . do_shortcode( $inner ) . '</div>';
