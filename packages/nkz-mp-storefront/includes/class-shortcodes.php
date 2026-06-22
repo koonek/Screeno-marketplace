@@ -96,6 +96,7 @@ final class Shortcodes {
 			'order'              => 'ASC',
 			'hide_empty'         => 'yes',
 			'ids'                => '',
+			'exclude'            => '',
 			'show_count'         => 'no',
 			'hide_uncategorized' => 'yes',
 		], (array) $atts, 'nkzmp_product_categories' );
@@ -106,14 +107,36 @@ final class Shortcodes {
 
 		$columns = max( 1, (int) $a['columns'] );
 
-		// Exclude Uncategorized (a libovolne ids z atributu).
+		// Exclude Uncategorized – zkusime vic zdroju (option, slug, nazev).
 		$exclude_ids = [];
 		if ( $hide_uncat ) {
 			$uncat_id = (int) get_option( 'default_product_cat' );
 			if ( $uncat_id > 0 ) {
 				$exclude_ids[] = $uncat_id;
 			}
+			foreach ( [ 'uncategorized', 'nezarazene', 'nezarazeno' ] as $slug ) {
+				$term = get_term_by( 'slug', $slug, 'product_cat' );
+				if ( $term && ! is_wp_error( $term ) ) {
+					$exclude_ids[] = (int) $term->term_id;
+				}
+			}
+			foreach ( [ 'Uncategorized', 'Nezařazené', 'Nezařazeno' ] as $name ) {
+				$term = get_term_by( 'name', $name, 'product_cat' );
+				if ( $term && ! is_wp_error( $term ) ) {
+					$exclude_ids[] = (int) $term->term_id;
+				}
+			}
 		}
+		// Manualni exclude z atributu.
+		if ( $a['exclude'] !== '' ) {
+			foreach ( explode( ',', (string) $a['exclude'] ) as $id ) {
+				$id = (int) trim( $id );
+				if ( $id > 0 ) {
+					$exclude_ids[] = $id;
+				}
+			}
+		}
+		$exclude_ids  = array_values( array_unique( array_filter( $exclude_ids ) ) );
 		$exclude_attr = $exclude_ids ? ' exclude="' . esc_attr( implode( ',', $exclude_ids ) ) . '"' : '';
 
 		$inner = sprintf(
