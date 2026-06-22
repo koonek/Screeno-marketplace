@@ -99,6 +99,7 @@ final class Shortcodes {
 			'exclude'            => '',
 			'show_count'         => 'no',
 			'hide_uncategorized' => 'yes',
+			'color'              => '',
 		], (array) $atts, 'nkzmp_product_categories' );
 
 		$hide_empty   = in_array( strtolower( (string) $a['hide_empty'] ), [ 'yes', 'true', '1' ], true ) ? '1' : '0';
@@ -137,22 +138,32 @@ final class Shortcodes {
 			}
 		}
 		$exclude_ids  = array_values( array_unique( array_filter( $exclude_ids ) ) );
-		$exclude_attr = $exclude_ids ? ' exclude="' . esc_attr( implode( ',', $exclude_ids ) ) . '"' : '';
 
 		$inner = sprintf(
-			'[product_categories number="%d" columns="%d" parent="%s" orderby="%s" order="%s" hide_empty="%s"%s%s]',
+			'[product_categories number="%d" columns="%d" parent="%s" orderby="%s" order="%s" hide_empty="%s"%s]',
 			(int) $a['limit'],
 			$columns,
 			esc_attr( $a['parent'] ),
 			esc_attr( $a['orderby'] ),
 			esc_attr( $a['order'] ),
 			$hide_empty,
-			$a['ids'] !== '' ? ' ids="' . esc_attr( $a['ids'] ) . '"' : '',
-			$exclude_attr
+			$a['ids'] !== '' ? ' ids="' . esc_attr( $a['ids'] ) . '"' : ''
 		);
 
 		Assets::ensure_storefront_css();
 		Assets::ensure_wc_css();
+
+		// WC [product_categories] NEpodporuje exclude atribut, takze ho injektneme
+		// pres woocommerce_product_categories_shortcode_args filter.
+		$exclude_filter = null;
+		if ( $exclude_ids ) {
+			$exclude_filter = function ( array $args ) use ( $exclude_ids ): array {
+				$existing = ! empty( $args['exclude'] ) ? (array) $args['exclude'] : [];
+				$args['exclude'] = array_values( array_unique( array_merge( $existing, $exclude_ids ) ) );
+				return $args;
+			};
+			add_filter( 'woocommerce_product_categories_shortcode_args', $exclude_filter );
+		}
 
 		// Schovat (count) za nazvem.
 		if ( ! $show_count ) {
@@ -161,31 +172,50 @@ final class Shortcodes {
 
 		$GLOBALS['nkzmp_force_shop_loop'] = true;
 		$uid = 'nkzmp-cats-' . wp_unique_id();
-		$style = self::grid_style_for( $uid, $columns );
+		$style = self::grid_style_for( $uid, $columns, (string) $a['color'] );
 		$out = $style . '<div id="' . esc_attr( $uid ) . '" class="woocommerce nkzmp-product-categories">' . do_shortcode( $inner ) . '</div>';
 		unset( $GLOBALS['nkzmp_force_shop_loop'] );
 
 		if ( ! $show_count ) {
 			remove_filter( 'woocommerce_subcategory_count_html', '__return_empty_string', 99 );
 		}
+		if ( $exclude_filter ) {
+			remove_filter( 'woocommerce_product_categories_shortcode_args', $exclude_filter );
+		}
 
 		return $out;
 	}
 
-	private static function grid_style_for( string $uid, int $columns ): string {
+	private static function grid_style_for( string $uid, int $columns, string $color = '' ): string {
 		$mobile = max( 1, min( 2, $columns ) );
 		$tablet = max( 1, min( 3, $columns ) );
+		$color_css = '';
+		if ( $color !== '' ) {
+			$color_css = sprintf(
+				'#%1$s ul.products li a,#%1$s ul.products li a *{color:%2$s!important;}',
+				esc_attr( $uid ),
+				esc_attr( $color )
+			);
+		} else {
+			// Default: zdedit od kontextu (zabrani ruzovemu Elementor brand color).
+			$color_css = sprintf(
+				'#%1$s ul.products li a,#%1$s ul.products li a h2,#%1$s ul.products li a h3,#%1$s ul.products li a .woocommerce-loop-category__title{color:inherit;text-decoration:none;}',
+				esc_attr( $uid )
+			);
+		}
 		return sprintf(
 			'<style>'
 			. '#%1$s ul.products{display:grid;grid-template-columns:repeat(%2$d,minmax(0,1fr));gap:24px;list-style:none;padding:0;margin:0;}'
 			. '#%1$s ul.products li{width:auto!important;float:none!important;margin:0!important;clear:none!important;}'
+			. '%5$s'
 			. '@media (max-width:980px){#%1$s ul.products{grid-template-columns:repeat(%3$d,minmax(0,1fr));}}'
 			. '@media (max-width:600px){#%1$s ul.products{grid-template-columns:repeat(%4$d,minmax(0,1fr));}}'
 			. '</style>',
 			esc_attr( $uid ),
 			$columns,
 			$tablet,
-			$mobile
+			$mobile,
+			$color_css
 		);
 	}
 }
