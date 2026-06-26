@@ -6,7 +6,7 @@
  * Tři vrstvy přes WC hooky (žádný template override):
  *  1) Intro řádek nad gridem („Tvorby od X prodejců · Y produktů")
  *  2) Vendor badge pod titulem každé karty produktu („od Jan Tvůrce")
- *  3) CTA „Chceš taky prodávat?" pod gridem (cross-link na /pro-tvurce)
+ *  3) CTA „Chceš taky prodávat?" pod gridem (cross-link na /registrace/)
  *
  * Vypnutí: add_filter( 'nkzmp/v1/storefront/shop_loop', '__return_false' );
  *
@@ -227,8 +227,8 @@ final class ShopLoop {
 		if ( ! self::applicable() ) {
 			return;
 		}
-		// Konfigurovatelný cíl – default /pro-tvurce. Screeno si přebije.
-		$url = (string) apply_filters( 'nkzmp/v1/storefront/become_vendor_url', home_url( '/pro-tvurce/' ) );
+		// Konfigurovatelný cíl – default /registrace/. Screeno si přebije.
+		$url = (string) apply_filters( 'nkzmp/v1/storefront/become_vendor_url', home_url( '/registrace/' ) );
 		if ( $url === '' ) {
 			return;
 		}
