@@ -217,14 +217,23 @@ final class EmailSettings {
 	/** Ukázková data pro všechny placeholdery napříč šablonami. */
 	private static function sample_vars(): array {
 		$site = (string) get_bloginfo( 'name' );
+
+		// Vokativ na vzorovem jmene poustime pres REALNOU sluzbu (bez vendor_id,
+		// tj. bez perzistence do meta) – test e-mail tak overi, ze API klic
+		// funguje. Bez klice/pri chybe sluzba vrati puvodni jmeno.
+		$sample_name = 'Jan Novák';
+		$sample_voc  = class_exists( \NKZMP\Services\VocativeService::class )
+			? \NKZMP\Services\VocativeService::get( $sample_name )
+			: $sample_name;
+
 		return [
-			'name'          => 'Jan Tvůrce',
+			'name'          => $sample_name,
 			'email'         => 'jan@example.cz',
 			'ico'           => '12345678',
 			'website'       => 'https://example.cz',
 			'bio'           => 'Dělám ručně malované hrnky a misky inspirované přírodou.',
 			'stripe_link'   => home_url( '/?nkzmp_demo=stripe' ),
-			'profile_url'   => home_url( '/vendor/jan-tvurce' ),
+			'profile_url'   => home_url( '/vendor/jan-novak' ),
 			'status_url'    => home_url( '/stav-prihlasky/?token=demo' ),
 			'edit_url'      => admin_url( 'admin.php?page=nkz-marketplace-vendor&vendor_id=0' ),
 			'login_url'     => function_exists( 'wc_get_page_permalink' ) ? (string) wc_get_page_permalink( 'myaccount' ) : home_url( '/muj-ucet' ),
@@ -234,9 +243,9 @@ final class EmailSettings {
 			'password_url'  => home_url( '/wp-login.php?action=rp&key=demo&login=jan.tvurce' ),
 			'product_name'  => 'Hrnek Ranní mlha',
 			'product_price' => '690 Kč',
-			'name_vocative' => 'Tvůrce',
-			'vendor_name'   => 'Jan Tvůrce',
-			'vendor_name_vocative' => 'Tvůrce',
+			'name_vocative' => $sample_voc,
+			'vendor_name'   => $sample_name,
+			'vendor_name_vocative' => $sample_voc,
 			'vendor_email'  => 'jan@example.cz',
 			'submit_kind'   => 'Nový produkt',
 			'order_number'  => '1042',
@@ -283,7 +292,7 @@ final class EmailSettings {
 				printf(
 					/* translators: 1: code placeholder, 2: external link */
 					wp_kses(
-						__( 'Placeholder %1$s vyplní jméno prodejce v 5. pádu (např. %3$s → %4$s). Personalizace běží přes externí službu %2$s — vlož sem API klíč (zaregistrovat se dá zdarma s testovacím limitem). Bez klíče se použije nominativ.', 'nkz-marketplace' ),
+						__( 'Placeholder %1$s vyplní jméno prodejce v 5. pádu (např. %3$s → %4$s). Personalizace běží přes externí službu %2$s — vlož sem API klíč (zaregistrovat se dá zdarma s testovacím limitem). Bez klíče se použije nominativ. Tip: testovací e-mail výše zkloňuje vzorové jméno „Jan Novák" přes reálnou službu — pokud v testu uvidíš „Nováku", klíč funguje.', 'nkz-marketplace' ),
 						[ 'a' => [ 'href' => [], 'target' => [], 'rel' => [] ], 'code' => [] ]
 					),
 					'<code>{name_vocative}</code>',
