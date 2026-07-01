@@ -28,6 +28,11 @@ body.woocommerce input.button.alt,
 body.woocommerce a.checkout-button,
 body.woocommerce #place_order,
 body.woocommerce-checkout #place_order,
+body.woocommerce-page #place_order,
+body.woocommerce-account #place_order,
+body.woocommerce-page button.button.alt,
+body.woocommerce-account button.button.alt,
+body.woocommerce-page button[name="woocommerce_add_payment_method"],
 body.woocommerce-cart a.checkout-button,
 body.woocommerce #respond input#submit {
 	display: inline-flex !important;
@@ -55,6 +60,19 @@ body.woocommerce #respond input#submit {
 	min-height: 46px !important;
 	width: auto;
 }
+/* Safety: bílý viditelný text na modrých akčních tlačítkách i pokud theme
+   nastavuje -webkit-text-fill-color (jinak text „zmizí" na stejné barvě). */
+body.woocommerce #place_order,
+body.woocommerce-checkout #place_order,
+body.woocommerce-page #place_order,
+body.woocommerce-account #place_order,
+body.woocommerce-page button.button.alt,
+body.woocommerce-account button.button.alt,
+body.woocommerce-page button[name="woocommerce_add_payment_method"] {
+	-webkit-text-fill-color: #fff !important;
+	color: #fff !important;
+}
+
 body.woocommerce a.button:hover,
 body.woocommerce button.button:hover,
 body.woocommerce input.button:hover,
