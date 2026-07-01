@@ -2,7 +2,7 @@
 /**
  * Plugin Name: NKZ Marketplace – Storefront
  * Description: Vendor archive (`/vendors`) + single vendor pages (`/vendor/<slug>`) s product listingem. Závisí na nkz-marketplace core.
- * Version: 0.12.7
+ * Version: 0.12.8
  * Author: NKZ
  * Requires at least: 6.2
  * Requires PHP: 8.1
@@ -14,7 +14,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'NKZMP_STOREFRONT_VERSION', '0.12.7' );
+define( 'NKZMP_STOREFRONT_VERSION', '0.12.8' );
 define( 'NKZMP_STOREFRONT_FILE', __FILE__ );
 define( 'NKZMP_STOREFRONT_DIR', plugin_dir_path( __FILE__ ) );
 define( 'NKZMP_STOREFRONT_URL', plugin_dir_url( __FILE__ ) );
@@ -66,6 +66,18 @@ add_action(
 			return;
 		}
 		\NKZMP\Storefront\Plugin::instance()->init();
+
+		// Self-healing: po updatu/migraci (aktivační hook se nespustí při "replace"
+		// nahrání zipu) přegeneruj rewrite pravidla jednou při změně verze.
+		// Jinak /vendor/<slug> hází 404, dokud admin ručně neuloží permalinky.
+		add_action( 'init', static function (): void {
+			$stored = get_option( 'nkzmp_storefront_rewrite_version' );
+			if ( $stored !== NKZMP_STOREFRONT_VERSION ) {
+				\NKZMP\Storefront\Rewrite::register_rules();
+				flush_rewrite_rules();
+				update_option( 'nkzmp_storefront_rewrite_version', NKZMP_STOREFRONT_VERSION, false );
+			}
+		}, 99 );
 	},
 	20
 );
