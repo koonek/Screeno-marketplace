@@ -187,7 +187,7 @@ final class DashboardView {
 				$kyc_cta = [ $stripe_url, __( 'Dokončit registraci', 'nkz-mp-vendor-dashboard' ), true ];
 			}
 		}
-		$steps[] = [ 'done' => $kyc, 'label' => __( 'Dokončená registrace plateb (KYC)', 'nkz-mp-vendor-dashboard' ), 'cta' => $kyc_cta ];
+		$steps[] = [ 'done' => $kyc, 'label' => __( 'Ověření totožnosti pro přijímání plateb', 'nkz-mp-vendor-dashboard' ), 'cta' => $kyc_cta ];
 		if ( $billing_on ) {
 			$steps[] = [
 				'done'  => $billing_ok,
@@ -233,8 +233,41 @@ final class DashboardView {
 					</li>
 				<?php endforeach; ?>
 			</ul>
+			<?php $note = self::payments_fee_note();
+			if ( $note !== '' ) : ?>
+				<p class="nkzmp-vd-steps-note" style="margin:14px 0 0;font-size:12.5px;line-height:1.5;color:rgba(17,17,17,0.55);">
+					<?php echo esc_html( $note ); ?>
+				</p>
+			<?php endif; ?>
 		</section>
 		<?php
+	}
+
+	/**
+	 * Vysvětlivka ke Stripe poplatku platební brány. Text podle toho, kdo ho
+	 * nese (stripe_fee_vendor_share_percent). Hodnoty filtrovatelné.
+	 */
+	private static function payments_fee_note(): string {
+		$pct   = (float) apply_filters( 'nkzmp/v1/dashboard/stripe_fee_percent', 1.5 );
+		$fixed = (float) apply_filters( 'nkzmp/v1/dashboard/stripe_fee_fixed', 6.5 );
+		$share = 0;
+		if ( class_exists( \NKVSVS\Plugin::class ) ) {
+			$s     = \NKVSVS\Plugin::settings();
+			$share = (int) ( $s['stripe_fee_vendor_share_percent'] ?? 0 );
+		}
+		$share   = (int) apply_filters( 'nkzmp/v1/dashboard/stripe_fee_vendor_share', $share );
+		$pct_s   = rtrim( rtrim( number_format( $pct, 2, ',', '' ), '0' ), ',' );
+		$fixed_s = rtrim( rtrim( number_format( $fixed, 2, ',', '' ), '0' ), ',' );
+
+		if ( $share > 0 ) {
+			return sprintf(
+				/* translators: 1: procento, 2: fixní částka */
+				__( 'Platby zpracovává platební brána Stripe, která si účtuje %1$s %% + %2$s Kč za transakci — odečítá se z výplaty. Ověření totožnosti vyžaduje Stripe, aby ti mohl posílat peníze (zákonná povinnost proti praní špinavých peněz).', 'nkz-mp-vendor-dashboard' ),
+				$pct_s,
+				$fixed_s
+			);
+		}
+		return __( 'Platby zpracovává platební brána Stripe. Poplatky brány za tebe hradíme my. Ověření totožnosti vyžaduje Stripe, aby ti mohl posílat peníze (zákonná povinnost proti praní špinavých peněz).', 'nkz-mp-vendor-dashboard' );
 	}
 
 	private static function vendor_has_product( int $vendor_id ): bool {
@@ -254,7 +287,7 @@ final class DashboardView {
 		}
 		return match ( $s ) {
 			Status::PENDING               => __( 'V pořadníku', 'nkz-mp-vendor-dashboard' ),
-			Status::APPROVED_AWAITING_KYC => __( 'Schváleno, čeká na KYC', 'nkz-mp-vendor-dashboard' ),
+			Status::APPROVED_AWAITING_KYC => __( 'Schváleno, čeká na ověření totožnosti', 'nkz-mp-vendor-dashboard' ),
 			Status::ACTIVE                => __( 'Aktivní', 'nkz-mp-vendor-dashboard' ),
 			Status::SUSPENDED             => __( 'Pozastaveno', 'nkz-mp-vendor-dashboard' ),
 			Status::REJECTED              => __( 'Nezařazeno', 'nkz-mp-vendor-dashboard' ),

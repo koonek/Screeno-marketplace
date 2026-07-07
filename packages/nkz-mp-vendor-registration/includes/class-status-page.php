@@ -101,7 +101,7 @@ final class StatusPage {
 	private function render_timeline( Status $current ): void {
 		$steps = [
 			[ Status::PENDING,               __( 'Přijato', 'nkz-mp-vendor-registration' ) ],
-			[ Status::APPROVED_AWAITING_KYC, __( 'Schváleno, čeká na KYC', 'nkz-mp-vendor-registration' ) ],
+			[ Status::APPROVED_AWAITING_KYC, __( 'Schváleno, čeká na ověření totožnosti', 'nkz-mp-vendor-registration' ) ],
 			[ Status::ACTIVE,                __( 'Aktivní', 'nkz-mp-vendor-registration' ) ],
 		];
 		$current_idx = -1;
