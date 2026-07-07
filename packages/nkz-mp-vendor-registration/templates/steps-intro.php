@@ -71,3 +71,21 @@ defined( 'ABSPATH' ) || exit;
 	</article>
 
 </div>
+
+<?php
+// Vysvetlivka ke Stripe poplatku – text podle toho, kdo poplatek nese.
+$stripe_note = '';
+if ( isset( $stripe_share ) && (int) $stripe_share > 0 ) {
+	$stripe_note = sprintf(
+		/* translators: 1: procento, 2: fixni castka */
+		__( 'K platbám se navíc vztahuje poplatek platební brány Stripe (%1$s %% + %2$s Kč za transakci), který si Stripe účtuje za zpracování platby a odečítá se z výplaty. Není to náš poplatek — my si účtujeme jen členství a provizi výše.', 'nkz-mp-vendor-registration' ),
+		esc_html( $stripe_fee_pct_str ),
+		esc_html( $stripe_fee_fixed_str )
+	);
+} else {
+	$stripe_note = __( 'Poplatky platební brány Stripe za tebe hradíme my — z výplaty se ti nestrhávají.', 'nkz-mp-vendor-registration' );
+}
+?>
+<p class="nkzmp-steps__note" style="margin:-20px 0 40px;font-size:12.5px;line-height:1.5;color:rgba(17,17,17,0.55);max-width:760px;">
+	<?php echo esc_html( $stripe_note ); ?>
+</p>

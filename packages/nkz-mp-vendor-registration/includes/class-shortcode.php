@@ -124,6 +124,20 @@ final class Shortcode {
 		$percent = (float) apply_filters( 'nkzmp/v1/registration/steps/percent', $percent );
 		$percent_str = rtrim( rtrim( number_format( $percent, 2, ',', '' ), '0' ), ',' );
 
+		// Stripe poplatek platebni brany. Hodnoty filtrovatelne (Stripe je muze
+		// zmenit). vendor_share = kolik z nej nese prodejce (0/50/100 %) z Stripe
+		// modul nastaveni – podle toho ladime text vysvetlivky.
+		$stripe_fee_pct   = (float) apply_filters( 'nkzmp/v1/registration/steps/stripe_fee_percent', 1.5 );
+		$stripe_fee_fixed = (float) apply_filters( 'nkzmp/v1/registration/steps/stripe_fee_fixed', 6.5 );
+		$stripe_share     = 0;
+		if ( class_exists( \NKVSVS\Plugin::class ) ) {
+			$ss2 = \NKVSVS\Plugin::settings();
+			$stripe_share = (int) ( $ss2['stripe_fee_vendor_share_percent'] ?? 0 );
+		}
+		$stripe_share = (int) apply_filters( 'nkzmp/v1/registration/steps/stripe_fee_vendor_share', $stripe_share );
+		$stripe_fee_pct_str   = rtrim( rtrim( number_format( $stripe_fee_pct, 2, ',', '' ), '0' ), ',' );
+		$stripe_fee_fixed_str = rtrim( rtrim( number_format( $stripe_fee_fixed, 2, ',', '' ), '0' ), ',' );
+
 		$file = NKZMP_REGISTRATION_DIR . 'templates/steps-intro.php';
 		if ( is_readable( $file ) ) {
 			include $file;
