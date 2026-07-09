@@ -29,12 +29,6 @@ $cover_id  = (int) get_post_meta( $vendor_id, '_nkzmp_vendor_cover_id', true );
 		<div class="nkzmp-vendor-header__meta">
 			<h1 class="nkzmp-vendor-header__name"><?php echo esc_html( $vendor['name'] ); ?></h1>
 
-			<?php if ( ! empty( $vendor['website'] ) ) : ?>
-				<a class="nkzmp-vendor-header__web" href="<?php echo esc_url( $vendor['website'] ); ?>" rel="nofollow noopener" target="_blank">
-					<?php echo esc_html( preg_replace( '#^https?://#', '', (string) $vendor['website'] ) ); ?>
-				</a>
-			<?php endif; ?>
-
 			<?php if ( ! empty( $vendor['bio'] ) ) : ?>
 				<div class="nkzmp-vendor-header__bio">
 					<?php echo wp_kses_post( wpautop( (string) $vendor['bio'] ) ); ?>

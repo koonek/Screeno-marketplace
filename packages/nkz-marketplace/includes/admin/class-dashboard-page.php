@@ -736,20 +736,23 @@ final class DashboardPage {
 			$total_vendors += (int) ( $counts->publish ?? 0 );
 		}
 
-		$pending = 0;
-		$active  = 0;
-		foreach ( [ VendorMeta::STATUS, '_nkv_vendor_status' ] as $key ) {
-			$pending += (int) $wpdb->get_var( $wpdb->prepare(
-				"SELECT COUNT(*) FROM {$wpdb->postmeta} WHERE meta_key = %s AND meta_value = %s",
-				$key,
-				Status::PENDING->value
-			) );
-			$active += (int) $wpdb->get_var( $wpdb->prepare(
-				"SELECT COUNT(*) FROM {$wpdb->postmeta} WHERE meta_key = %s AND meta_value = %s",
-				$key,
-				Status::ACTIVE->value
-			) );
-		}
+		// COUNT(DISTINCT post_id) – vendor má často OBĚ meta pole (legacy
+		// _nkv_vendor_status i nové _nkzmp_vendor_status). Sčítání per-klíč by
+		// takového vendora započítalo dvakrát → stat 2 vs seznam 1.
+		$pending = (int) $wpdb->get_var( $wpdb->prepare(
+			"SELECT COUNT(DISTINCT post_id) FROM {$wpdb->postmeta}
+			 WHERE meta_key IN (%s, %s) AND meta_value = %s",
+			VendorMeta::STATUS,
+			'_nkv_vendor_status',
+			Status::PENDING->value
+		) );
+		$active = (int) $wpdb->get_var( $wpdb->prepare(
+			"SELECT COUNT(DISTINCT post_id) FROM {$wpdb->postmeta}
+			 WHERE meta_key IN (%s, %s) AND meta_value = %s",
+			VendorMeta::STATUS,
+			'_nkv_vendor_status',
+			Status::ACTIVE->value
+		) );
 		$pending = min( $pending, $total_vendors );
 		$active  = min( $active, $total_vendors );
 
