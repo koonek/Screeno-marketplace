@@ -119,6 +119,7 @@ final class ShopFilters {
 		echo '<button type="button" class="nkzmp-filters__clear" data-nkzmp-clear>' . esc_html__( 'Vymazat', 'nkz-mp-storefront' ) . '</button>';
 		echo '</div>';
 
+		$this->render_search( $active['q'] );
 		$this->render_categories( $active['cat'] );
 		$this->render_price( $active['min_price'], $active['max_price'] );
 		$this->render_vendors( $active['vendor'] );
@@ -131,6 +132,17 @@ final class ShopFilters {
 		echo '<button type="button" class="nkzmp-filters__done" data-nkzmp-done>' . esc_html__( 'Hotovo', 'nkz-mp-storefront' ) . '</button>';
 
 		echo '</form>';
+	}
+
+	private function render_search( string $q ): void {
+		echo '<fieldset class="nkzmp-filters__group nkzmp-filters__group--search">';
+		echo '<legend>' . esc_html__( 'Hledat', 'nkz-mp-storefront' ) . '</legend>';
+		printf(
+			'<input type="search" name="q" class="nkzmp-filters__search" value="%1$s" placeholder="%2$s" data-nkzmp-search aria-label="%2$s" autocomplete="off">',
+			esc_attr( $q ),
+			esc_attr__( 'Hledat podle slova…', 'nkz-mp-storefront' )
+		);
+		echo '</fieldset>';
 	}
 
 	private function render_categories( array $selected ): void {
@@ -251,6 +263,9 @@ final class ShopFilters {
 			$existing = (array) $q->get( 'meta_query' );
 			$q->set( 'meta_query', array_merge( $existing, $clauses['meta_query'] ) );
 		}
+		if ( ! empty( $filters['q'] ) ) {
+			$q->set( 's', $filters['q'] );
+		}
 	}
 
 	/* ───────────────────────── AJAX ───────────────────────── */
@@ -275,6 +290,9 @@ final class ShopFilters {
 		}
 		if ( ! empty( $clauses['meta_query'] ) ) {
 			$args['meta_query'] = $clauses['meta_query'];
+		}
+		if ( ! empty( $filters['q'] ) ) {
+			$args['s'] = $filters['q'];
 		}
 		$args = array_merge( $args, self::ordering_args( $orderby ) );
 
@@ -372,12 +390,16 @@ final class ShopFilters {
 
 		$instock = ! empty( $src['instock'] );
 
+		$q = isset( $src['q'] ) ? sanitize_text_field( wp_unslash( (string) $src['q'] ) ) : '';
+		$q = trim( mb_substr( $q, 0, 100 ) );
+
 		return [
 			'cat'       => $cat,
 			'vendor'    => $vendor,
 			'min_price' => $min,
 			'max_price' => $max,
 			'instock'   => $instock,
+			'q'         => $q,
 		];
 	}
 

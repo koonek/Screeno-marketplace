@@ -36,9 +36,13 @@
 			min_price: '',
 			max_price: '',
 			instock: '',
+			q: '',
 			orderby: '',
 			paged: 1
 		};
+
+		var searchEl = form.querySelector( '[data-nkzmp-search]' );
+		if ( searchEl && searchEl.value.trim() !== '' ) { data.q = searchEl.value.trim(); }
 
 		form.querySelectorAll( 'input[name="cat[]"]:checked' ).forEach( function ( el ) {
 			data.cat.push( el.value );
@@ -70,6 +74,7 @@
 		if ( data.min_price !== '' ) { p.set( 'min_price', data.min_price ); }
 		if ( data.max_price !== '' ) { p.set( 'max_price', data.max_price ); }
 		if ( data.instock ) { p.set( 'instock', '1' ); }
+		if ( data.q ) { p.set( 'q', data.q ); }
 		if ( data.orderby ) { p.set( 'orderby', data.orderby ); }
 		if ( data.paged > 1 ) { p.set( 'paged', data.paged ); }
 		return p.toString();
@@ -94,6 +99,7 @@
 		if ( data.min_price !== '' ) { body.set( 'min_price', data.min_price ); }
 		if ( data.max_price !== '' ) { body.set( 'max_price', data.max_price ); }
 		if ( data.instock ) { body.set( 'instock', '1' ); }
+		if ( data.q ) { body.set( 'q', data.q ); }
 		if ( data.orderby ) { body.set( 'orderby', data.orderby ); }
 		body.set( 'paged', data.paged );
 
@@ -151,6 +157,16 @@
 		} else if ( t.matches( '[data-nkzmp-range]' ) ) {
 			syncInputsFromRange();
 			debounce( applyReset, 250 );
+		} else if ( t.matches( '[data-nkzmp-search]' ) ) {
+			debounce( applyReset, 400 );
+		}
+	} );
+
+	// Enter v search poli = okamžitě hledat, ne submitnout formulář (reload).
+	form.addEventListener( 'keydown', function ( e ) {
+		if ( e.target.matches( '[data-nkzmp-search]' ) && e.key === 'Enter' ) {
+			e.preventDefault();
+			applyReset();
 		}
 	} );
 
@@ -206,6 +222,8 @@
 		if ( ! e.target.closest( '[data-nkzmp-clear]' ) ) { return; }
 		e.preventDefault();
 		form.querySelectorAll( 'input[type="checkbox"]' ).forEach( function ( el ) { el.checked = false; } );
+		var searchEl = form.querySelector( '[data-nkzmp-search]' );
+		if ( searchEl ) { searchEl.value = ''; }
 		var iMin = form.querySelector( '[data-nkzmp-price="min"]' );
 		var iMax = form.querySelector( '[data-nkzmp-price="max"]' );
 		if ( iMin ) { iMin.value = iMin.getAttribute( 'min' ) || ''; }
