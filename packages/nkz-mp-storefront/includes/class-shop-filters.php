@@ -271,7 +271,10 @@ final class ShopFilters {
 	/* ───────────────────────── AJAX ───────────────────────── */
 
 	public function ajax_filter(): void {
-		check_ajax_referer( self::NONCE, 'nonce' );
+		// Nonce ověříme NEzávazně: endpoint je veřejný read-only (jen vrací
+		// seznam produktů, nic nemění), takže tu CSRF nehrozí. Blokující nonce
+		// způsoboval 400 u guestů / v Safari (ITP cookies) / z page cache.
+		check_ajax_referer( self::NONCE, 'nonce', false );
 
 		$filters = self::read_filters( $_POST ); // phpcs:ignore WordPress.Security.NonceVerification
 		$clauses = self::build_clauses( $filters );
