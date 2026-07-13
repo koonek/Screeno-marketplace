@@ -30,9 +30,6 @@ final class TextNormalize {
 	}
 
 	public function init(): void {
-		if ( ! class_exists( \Normalizer::class ) ) {
-			return; // intl není → nic neděláme
-		}
 		if ( ! apply_filters( 'nkzmp/v1/storefront/normalize_nfc', true ) ) {
 			return;
 		}
@@ -58,14 +55,73 @@ final class TextNormalize {
 		if ( ! is_string( $text ) || $text === '' ) {
 			return $text;
 		}
-		// Rychlý skip: čistě ASCII nebo už NFC → beze změny.
-		if ( ! preg_match( '/[\x80-\xFF]/', $text ) ) {
+		return self::to_nfc( $text );
+	}
+
+	/**
+	 * NFC normalizace. Preferuje intl Normalizer (kompletní), jinak fallback
+	 * na ruční mapu kombinujících značek (bez závislosti) – pokrývá CZ/SK/PL.
+	 */
+	public static function to_nfc( string $text ): string {
+		if ( $text === '' ) {
 			return $text;
 		}
-		if ( \Normalizer::isNormalized( $text, \Normalizer::FORM_C ) ) {
+		// Rychlý skip: žádné kombinující značky (U+0300–U+036F = \xCC\x80–\xCD\xAF).
+		if ( strpos( $text, "\xCC" ) === false && strpos( $text, "\xCD" ) === false ) {
 			return $text;
 		}
-		$out = \Normalizer::normalize( $text, \Normalizer::FORM_C );
-		return is_string( $out ) ? $out : $text;
+		if ( class_exists( \Normalizer::class ) ) {
+			$out = \Normalizer::normalize( $text, \Normalizer::FORM_C );
+			if ( is_string( $out ) ) {
+				return $out;
+			}
+		}
+		return strtr( $text, self::map() );
+	}
+
+	/** @var array<string,string>|null */
+	private static ?array $map = null;
+
+	/** Base písmeno + kombinující značka → složený znak (CZ/SK/PL sada). */
+	private static function map(): array {
+		if ( self::$map !== null ) {
+			return self::$map;
+		}
+		$caron = "\u{030C}";  // ̌  háček
+		$acute = "\u{0301}";  // ́  čárka
+		$ring  = "\u{030A}";  // ̊  kroužek
+		$diaer = "\u{0308}";  // ̈  přehláska
+		$circ  = "\u{0302}";  // ̂  vokáň
+
+		$m = [];
+		$add = static function ( array &$m, string $mark, array $pairs ): void {
+			foreach ( $pairs as $base => $composed ) {
+				$m[ $base . $mark ] = $composed;
+			}
+		};
+
+		$add( $m, $caron, [
+			'c' => 'č', 'C' => 'Č', 'd' => 'ď', 'D' => 'Ď', 'e' => 'ě', 'E' => 'Ě',
+			'l' => 'ľ', 'L' => 'Ľ', 'n' => 'ň', 'N' => 'Ň', 'r' => 'ř', 'R' => 'Ř',
+			's' => 'š', 'S' => 'Š', 't' => 'ť', 'T' => 'Ť', 'z' => 'ž', 'Z' => 'Ž',
+		] );
+		$add( $m, $acute, [
+			'a' => 'á', 'A' => 'Á', 'c' => 'ć', 'C' => 'Ć', 'e' => 'é', 'E' => 'É',
+			'i' => 'í', 'I' => 'Í', 'l' => 'ĺ', 'L' => 'Ĺ', 'n' => 'ń', 'N' => 'Ń',
+			'o' => 'ó', 'O' => 'Ó', 'r' => 'ŕ', 'R' => 'Ŕ', 's' => 'ś', 'S' => 'Ś',
+			'u' => 'ú', 'U' => 'Ú', 'y' => 'ý', 'Y' => 'Ý', 'z' => 'ź', 'Z' => 'Ź',
+		] );
+		$add( $m, $ring, [ 'a' => 'å', 'A' => 'Å', 'u' => 'ů', 'U' => 'Ů' ] );
+		$add( $m, $diaer, [
+			'a' => 'ä', 'A' => 'Ä', 'e' => 'ë', 'E' => 'Ë', 'i' => 'ï', 'I' => 'Ï',
+			'o' => 'ö', 'O' => 'Ö', 'u' => 'ü', 'U' => 'Ü', 'y' => 'ÿ',
+		] );
+		$add( $m, $circ, [
+			'a' => 'â', 'A' => 'Â', 'e' => 'ê', 'E' => 'Ê', 'i' => 'î', 'I' => 'Î',
+			'o' => 'ô', 'O' => 'Ô', 'u' => 'û', 'U' => 'Û',
+		] );
+
+		self::$map = $m;
+		return $m;
 	}
 }
