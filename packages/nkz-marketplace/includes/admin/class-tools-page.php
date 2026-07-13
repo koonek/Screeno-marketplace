@@ -99,6 +99,8 @@ final class ToolsPage {
 		echo '<h2>' . esc_html__( 'Opravit diakritiku (č š ž ř ě …)', 'nkz-marketplace' ) . '</h2>';
 		echo '<p>' . esc_html__( 'Část textů (importovaná / kopírovaná z Macu) je uložená v rozloženém Unicode (NFD) – „č" jako „c" + samostatný háček. Zobrazuje se pak rozbitě (č→ć, ž→ż, Ř s plovoucím háčkem). Tento nástroj přepíše názvy a popisy produktů + prodejců na správný složený tvar (NFC). Idempotentní – co je OK nechá být.', 'nkz-marketplace' ) . '</p>';
 
+		$this->render_diacritics_diagnostic();
+
 		$preview = $this->fix_diacritics( true );
 		echo '<p><strong>' . esc_html__( 'Náhled (dry-run):', 'nkz-marketplace' ) . '</strong></p>';
 		echo '<ul>';
@@ -119,6 +121,64 @@ final class ToolsPage {
 		echo '<button type="submit" class="button button-primary"' . ( $total > 0 ? '' : ' disabled' ) . '>'
 			. esc_html__( 'Opravit diakritiku (write)', 'nkz-marketplace' ) . '</button>';
 		echo '</form>';
+	}
+
+	/** Diagnostika: vypíše Unicode codepointy názvů produktů/prodejců s háčky. */
+	private function render_diacritics_diagnostic(): void {
+		$ids = get_posts( [
+			'post_type'      => [ 'product', 'nkzmp_vendor', 'nkv_vendor' ],
+			'post_status'    => 'any',
+			'posts_per_page' => 40,
+			'fields'         => 'ids',
+		] );
+
+		$rows = [];
+		foreach ( $ids as $id ) {
+			$title = (string) get_the_title( $id );
+			// jen tituly s ne-ASCII znakem
+			if ( $title === '' || ! preg_match( '/[\x80-\xFF]/', $title ) ) {
+				continue;
+			}
+			$rows[] = [ 'id' => $id, 'title' => $title, 'cp' => self::codepoints( $title ) ];
+			if ( count( $rows ) >= 12 ) {
+				break;
+			}
+		}
+		if ( empty( $rows ) ) {
+			return;
+		}
+
+		echo '<details style="margin:8px 0 16px;"><summary style="cursor:pointer;font-weight:600;">'
+			. esc_html__( 'Diagnostika – co je reálně uloženo (klikni)', 'nkz-marketplace' ) . '</summary>';
+		echo '<table class="widefat striped" style="max-width:900px;margin-top:8px;"><thead><tr>';
+		echo '<th>ID</th><th>' . esc_html__( 'Název', 'nkz-marketplace' ) . '</th><th>Unicode codepoints</th>';
+		echo '</tr></thead><tbody>';
+		foreach ( $rows as $r ) {
+			echo '<tr>';
+			echo '<td>' . (int) $r['id'] . '</td>';
+			echo '<td>' . esc_html( $r['title'] ) . '</td>';
+			echo '<td><code style="font-size:11px;">' . esc_html( $r['cp'] ) . '</code></td>';
+			echo '</tr>';
+		}
+		echo '</tbody></table>';
+		echo '<p style="color:#666;font-size:12px;">' . esc_html__( 'Hledáme: U+030C = kombinující háček (NFD). U+010D=č U+0161=š U+017E=ž U+0159=ř U+011B=ě (správně NFC). U+010B/U+017C/U+0107 = špatné znaky (poškozená data).', 'nkz-marketplace' ) . '</p>';
+		echo '</details>';
+	}
+
+	private static function codepoints( string $s ): string {
+		$out = [];
+		$len = mb_strlen( $s, 'UTF-8' );
+		for ( $i = 0; $i < $len; $i++ ) {
+			$ch = mb_substr( $s, $i, 1, 'UTF-8' );
+			$cp = mb_ord( $ch, 'UTF-8' );
+			if ( $cp === false ) {
+				continue;
+			}
+			$out[] = ( $cp < 128 && ctype_alnum( $ch ) )
+				? $ch
+				: sprintf( 'U+%04X', $cp );
+		}
+		return implode( ' ', $out );
 	}
 
 	public function handle_fix_diacritics(): void {
