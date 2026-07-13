@@ -55,9 +55,46 @@ final class Assets {
 			NKZMP_STOREFRONT_VERSION
 		);
 		$inline = self::tokens_css();
+		$font   = self::font_face_css();
+		if ( $font !== '' ) {
+			$inline = $font . $inline;
+		}
 		if ( $inline !== '' ) {
 			wp_add_inline_style( 'nkz-mp-storefront', $inline );
 		}
+	}
+
+	/**
+	 * @font-face pro brand font na WC/storefront stránkách.
+	 *
+	 * Proč: Elementor aplikuje brand font (Fabio XM) jen na svůj obsah.
+	 * WooCommerce a plugin-renderované stránky (produkt, košík, vendor)
+	 * font nedostanou → fallback komolí české háčky (č š ž ř ě).
+	 * Načteme stejný font pod vlastním názvem a aplikujeme ho tady.
+	 *
+	 * URL přes content_url() → přežije migraci domény. Cesta i celý blok
+	 * je filtrovatelný. Prázdná URL = vypnuto.
+	 */
+	private static function font_face_css(): string {
+		$default_url = content_url( '/uploads/2026/03/Fabio-XM-Variable.ttf' );
+		$url    = (string) apply_filters( 'nkzmp/v1/storefront/font_url', $default_url );
+		$family = (string) apply_filters( 'nkzmp/v1/storefront/font_family', 'Fabio XM AOZ' );
+		if ( $url === '' || $family === '' ) {
+			return '';
+		}
+
+		$stack = "'" . $family . "', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
+
+		$css  = "@font-face{font-family:'" . $family . "';src:url('" . esc_url( $url ) . "') format('truetype');font-weight:100 900;font-stretch:75% 125%;font-display:swap;}";
+		$css .= 'body.woocommerce,body.woocommerce-page,'
+			. '.nkzmp-single-vendor,.nkzmp-vendor-header,.nkzmp-vendor-card,'
+			. '.nkzmp-latest-products,.nkzmp-product-categories,'
+			. '.nkzmp-steps,.nkzmp-rm,.nkzmp-filters,'
+			. '.woocommerce-page .product,.woocommerce div.product,'
+			. '.woocommerce-cart,.woocommerce-checkout,.woocommerce-account'
+			. '{font-family:' . $stack . ';}';
+
+		return (string) apply_filters( 'nkzmp/v1/storefront/font_face_css', $css, $url, $family );
 	}
 
 	/** Vynutí WC styling – idempotentní. */
