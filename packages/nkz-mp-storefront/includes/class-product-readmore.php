@@ -50,9 +50,13 @@ final class ProductReadmore {
 .nkzmp-rm.is-clamped .nkzmp-rm__inner{max-height:{$max_h}px;overflow:hidden;}
 .nkzmp-rm.is-clamped:not(.is-open) .nkzmp-rm__inner{-webkit-mask-image:linear-gradient(180deg,#000 60%,transparent);mask-image:linear-gradient(180deg,#000 60%,transparent);}
 .nkzmp-rm.is-open .nkzmp-rm__inner{max-height:none;}
-.nkzmp-rm__toggle{display:inline-flex;align-items:center;gap:6px;margin-top:12px;padding:8px 16px;border:1px solid var(--nkzmp-color-border,#ddd);border-radius:var(--nkzmp-radius-soft,8px);background:var(--nkzmp-color-surface,#fff);color:var(--nkzmp-color-accent,#0060FF);font-size:14px;font-weight:600;cursor:pointer;transition:background .15s ease,border-color .15s ease;}
-.nkzmp-rm__toggle:hover{border-color:var(--nkzmp-color-accent,#0060FF);}
-.nkzmp-rm__toggle::after{content:'▾';font-size:11px;transition:transform .2s ease;}
+.nkzmp-rm .nkzmp-rm__toggle,
+.nkzmp-rm .nkzmp-rm__toggle:link,
+.nkzmp-rm .nkzmp-rm__toggle:visited{display:inline-flex !important;align-items:center !important;gap:6px !important;margin-top:12px !important;padding:8px 16px !important;border:1px solid var(--nkzmp-color-border,#ddd) !important;border-radius:var(--nkzmp-radius-soft,8px) !important;background:var(--nkzmp-color-surface,#fff) !important;background-image:none !important;color:var(--nkzmp-color-accent,#0060FF) !important;font-size:14px !important;font-weight:600 !important;line-height:1.2 !important;cursor:pointer !important;box-shadow:none !important;text-shadow:none !important;transition:background .15s ease,border-color .15s ease,color .15s ease !important;}
+.nkzmp-rm .nkzmp-rm__toggle:hover,
+.nkzmp-rm .nkzmp-rm__toggle:focus,
+.nkzmp-rm .nkzmp-rm__toggle:active{background:var(--nkzmp-color-accent,#0060FF) !important;background-image:none !important;border-color:var(--nkzmp-color-accent,#0060FF) !important;color:#fff !important;box-shadow:none !important;outline:none !important;}
+.nkzmp-rm .nkzmp-rm__toggle::after{content:'▾';font-size:11px;transition:transform .2s ease;}
 .nkzmp-rm.is-open .nkzmp-rm__toggle::after{transform:rotate(180deg);}
 ";
 
