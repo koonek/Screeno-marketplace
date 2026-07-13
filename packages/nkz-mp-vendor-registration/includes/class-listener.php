@@ -30,6 +30,13 @@ final class Listener {
 
 	public function init(): void {
 		add_action( 'nkzmp/v1/vendor/status_changed', [ $this, 'on_status' ], 10, 4 );
+
+		// Prodluž platnost reset/password-setup klíče. WP default je 24 h, což je
+		// na onboarding e-mail „nastav si heslo" krátké (lidi neklikají hned) →
+		// klíč vyprší a odkaz „nefunguje". Default 7 dní, filtrovatelné.
+		add_filter( 'password_reset_expiration', static function ( $seconds ) {
+			return (int) apply_filters( 'nkzmp/v1/registration/reset_expiration', 7 * DAY_IN_SECONDS );
+		} );
 	}
 
 	public function on_status( int $vendor_id, string $from, string $to, array $context = [] ): void {
