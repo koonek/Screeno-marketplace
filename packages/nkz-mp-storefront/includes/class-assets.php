@@ -120,6 +120,20 @@ final class Assets {
 			. '.nkzmp-product-categories .woocommerce-loop-category__title,'
 			. '.nkzmp-rm__inner,.nkzmp-filters__group'
 			. '{font-family:' . $stack . ' !important;}';
+		// Elementor Theme Builder – single product widgety (titulek, cena,
+		// popis, breadcrumb, add-to-cart) renderuji vlastni markup a dedi
+		// rozbity variable font. Prebijeme jen textem.
+		$css .= '.elementor-widget-woocommerce-product-title,'
+			. '.elementor-widget-woocommerce-product-title h1,'
+			. '.elementor-widget-woocommerce-product-title h2,'
+			. '.elementor-widget-woocommerce-product-price,'
+			. '.elementor-widget-woocommerce-product-price .price,'
+			. '.elementor-widget-woocommerce-product-short-description,'
+			. '.elementor-widget-wc-breadcrumb,.elementor-widget-woocommerce-breadcrumb,'
+			. '.woocommerce-breadcrumb,'
+			. '.elementor-widget-woocommerce-product-add-to-cart .button,'
+			. '.elementor-widget-woocommerce-product-content'
+			. '{font-family:' . $stack . ' !important;}';
 
 		return (string) apply_filters( 'nkzmp/v1/storefront/font_face_css', $css, $woff2, $family );
 	}
