@@ -68,6 +68,7 @@ final class Plugin {
 			'minimum_transfer_amount'          => 1.0,
 			'debug_logging'                    => 'no',
 			'transfer_hook'                    => 'payment_complete',
+			'escrow_hold_days'                 => 3, // escrow: ochranná lhůta po podání zásilky
 			'require_currency_match'           => 'yes',
 			'auto_reversal_on_full_refund'     => 'no',
 		];

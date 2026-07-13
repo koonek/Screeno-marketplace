@@ -122,6 +122,16 @@ final class LabelService {
 		);
 		$order->save();
 
+		/**
+		 * Prodejce podal zásilku (vytvořen packet/štítek). Napojuje se escrow
+		 * hold plateb (uvolnění výplaty po ochranné lhůtě).
+		 *
+		 * @param \WC_Order $order
+		 * @param int       $vendor_id
+		 * @param array     $record  packet záznam (id, barcode, created…)
+		 */
+		do_action( 'nkzmp/v1/packeta/packet_created', $order, $vendor_id, $record );
+
 		// Side-effecty (e-mail zákazníkovi, auto-dokončení). Guardované, aby
 		// případná chyba neshodila vytvoření zásilky.
 		try {

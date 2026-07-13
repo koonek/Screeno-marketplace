@@ -134,6 +134,15 @@ final class Assets {
 			. '.elementor-widget-woocommerce-product-add-to-cart .button,'
 			. '.elementor-widget-woocommerce-product-content'
 			. '{font-family:' . $stack . ' !important;}';
+		// Tlacitka – WC + Elementor + moje. Vlastni typografie tema/Elementoru
+		// je muze drzet na jinem (rozbitem/fallback) fontu.
+		$css .= '.woocommerce button.button,.woocommerce a.button,.woocommerce input.button,'
+			. '.woocommerce .single_add_to_cart_button,.single_add_to_cart_button,'
+			. '.woocommerce #respond input#submit,.woocommerce a.added_to_cart,'
+			. '.elementor-widget-woocommerce-product-add-to-cart button,'
+			. '.elementor-widget-woocommerce-product-add-to-cart .elementor-button,'
+			. '.nkzmp-rm__toggle,.nkzmp-filters__search,.nkzmp-filters__submit'
+			. '{font-family:' . $stack . ' !important;}';
 
 		return (string) apply_filters( 'nkzmp/v1/storefront/font_face_css', $css, $woff2, $family );
 	}
