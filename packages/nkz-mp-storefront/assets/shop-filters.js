@@ -170,6 +170,17 @@
 		}
 	} );
 
+	// Safari fallback: delegovany 'input' na type=search nemusi spolehlive
+	// vystrelit + nativni X (clear) strili 'search' event. Navesime primo.
+	var searchInput = form.querySelector( '[data-nkzmp-search]' );
+	if ( searchInput ) {
+		[ 'input', 'keyup', 'search' ].forEach( function ( ev ) {
+			searchInput.addEventListener( ev, function () {
+				debounce( applyReset, 400 );
+			} );
+		} );
+	}
+
 	function debounce( fn, ms ) {
 		clearTimeout( debounceTimer );
 		debounceTimer = setTimeout( fn, ms );

@@ -34,6 +34,7 @@ final class ToolsPage {
 		add_action( 'admin_post_nkzmp_run_reconcile', [ $this, 'handle_reconcile' ] );
 		add_action( 'admin_post_nkzmp_run_backfill', [ $this, 'handle_backfill' ] );
 		add_action( 'admin_post_nkzmp_cleanup_roles', [ $this, 'handle_cleanup_roles' ] );
+		add_action( 'admin_post_nkzmp_fix_diacritics', [ $this, 'handle_fix_diacritics' ] );
 	}
 
 	private const LEGACY_ROLES = [
@@ -77,6 +78,8 @@ final class ToolsPage {
 			echo '<div class="notice notice-error"><p>' . esc_html( $msg ?: __( 'Chyba.', 'nkz-marketplace' ) ) . '</p></div>';
 		}
 
+		$this->render_diacritics_section();
+		echo '<hr style="margin:24px 0;">';
 		$this->render_migration_section();
 		echo '<hr style="margin:24px 0;">';
 		$this->render_status_section();
@@ -87,6 +90,141 @@ final class ToolsPage {
 		echo '<hr style="margin:24px 0;">';
 		$this->render_cleanup_roles_section();
 		echo '</div>';
+	}
+
+	/** Seznam (post_type, meta_keys) k normalizaci. */
+	private const DIACRITICS_META = [ '_nkzmp_vendor_bio', '_nkv_vendor_bio' ];
+
+	private function render_diacritics_section(): void {
+		echo '<h2>' . esc_html__( 'Opravit diakritiku (č š ž ř ě …)', 'nkz-marketplace' ) . '</h2>';
+		echo '<p>' . esc_html__( 'Část textů (importovaná / kopírovaná z Macu) je uložená v rozloženém Unicode (NFD) – „č" jako „c" + samostatný háček. Zobrazuje se pak rozbitě (č→ć, ž→ż, Ř s plovoucím háčkem). Tento nástroj přepíše názvy a popisy produktů + prodejců na správný složený tvar (NFC). Idempotentní – co je OK nechá být.', 'nkz-marketplace' ) . '</p>';
+
+		$preview = $this->fix_diacritics( true );
+		echo '<p><strong>' . esc_html__( 'Náhled (dry-run):', 'nkz-marketplace' ) . '</strong></p>';
+		echo '<ul>';
+		echo '<li>' . esc_html( sprintf( __( 'Produktů k opravě: %d', 'nkz-marketplace' ), $preview['products'] ) ) . '</li>';
+		echo '<li>' . esc_html( sprintf( __( 'Prodejců k opravě: %d', 'nkz-marketplace' ), $preview['vendors'] ) ) . '</li>';
+		echo '</ul>';
+
+		if ( ! $preview['can_normalize'] ) {
+			echo '<div class="notice notice-warning inline"><p>' . esc_html__( 'Nelze normalizovat – chybí PHP intl i storefront modul. Aktivuj storefront modul (je v bundlu).', 'nkz-marketplace' ) . '</p></div>';
+			return;
+		}
+
+		echo '<p style="color:#a00;"><em>' . esc_html__( 'Doporučení: před spuštěním si udělej zálohu databáze. Změna je trvalá.', 'nkz-marketplace' ) . '</em></p>';
+		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+		echo '<input type="hidden" name="action" value="nkzmp_fix_diacritics" />';
+		wp_nonce_field( self::NONCE_ACTION );
+		$total = $preview['products'] + $preview['vendors'];
+		echo '<button type="submit" class="button button-primary"' . ( $total > 0 ? '' : ' disabled' ) . '>'
+			. esc_html__( 'Opravit diakritiku (write)', 'nkz-marketplace' ) . '</button>';
+		echo '</form>';
+	}
+
+	public function handle_fix_diacritics(): void {
+		check_admin_referer( self::NONCE_ACTION );
+		if ( ! current_user_can( Capabilities::MANAGE_VENDORS ) ) {
+			wp_die( esc_html__( 'Nedostatečná oprávnění.', 'nkz-marketplace' ) );
+		}
+		$res = $this->fix_diacritics( false );
+		$this->redirect( 'ok', sprintf(
+			__( 'Diakritika opravena: %1$d produktů, %2$d prodejců.', 'nkz-marketplace' ),
+			$res['products'],
+			$res['vendors']
+		) );
+	}
+
+	/**
+	 * @return array{products:int,vendors:int,can_normalize:bool}
+	 */
+	private function fix_diacritics( bool $dry_run ): array {
+		global $wpdb;
+		$out = [ 'products' => 0, 'vendors' => 0, 'can_normalize' => false ];
+
+		$normalizer = static function ( string $s ): string {
+			if ( class_exists( \NKZMP\Storefront\TextNormalize::class ) ) {
+				return \NKZMP\Storefront\TextNormalize::to_nfc( $s );
+			}
+			if ( class_exists( \Normalizer::class ) ) {
+				$n = \Normalizer::normalize( $s, \Normalizer::FORM_C );
+				return is_string( $n ) ? $n : $s;
+			}
+			return $s;
+		};
+		// Detekce zda vůbec umíme normalizovat.
+		$out['can_normalize'] = class_exists( \NKZMP\Storefront\TextNormalize::class ) || class_exists( \Normalizer::class );
+		if ( ! $out['can_normalize'] ) {
+			return $out;
+		}
+
+		// Produkty: title / content / excerpt.
+		$product_ids = get_posts( [
+			'post_type'      => 'product',
+			'post_status'    => 'any',
+			'posts_per_page' => -1,
+			'fields'         => 'ids',
+		] );
+		foreach ( $product_ids as $pid ) {
+			$post = get_post( $pid );
+			if ( ! $post ) {
+				continue;
+			}
+			$new_title   = $normalizer( (string) $post->post_title );
+			$new_content = $normalizer( (string) $post->post_content );
+			$new_excerpt = $normalizer( (string) $post->post_excerpt );
+			if ( $new_title === $post->post_title && $new_content === $post->post_content && $new_excerpt === $post->post_excerpt ) {
+				continue;
+			}
+			$out['products']++;
+			if ( ! $dry_run ) {
+				$wpdb->update(
+					$wpdb->posts,
+					[ 'post_title' => $new_title, 'post_content' => $new_content, 'post_excerpt' => $new_excerpt ],
+					[ 'ID' => $pid ]
+				);
+				clean_post_cache( $pid );
+			}
+		}
+
+		// Prodejci: title + bio meta.
+		$vendor_ids = get_posts( [
+			'post_type'      => [ 'nkzmp_vendor', 'nkv_vendor' ],
+			'post_status'    => 'any',
+			'posts_per_page' => -1,
+			'fields'         => 'ids',
+		] );
+		foreach ( $vendor_ids as $vid ) {
+			$post    = get_post( $vid );
+			$changed = false;
+			if ( $post ) {
+				$new_title = $normalizer( (string) $post->post_title );
+				if ( $new_title !== $post->post_title ) {
+					$changed = true;
+					if ( ! $dry_run ) {
+						$wpdb->update( $wpdb->posts, [ 'post_title' => $new_title ], [ 'ID' => $vid ] );
+						clean_post_cache( $vid );
+					}
+				}
+			}
+			foreach ( self::DIACRITICS_META as $mk ) {
+				$val = (string) get_post_meta( $vid, $mk, true );
+				if ( $val === '' ) {
+					continue;
+				}
+				$new = $normalizer( $val );
+				if ( $new !== $val ) {
+					$changed = true;
+					if ( ! $dry_run ) {
+						update_post_meta( $vid, $mk, $new );
+					}
+				}
+			}
+			if ( $changed ) {
+				$out['vendors']++;
+			}
+		}
+
+		return $out;
 	}
 
 	private function render_cleanup_roles_section(): void {
