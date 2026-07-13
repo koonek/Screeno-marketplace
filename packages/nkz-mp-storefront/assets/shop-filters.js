@@ -105,10 +105,17 @@
 
 		layout.classList.add( 'is-loading' );
 
-		if ( currentReq && currentReq.abort ) {
+		// fetch / AbortController nemusi byt ve starsim Safari → fallback na
+		// nativni odeslani formulare (GET reload, server-side filtr).
+		if ( ! window.fetch ) {
+			if ( form.requestSubmit ) { form.requestSubmit(); } else { form.submit(); }
+			return;
+		}
+		var hasAbort = 'AbortController' in window;
+		if ( hasAbort && currentReq && currentReq.abort ) {
 			currentReq.abort();
 		}
-		var controller = new AbortController();
+		var controller = hasAbort ? new AbortController() : null;
 		currentReq = controller;
 
 		fetch( cfg.ajaxUrl, {
@@ -116,7 +123,7 @@
 			headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
 			body: body.toString(),
 			credentials: 'same-origin',
-			signal: controller.signal
+			signal: controller ? controller.signal : undefined
 		} )
 			.then( function ( r ) { return r.json(); } )
 			.then( function ( res ) {
@@ -162,11 +169,15 @@
 		}
 	} );
 
-	// Enter v search poli = okamžitě hledat, ne submitnout formulář (reload).
+	// Enter v search poli: pokud fetch funguje, hledej AJAXem (bez reloadu).
+	// Když fetch chybí (staré Safari), nechame formular odeslat nativne (GET
+	// reload = spolehlivý server-side filtr).
 	form.addEventListener( 'keydown', function ( e ) {
 		if ( e.target.matches( '[data-nkzmp-search]' ) && e.key === 'Enter' ) {
-			e.preventDefault();
-			applyReset();
+			if ( window.fetch ) {
+				e.preventDefault();
+				applyReset();
+			}
 		}
 	} );
 
@@ -181,11 +192,13 @@
 		} );
 	}
 
-	// Safari: Enter v search poli odesila cely <form> (GET reload) driv nez
-	// stihne AJAX. Zachytime submit formu a prevedeme na AJAX.
+	// Submit formu: fetch OK → AJAX (bez reloadu). Bez fetch → necháme
+	// nativní odeslání (GET reload = spolehlivý fallback ve všech prohlížečích).
 	form.addEventListener( 'submit', function ( e ) {
-		e.preventDefault();
-		applyReset();
+		if ( window.fetch ) {
+			e.preventDefault();
+			applyReset();
+		}
 	} );
 
 	function debounce( fn, ms ) {
