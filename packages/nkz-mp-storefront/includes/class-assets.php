@@ -150,6 +150,13 @@ final class Assets {
 			. '.elementor-widget-woocommerce-breadcrumb,.elementor-widget-woocommerce-breadcrumb a,'
 			. 'nav.woocommerce-breadcrumb,nav.woocommerce-breadcrumb a'
 			. '{font-family:' . $stack . ' !important;}';
+		// Product meta – „Kategorie: …" (posted_in) + SKU/tagy + Elementor varianta.
+		$css .= '.woocommerce div.product .product_meta,.product_meta,.product_meta a,'
+			. '.product_meta .posted_in,.product_meta .posted_in a,.posted_in,.posted_in a,'
+			. '.elementor-widget-woocommerce-product-meta,'
+			. '.elementor-widget-woocommerce-product-meta .product_meta,'
+			. '.elementor-widget-woocommerce-product-meta a'
+			. '{font-family:' . $stack . ' !important;}';
 
 		return (string) apply_filters( 'nkzmp/v1/storefront/font_face_css', $css, $woff2, $family );
 	}
