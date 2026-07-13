@@ -40,10 +40,12 @@ final class ProductReadmore {
 			return;
 		}
 
-		$max_h    = (int) apply_filters( 'nkzmp/v1/storefront/product_readmore_height', 220 );
-		$max_h    = max( 80, $max_h );
-		$more_txt = esc_js( __( 'Zobrazit více', 'nkz-mp-storefront' ) );
-		$less_txt = esc_js( __( 'Zobrazit méně', 'nkz-mp-storefront' ) );
+		$max_h     = (int) apply_filters( 'nkzmp/v1/storefront/product_readmore_height', 220 );
+		$max_h     = max( 80, $max_h );
+		// wp_json_encode = bezpečné JS string literály (unicode \u escape) –
+		// esc_js komolil diakritiku (ě/š/ř).
+		$more_json = wp_json_encode( __( 'Zobrazit více', 'nkz-mp-storefront' ) );
+		$less_json = wp_json_encode( __( 'Zobrazit méně', 'nkz-mp-storefront' ) );
 
 		$css = "
 .nkzmp-rm{position:relative;}
@@ -63,8 +65,8 @@ final class ProductReadmore {
 		$js = <<<JS
 (function(){
 	var MAXH = {$max_h};
-	var MORE = '{$more_txt}';
-	var LESS = '{$less_txt}';
+	var MORE = {$more_json};
+	var LESS = {$less_json};
 	var SELECTORS = [
 		'.woocommerce-product-details__short-description',
 		'#tab-description',
