@@ -104,6 +104,38 @@ final class Order_Meta_Box {
 		$form_id = 'nkv-svs-actions-' . $order->get_id();
 		$this->footer_form_id   = $form_id;
 		$this->footer_order_id  = $order->get_id();
+
+		// Escrow panel – zádržné výplat (jen když je escrow aktivní).
+		if ( Escrow::is_active() ) {
+			$sched = Escrow::schedule_for( $order );
+			echo '<div style="margin-top:12px;padding:10px;background:#f6f7f7;border-radius:4px;">';
+			echo '<strong>' . esc_html__( 'Escrow – zádržné výplat', 'nkz-woo-stripe-vendor-split' ) . '</strong>';
+			if ( empty( $sched ) ) {
+				echo '<p style="margin:6px 0 0;color:#646970;">' . esc_html__( 'Žádná zásilka zatím nepodána – výplaty drží platforma.', 'nkz-woo-stripe-vendor-split' ) . '</p>';
+			} else {
+				echo '<ul style="margin:6px 0 0;">';
+				foreach ( $sched as $vid => $info ) {
+					$vname = get_the_title( (int) $vid ) ?: ( '#' . (int) $vid );
+					if ( ! empty( $info['released'] ) ) {
+						echo '<li>' . esc_html( $vname ) . ': <span style="color:#1a7f37;font-weight:600;">' . esc_html__( 'uvolněno', 'nkz-woo-stripe-vendor-split' ) . '</span></li>';
+					} else {
+						$at = ! empty( $info['at'] ) ? wp_date( 'j. n. Y', (int) $info['at'] ) : '—';
+						printf(
+							'<li style="margin:4px 0;">%1$s: %2$s <strong>%3$s</strong> <button type="submit" form="%4$s" name="nkv_action_escrow_release" value="%5$d" class="button button-small">%6$s</button></li>',
+							esc_html( $vname ),
+							esc_html__( 'uvolní se', 'nkz-woo-stripe-vendor-split' ),
+							esc_html( $at ),
+							esc_attr( $form_id ),
+							(int) $vid,
+							esc_html__( 'Uvolnit teď', 'nkz-woo-stripe-vendor-split' )
+						);
+					}
+				}
+				echo '</ul>';
+			}
+			echo '</div>';
+		}
+
 		echo '<p style="margin-top:10px;">';
 		printf( '<button type="submit" form="%s" name="nkv_action_recalculate" class="button button-secondary button-small">%s</button> ', esc_attr( $form_id ), esc_html__( 'Přepočítat', 'nkz-woo-stripe-vendor-split' ) );
 		printf( '<button type="submit" form="%s" name="nkv_action_run" class="button button-primary button-small">%s</button> ', esc_attr( $form_id ), esc_html__( 'Vytvořit transfery', 'nkz-woo-stripe-vendor-split' ) );
@@ -237,6 +269,15 @@ final class Order_Meta_Box {
 			$order->update_meta_data( '_nkv_split_status', 'manual' );
 			$order->add_order_note( __( 'NKV: Označeno jako ručně vyřešeno.', 'nkz-woo-stripe-vendor-split' ) );
 			$order->save();
+		} elseif ( isset( $_POST['nkv_action_escrow_release'] ) ) {
+			$vendor_id = (int) $_POST['nkv_action_escrow_release'];
+			if ( $vendor_id > 0 ) {
+				Escrow::release_now( $order_id, $vendor_id );
+				$order->add_order_note( sprintf(
+					__( 'Escrow: admin ručně uvolnil výplatu prodejce #%d.', 'nkz-woo-stripe-vendor-split' ),
+					$vendor_id
+				) );
+			}
 		} elseif ( isset( $_POST['nkv_action_reverse'] ) ) {
 			$vendor_id = (int) ( $_POST['reverse_vendor_id'] ?? 0 );
 			$amount    = (float) ( $_POST['reverse_amount'] ?? 0 );

@@ -35,6 +35,7 @@ final class Plugin {
 		// Domain / service layer hooks.
 		Transfer_Service::instance()->init();
 		Refund_Service::instance()->init();
+		Escrow::instance()->init();
 
 		load_plugin_textdomain( 'nkz-woo-stripe-vendor-split', false, dirname( plugin_basename( NKVSVS_PLUGIN_FILE ) ) . '/languages' );
 
