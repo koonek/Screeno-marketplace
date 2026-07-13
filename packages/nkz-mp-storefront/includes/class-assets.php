@@ -99,6 +99,7 @@ final class Assets {
 		$src = implode( ',', $srcs );
 
 		$css  = "@font-face{font-family:'" . $family . "';src:" . $src . ";font-weight:400 700;font-display:swap;}";
+		// Kontejnery – dedena zakladni sazba.
 		$css .= 'body.woocommerce,body.woocommerce-page,'
 			. '.nkzmp-single-vendor,.nkzmp-vendor-header,.nkzmp-vendor-card,'
 			. '.nkzmp-latest-products,.nkzmp-product-categories,'
@@ -106,8 +107,21 @@ final class Assets {
 			. '.woocommerce-page .product,.woocommerce div.product,'
 			. '.woocommerce-cart,.woocommerce-checkout,.woocommerce-account'
 			. '{font-family:' . $stack . ';}';
+		// Konkretni textove prvky s !important – prebiji rozbity variable font
+		// z tematu/Elementoru (jen text, NE ikony/i/svg).
+		$css .= '.woocommerce div.product .product_title,'
+			. '.woocommerce div.product p.price,.woocommerce div.product span.price,'
+			. '.woocommerce div.product .woocommerce-product-details__short-description,'
+			. '.woocommerce ul.products li.product .woocommerce-loop-product__title,'
+			. '.woocommerce ul.products li.product .price,'
+			. '.nkzmp-latest-products .woocommerce-loop-product__title,'
+			. '.nkzmp-latest-products .price,'
+			. '.nkzmp-shop-vendor__name,.nkzmp-single-vendor__name,.nkzmp-single-vendor__bio,'
+			. '.nkzmp-product-categories .woocommerce-loop-category__title,'
+			. '.nkzmp-rm__inner,.nkzmp-filters__group'
+			. '{font-family:' . $stack . ' !important;}';
 
-		return (string) apply_filters( 'nkzmp/v1/storefront/font_face_css', $css, $url, $family );
+		return (string) apply_filters( 'nkzmp/v1/storefront/font_face_css', $css, $woff2, $family );
 	}
 
 	/** Vynutí WC styling – idempotentní. */
