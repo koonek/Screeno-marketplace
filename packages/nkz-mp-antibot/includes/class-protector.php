@@ -52,6 +52,15 @@ final class Protector {
 			return true;
 		}
 
+		// KLÍČOVÉ: pokud na odeslaném formuláři NEJSOU naše skrytá pole (jiná
+		// šablona – např. WooCommerce My Account login / reset hesla, kde se
+		// náš render_fields nespustil), NESMÍME blokovat. Time gate by jinak
+		// legitimní uživatele odmítl (chybějící timestamp = „moc rychle").
+		// Ověřujeme jen formuláře, do kterých jsme reálně vložili svoje pole.
+		if ( ! isset( $_POST[ self::TIME_FIELD ] ) && ! isset( $_POST[ self::FORM_FIELD ] ) ) {
+			return true;
+		}
+
 		// 1) Honeypot.
 		if ( ! empty( $_POST[ self::HP_FIELD ] ) ) {
 			self::log( $form_key, 'honeypot' );

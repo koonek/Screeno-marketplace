@@ -2,7 +2,7 @@
 /**
  * Plugin Name: NKZ Marketplace – Antibot
  * Description: Anti-spam/bot ochrana napríč marketplace formuláři: honeypot, time gate, IP rate limit, Cloudflare Turnstile (volitelné). Aktivní hned po nahrání; Turnstile čeká na keys ze Settings.
- * Version: 0.1.1
+ * Version: 0.1.2
  * Author: NKZ
  * Requires PHP: 8.1
  * Text Domain: nkz-mp-antibot
@@ -32,7 +32,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'NKZMP_ANTIBOT_VERSION', '0.1.1' );
+define( 'NKZMP_ANTIBOT_VERSION', '0.1.2' );
 define( 'NKZMP_ANTIBOT_FILE', __FILE__ );
 define( 'NKZMP_ANTIBOT_DIR', plugin_dir_path( __FILE__ ) );
 
