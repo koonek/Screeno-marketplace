@@ -2261,16 +2261,24 @@ html body .nkzmp-filters__group legend {
 }
 html body .nkzmp-filters__search {
 	width: 100% !important;
+	min-width: 0 !important;
 	box-sizing: border-box !important;
-	padding: 11px 14px !important;
+	height: 40px !important;
+	padding: 0 10px !important;
 	border: 1px solid var(--nkzmp-color-border) !important;
-	border-radius: var(--nkzmp-radius-soft) !important;
+	border-radius: var(--nkzmp-radius-soft, 8px) !important;
 	background: var(--nkzmp-color-surface) !important;
 	color: var(--nkzmp-color-text) !important;
 	font-size: 14px !important;
-	line-height: 1.2 !important;
+	line-height: normal !important;
 	outline: none !important;
+	-webkit-appearance: none !important;
+	appearance: none !important;
 	transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+}
+html body .nkzmp-filters__search::-webkit-search-decoration,
+html body .nkzmp-filters__search::-webkit-search-cancel-button {
+	-webkit-appearance: none !important;
 }
 html body .nkzmp-filters__search:focus {
 	border-color: var(--nkzmp-color-accent) !important;

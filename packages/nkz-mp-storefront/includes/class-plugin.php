@@ -33,6 +33,7 @@ final class Plugin {
 		ShopLoop::instance()->init();
 		ShopFilters::instance()->init();
 		Shortcodes::instance()->init();
+		ProductReadmore::instance()->init();
 
 		// Cache filtrů (cenové rozpětí, seznam prodejců) invalidovat při
 		// uložení/smazání produktu.
