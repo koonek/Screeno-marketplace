@@ -76,16 +76,29 @@ final class Assets {
 	 * je filtrovatelný. Prázdná URL = vypnuto.
 	 */
 	private static function font_face_css(): string {
-		$default_url = content_url( '/uploads/2026/03/Fabio-XM-Variable.ttf' );
-		$url    = (string) apply_filters( 'nkzmp/v1/storefront/font_url', $default_url );
+		$base = content_url( '/uploads/2026/03/' );
+		// STATIC font (ne variable). Variable Fabio-XM-Variable.ttf ma rozbite
+		// ceske hacky (c s z r e). Static FabioXM-Regular.woff2 renderuje
+		// spravne (pouziva ho i Elementor).
+		$woff2  = (string) apply_filters( 'nkzmp/v1/storefront/font_woff2', $base . 'FabioXM-Regular.woff2' );
+		$woff   = (string) apply_filters( 'nkzmp/v1/storefront/font_woff', $base . 'FabioXM-Regular.woff' );
 		$family = (string) apply_filters( 'nkzmp/v1/storefront/font_family', 'Fabio XM AOZ' );
-		if ( $url === '' || $family === '' ) {
+		if ( ( $woff2 === '' && $woff === '' ) || $family === '' ) {
 			return '';
 		}
 
 		$stack = "'" . $family . "', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
 
-		$css  = "@font-face{font-family:'" . $family . "';src:url('" . esc_url( $url ) . "') format('truetype');font-weight:100 900;font-stretch:75% 125%;font-display:swap;}";
+		$srcs = [];
+		if ( $woff2 !== '' ) {
+			$srcs[] = "url('" . esc_url( $woff2 ) . "') format('woff2')";
+		}
+		if ( $woff !== '' ) {
+			$srcs[] = "url('" . esc_url( $woff ) . "') format('woff')";
+		}
+		$src = implode( ',', $srcs );
+
+		$css  = "@font-face{font-family:'" . $family . "';src:" . $src . ";font-weight:400 700;font-display:swap;}";
 		$css .= 'body.woocommerce,body.woocommerce-page,'
 			. '.nkzmp-single-vendor,.nkzmp-vendor-header,.nkzmp-vendor-card,'
 			. '.nkzmp-latest-products,.nkzmp-product-categories,'
