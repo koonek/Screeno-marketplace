@@ -174,12 +174,19 @@
 	// vystrelit + nativni X (clear) strili 'search' event. Navesime primo.
 	var searchInput = form.querySelector( '[data-nkzmp-search]' );
 	if ( searchInput ) {
-		[ 'input', 'keyup', 'search' ].forEach( function ( ev ) {
+		[ 'input', 'keyup', 'search', 'change' ].forEach( function ( ev ) {
 			searchInput.addEventListener( ev, function () {
 				debounce( applyReset, 400 );
 			} );
 		} );
 	}
+
+	// Safari: Enter v search poli odesila cely <form> (GET reload) driv nez
+	// stihne AJAX. Zachytime submit formu a prevedeme na AJAX.
+	form.addEventListener( 'submit', function ( e ) {
+		e.preventDefault();
+		applyReset();
+	} );
 
 	function debounce( fn, ms ) {
 		clearTimeout( debounceTimer );
