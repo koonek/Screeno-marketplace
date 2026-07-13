@@ -138,10 +138,17 @@ final class Assets {
 		// je muze drzet na jinem (rozbitem/fallback) fontu.
 		$css .= '.woocommerce button.button,.woocommerce a.button,.woocommerce input.button,'
 			. '.woocommerce .single_add_to_cart_button,.single_add_to_cart_button,'
+			. 'button.single_add_to_cart_button,.woocommerce div.product form.cart button,'
 			. '.woocommerce #respond input#submit,.woocommerce a.added_to_cart,'
 			. '.elementor-widget-woocommerce-product-add-to-cart button,'
 			. '.elementor-widget-woocommerce-product-add-to-cart .elementor-button,'
+			. '.elementor-button,.elementor-button .elementor-button-text,'
 			. '.nkzmp-rm__toggle,.nkzmp-filters__search,.nkzmp-filters__submit'
+			. '{font-family:' . $stack . ' !important;}';
+		// Breadcrumb (DOMŮ / KATEGORIE / NÁZEV) – WC i Elementor varianta.
+		$css .= '.woocommerce-breadcrumb,.woocommerce-breadcrumb a,'
+			. '.elementor-widget-woocommerce-breadcrumb,.elementor-widget-woocommerce-breadcrumb a,'
+			. 'nav.woocommerce-breadcrumb,nav.woocommerce-breadcrumb a'
 			. '{font-family:' . $stack . ' !important;}';
 
 		return (string) apply_filters( 'nkzmp/v1/storefront/font_face_css', $css, $woff2, $family );

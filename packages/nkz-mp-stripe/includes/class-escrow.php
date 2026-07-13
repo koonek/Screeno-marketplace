@@ -23,6 +23,8 @@ final class Escrow {
 
 	public const RELEASE_HOOK = 'nkv_svs_escrow_release';
 	public const META         = '_nkv_escrow_release'; // [ vendor_id => ['at'=>ts,'released'=>bool] ]
+	public const QUEUE_OPTION = 'nkv_svs_escrow_queue'; // [ "orderId:vendorId" => release_ts ] – fallback bez WP cronu
+	public const LOCK_TRANSIENT = 'nkv_svs_escrow_lock';
 
 	private static ?Escrow $instance = null;
 
@@ -39,10 +41,45 @@ final class Escrow {
 		// eventy, i kdyby admin escrow později přepnul). Scheduling jen v escrow.
 		add_action( self::RELEASE_HOOK, [ $this, 'release' ], 10, 2 );
 
+		// Fallback bez WP cronu / při nízkém provozu: při načtení adminu dožene
+		// splatná uvolnění (throttle 60 s). Idempotentní vůči cronu.
+		add_action( 'admin_init', [ $this, 'process_due' ] );
+
 		if ( ! self::is_active() ) {
 			return;
 		}
 		add_action( 'nkzmp/v1/packeta/packet_created', [ $this, 'on_packet_created' ], 10, 3 );
+	}
+
+	/** Fallback processor – uvolní splatné položky z fronty (throttled). */
+	public function process_due(): void {
+		if ( get_transient( self::LOCK_TRANSIENT ) ) {
+			return;
+		}
+		set_transient( self::LOCK_TRANSIENT, 1, MINUTE_IN_SECONDS );
+
+		$queue = get_option( self::QUEUE_OPTION, [] );
+		if ( ! is_array( $queue ) || empty( $queue ) ) {
+			return;
+		}
+		$now       = time();
+		$processed = 0;
+		foreach ( $queue as $key => $at ) {
+			if ( (int) $at > $now ) {
+				continue;
+			}
+			$parts = explode( ':', (string) $key );
+			if ( count( $parts ) !== 2 ) {
+				unset( $queue[ $key ] );
+				continue;
+			}
+			$this->release( (int) $parts[0], (int) $parts[1] );
+			unset( $queue[ $key ] ); // release() frontu taky čistí, ale pro jistotu
+			if ( ++$processed >= 20 ) {
+				break; // batch limit – zbytek příště
+			}
+		}
+		update_option( self::QUEUE_OPTION, $queue, false );
 	}
 
 	/**
@@ -85,6 +122,12 @@ final class Escrow {
 			wp_schedule_single_event( $when, self::RELEASE_HOOK, [ $order->get_id(), $vendor_id ] );
 		}
 
+		// Fallback fronta (kdyby WP cron nejel).
+		$queue = get_option( self::QUEUE_OPTION, [] );
+		$queue = is_array( $queue ) ? $queue : [];
+		$queue[ $order->get_id() . ':' . $vendor_id ] = $when;
+		update_option( self::QUEUE_OPTION, $queue, false );
+
 		do_action( 'nkv_svs_escrow_scheduled', $order, $vendor_id, $when );
 	}
 
@@ -121,6 +164,13 @@ final class Escrow {
 		$sched[ $vendor_id ]['released_at'] = time();
 		$order->update_meta_data( self::META, $sched );
 		$order->save();
+
+		// Odeber z fallback fronty.
+		$queue = get_option( self::QUEUE_OPTION, [] );
+		if ( is_array( $queue ) ) {
+			unset( $queue[ $order_id . ':' . $vendor_id ] );
+			update_option( self::QUEUE_OPTION, $queue, false );
+		}
 
 		do_action( 'nkv_svs_escrow_released', $order, $vendor_id );
 	}
