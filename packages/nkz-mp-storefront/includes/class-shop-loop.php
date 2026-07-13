@@ -178,9 +178,15 @@ final class ShopLoop {
 			$bio = (string) get_post_meta( $vid, '_nkv_vendor_bio', true );
 		}
 
+		$name = (string) $post->post_title;
+		if ( class_exists( TextNormalize::class ) ) {
+			$name = (string) TextNormalize::instance()->nfc( $name );
+			$bio  = (string) TextNormalize::instance()->nfc( $bio );
+		}
+
 		return [
 			'id'        => $vid,
-			'name'      => (string) $post->post_title,
+			'name'      => $name,
 			'url'       => $post->post_name !== '' ? home_url( '/vendor/' . $post->post_name ) : '',
 			'avatar_id' => (int) get_post_thumbnail_id( $vid ),
 			'bio'       => $bio,

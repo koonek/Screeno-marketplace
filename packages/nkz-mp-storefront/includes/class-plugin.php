@@ -34,6 +34,7 @@ final class Plugin {
 		ShopFilters::instance()->init();
 		Shortcodes::instance()->init();
 		ProductReadmore::instance()->init();
+		TextNormalize::instance()->init();
 
 		// Cache filtrů (cenové rozpětí, seznam prodejců) invalidovat při
 		// uložení/smazání produktu.
