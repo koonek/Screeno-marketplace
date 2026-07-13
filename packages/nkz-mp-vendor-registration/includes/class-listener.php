@@ -160,7 +160,18 @@ final class Listener {
 		if ( is_wp_error( $key ) ) {
 			return;
 		}
-		$reset_url = network_site_url( 'wp-login.php?action=rp&key=' . $key . '&login=' . rawurlencode( $user->user_login ), 'login' );
+		// Použij wp_login_url() – security pluginy (skrytý login /prihlaseni)
+		// tuhle URL filtrují na svůj slug, takže odkaz nevede na blokovaný
+		// wp-login.php (jinak 404). Filtrovatelné pro krajní případy.
+		$login_url = (string) apply_filters( 'nkzmp/v1/registration/reset_login_url', wp_login_url() );
+		$reset_url = add_query_arg(
+			[
+				'action' => 'rp',
+				'key'    => $key,
+				'login'  => rawurlencode( $user->user_login ),
+			],
+			$login_url
+		);
 
 		$vars = [
 			'name'         => $user->display_name ?: $user->user_login,
