@@ -2634,3 +2634,49 @@ html body form.variations_form .variations {
 	border-radius: var(--nkzmp-radius) !important;
 	padding: 20px !important;
 }
+
+/* ── Tabulka atributů (záložka „Další informace") ─────────────────── */
+html body .woocommerce-product-attributes,
+html body table.shop_attributes {
+	width: 100% !important;
+	border: 0 !important;
+	border-collapse: collapse !important;
+	margin: 0 0 24px !important;
+}
+html body .woocommerce-product-attributes tr,
+html body table.shop_attributes tr {
+	border: 0 !important;
+	border-bottom: 1px solid var(--nkzmp-color-border-soft) !important;
+	background: transparent !important;
+}
+html body .woocommerce-product-attributes tr:first-child,
+html body table.shop_attributes tr:first-child {
+	border-top: 1px solid var(--nkzmp-color-border-soft) !important;
+}
+html body .woocommerce-product-attributes th,
+html body table.shop_attributes th {
+	text-align: left !important;
+	padding: 14px 16px 14px 0 !important;
+	font-weight: 600 !important;
+	font-size: 12px !important;
+	letter-spacing: 0.06em !important;
+	text-transform: uppercase !important;
+	color: var(--nkzmp-color-text-muted) !important;
+	background: transparent !important;
+	border: 0 !important;
+	width: 200px !important;
+	vertical-align: top !important;
+}
+html body .woocommerce-product-attributes td,
+html body table.shop_attributes td {
+	padding: 14px 16px !important;
+	font-style: normal !important;
+	color: var(--nkzmp-color-text) !important;
+	background: transparent !important;
+	border: 0 !important;
+}
+html body .woocommerce-product-attributes td p,
+html body table.shop_attributes td p {
+	margin: 0 !important;
+	font-style: normal !important;
+}
