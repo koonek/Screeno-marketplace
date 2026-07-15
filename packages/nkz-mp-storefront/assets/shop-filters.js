@@ -118,14 +118,38 @@
 		var controller = hasAbort ? new AbortController() : null;
 		currentReq = controller;
 
-		fetch( cfg.ajaxUrl, {
+		// Přepiš AJAX URL na STEJNÝ origin jako aktuální stránka. admin_url()
+		// může po migraci / za proxy vracet jinou doménu nebo http místo https
+		// → Safari/WebKit to tiše zablokuje jako cross-origin/mixed-content.
+		var ajaxUrl = cfg.ajaxUrl;
+		try {
+			var u = new URL( ajaxUrl, window.location.href );
+			if ( u.origin !== window.location.origin ) {
+				ajaxUrl = window.location.origin + u.pathname + u.search;
+			}
+		} catch ( e ) {}
+
+		// Když AJAX selže (Safari blok, síť), spadni na nativní reload s GET
+		// parametry → server vyfiltruje. Zaručeně funguje ve všech prohlížečích.
+		var fellBack = false;
+		function fallbackReload() {
+			if ( fellBack ) { return; }
+			fellBack = true;
+			var qs = toQuery( data );
+			window.location.href = window.location.pathname + ( qs ? '?' + qs : '' );
+		}
+
+		fetch( ajaxUrl, {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
 			body: body.toString(),
 			credentials: 'same-origin',
 			signal: controller ? controller.signal : undefined
 		} )
-			.then( function ( r ) { return r.json(); } )
+			.then( function ( r ) {
+				if ( ! r.ok ) { throw new Error( 'HTTP ' + r.status ); }
+				return r.json();
+			} )
 			.then( function ( res ) {
 				if ( res && res.success && res.data && typeof res.data.html === 'string' ) {
 					results.innerHTML = res.data.html;
@@ -133,6 +157,10 @@
 			} )
 			.catch( function ( err ) {
 				if ( err && err.name === 'AbortError' ) { return; }
+				if ( window.console && console.warn ) {
+					console.warn( '[nkzmp filters] AJAX selhal, fallback na reload:', err );
+				}
+				fallbackReload();
 			} )
 			.finally( function () {
 				layout.classList.remove( 'is-loading' );
