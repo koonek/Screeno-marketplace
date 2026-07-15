@@ -68,8 +68,42 @@ final class ProductSubmitController {
 		$ship_override     = isset( $_POST['shipping_override'] ) && $_POST['shipping_override'] !== '' && is_numeric( $_POST['shipping_override'] ) ? (float) $_POST['shipping_override'] : null;
 		$cats       = isset( $_POST['categories'] ) ? array_map( 'intval', (array) $_POST['categories'] ) : [];
 
-		if ( $title === '' || $price === '' || ! is_numeric( $price ) || (float) $price < 0 ) {
-			$this->redirect_error( __( 'Vyplň název a platnou cenu.', 'nkz-mp-vendor-dashboard' ) );
+		// ── Varianty (1 atribut + cena/sklad per volba) ──────────────────
+		$has_variations = ! empty( $_POST['has_variations'] );
+		$var_attr       = sanitize_text_field( wp_unslash( $_POST['variation_attribute'] ?? '' ) );
+		$variations     = [];
+		if ( $has_variations ) {
+			$labels = isset( $_POST['var_label'] ) ? (array) wp_unslash( $_POST['var_label'] ) : [];
+			$prices = isset( $_POST['var_price'] ) ? (array) wp_unslash( $_POST['var_price'] ) : [];
+			$sales  = isset( $_POST['var_sale'] ) ? (array) wp_unslash( $_POST['var_sale'] ) : [];
+			$stocks = isset( $_POST['var_stock'] ) ? (array) wp_unslash( $_POST['var_stock'] ) : [];
+			foreach ( $labels as $i => $label ) {
+				$label = sanitize_text_field( $label );
+				$vp    = (string) ( $prices[ $i ] ?? '' );
+				if ( $label === '' || $vp === '' || ! is_numeric( $vp ) || (float) $vp < 0 ) {
+					continue; // neúplný řádek přeskočíme
+				}
+				$vs = (string) ( $sales[ $i ] ?? '' );
+				$vq = isset( $stocks[ $i ] ) && $stocks[ $i ] !== '' ? (int) $stocks[ $i ] : null;
+				$variations[] = [
+					'label' => $label,
+					'price' => $vp,
+					'sale'  => ( $vs !== '' && is_numeric( $vs ) ) ? $vs : '',
+					'stock' => $vq,
+				];
+			}
+		}
+		$use_variations = $has_variations && $var_attr !== '' && count( $variations ) >= 1;
+
+		// Validace: u variant nepožadujeme základní cenu (definují ji varianty).
+		if ( $title === '' ) {
+			$this->redirect_error( __( 'Vyplň název produktu.', 'nkz-mp-vendor-dashboard' ) );
+		}
+		if ( ! $use_variations && ( $price === '' || ! is_numeric( $price ) || (float) $price < 0 ) ) {
+			$this->redirect_error( __( 'Vyplň platnou cenu (nebo přidej varianty).', 'nkz-mp-vendor-dashboard' ) );
+		}
+		if ( $has_variations && ! $use_variations ) {
+			$this->redirect_error( __( 'U variant vyplň název atributu (např. „Velikost") a alespoň jednu variantu s cenou.', 'nkz-mp-vendor-dashboard' ) );
 		}
 
 		// Edit ownership check.
@@ -80,28 +114,48 @@ final class ProductSubmitController {
 				$this->redirect_error( __( 'Tento produkt nemůžeš upravovat.', 'nkz-mp-vendor-dashboard' ) );
 			}
 			$was_publish = $existing->get_status() === 'publish';
-			$product     = $existing;
+		}
+
+		// Instantiace podle typu. Při editu s přepnutím typu nastavíme term a
+		// vezmeme čerstvý objekt, aby WC pracoval se správnou třídou.
+		$target_type = $use_variations ? 'variable' : 'simple';
+		if ( $is_edit ) {
+			wp_set_object_terms( $product_id, $target_type, 'product_type' );
+			$product = $use_variations ? new \WC_Product_Variable( $product_id ) : new \WC_Product_Simple( $product_id );
 		} else {
-			$product = new \WC_Product_Simple();
+			$product = $use_variations ? new \WC_Product_Variable() : new \WC_Product_Simple();
 		}
 
 		$product->set_name( $title );
 		$product->set_short_description( $short );
 		$product->set_description( $desc );
-		$product->set_regular_price( $price );
-		if ( $sale !== '' && is_numeric( $sale ) ) {
-			$product->set_sale_price( $sale );
-		} else {
-			$product->set_sale_price( '' );
-		}
-		$product->set_manage_stock( $manage );
-		if ( $manage && $qty !== null ) {
-			$product->set_stock_quantity( $qty );
-			$product->set_stock_status( $qty > 0 ? 'instock' : 'outofstock' );
-		} else {
-			$product->set_stock_status( 'instock' );
-		}
 		$product->set_category_ids( $cats );
+
+		if ( $use_variations ) {
+			// Cenu/sklad drží varianty. Nastavíme atribut pro varianty.
+			$attribute = new \WC_Product_Attribute();
+			$attribute->set_name( $var_attr );
+			$attribute->set_options( array_values( array_map( static fn( $v ) => $v['label'], $variations ) ) );
+			$attribute->set_position( 0 );
+			$attribute->set_visible( true );
+			$attribute->set_variation( true );
+			$product->set_attributes( [ $attribute ] );
+		} else {
+			$product->set_regular_price( $price );
+			if ( $sale !== '' && is_numeric( $sale ) ) {
+				$product->set_sale_price( $sale );
+			} else {
+				$product->set_sale_price( '' );
+			}
+			$product->set_manage_stock( $manage );
+			if ( $manage && $qty !== null ) {
+				$product->set_stock_quantity( $qty );
+				$product->set_stock_status( $qty > 0 ? 'instock' : 'outofstock' );
+			} else {
+				$product->set_stock_status( 'instock' );
+			}
+			$product->set_virtual( ! $requires_shipping );
+		}
 
 		// Stav:
 		//  - nový produkt → pending (admin schválí)
@@ -141,10 +195,52 @@ final class ProductSubmitController {
 		} else {
 			update_post_meta( $product_id, '_nkzmp_shipping_override', $ship_override );
 		}
-		$saved_product = wc_get_product( $product_id );
-		if ( $saved_product ) {
-			$saved_product->set_virtual( ! $requires_shipping );
-			$saved_product->save();
+		// (virtual je nastavené přímo na produktu/variantách výše.)
+
+		// ── Vytvoření variant (children) ─────────────────────────────────
+		if ( $use_variations ) {
+			// Smaž stávající varianty (edit) a vytvoř nové ze zadání.
+			$existing_children = get_children( [
+				'post_parent' => $product_id,
+				'post_type'   => 'product_variation',
+				'numberposts' => -1,
+				'fields'      => 'ids',
+			] );
+			foreach ( $existing_children as $cid ) {
+				wp_delete_post( (int) $cid, true );
+			}
+
+			$attr_key = sanitize_title( $var_attr );
+			foreach ( $variations as $v ) {
+				$variation = new \WC_Product_Variation();
+				$variation->set_parent_id( $product_id );
+				$variation->set_attributes( [ $attr_key => $v['label'] ] );
+				$variation->set_regular_price( (string) $v['price'] );
+				$variation->set_sale_price( $v['sale'] !== '' ? (string) $v['sale'] : '' );
+				if ( $v['stock'] !== null ) {
+					$variation->set_manage_stock( true );
+					$variation->set_stock_quantity( (int) $v['stock'] );
+					$variation->set_stock_status( (int) $v['stock'] > 0 ? 'instock' : 'outofstock' );
+				} else {
+					$variation->set_manage_stock( false );
+					$variation->set_stock_status( 'instock' );
+				}
+				$variation->set_virtual( ! $requires_shipping );
+				$variation->save();
+			}
+			// Přepočítá cenový rozsah + skladový stav parenta z variant.
+			\WC_Product_Variable::sync( $product_id );
+		} elseif ( $is_edit ) {
+			// Přepnutí zpět na simple – ukliď osiřelé varianty.
+			$orphans = get_children( [
+				'post_parent' => $product_id,
+				'post_type'   => 'product_variation',
+				'numberposts' => -1,
+				'fields'      => 'ids',
+			] );
+			foreach ( $orphans as $cid ) {
+				wp_delete_post( (int) $cid, true );
+			}
 		}
 
 		// Image uploads (povinné jen při novém).

@@ -43,6 +43,32 @@ final class ProductFormView {
 		$featured_id   = $product ? (int) $product->get_image_id() : 0;
 		$gallery_ids   = $product ? array_values( array_filter( $product->get_gallery_image_ids() ) ) : [];
 
+		// Existující varianty (edit variabilního produktu).
+		$existing_var_attr   = '';
+		$existing_variations = [];
+		if ( $product && $product->is_type( 'variable' ) ) {
+			foreach ( $product->get_attributes() as $attr ) {
+				if ( $attr->get_variation() ) {
+					$existing_var_attr = $attr->get_name();
+					break;
+				}
+			}
+			foreach ( $product->get_children() as $cid ) {
+				$cv = wc_get_product( $cid );
+				if ( ! $cv ) {
+					continue;
+				}
+				$cvattrs = $cv->get_attributes();
+				$existing_variations[] = [
+					'label' => $cvattrs ? (string) reset( $cvattrs ) : '',
+					'price' => (string) $cv->get_regular_price(),
+					'sale'  => (string) $cv->get_sale_price(),
+					'stock' => ( $cv->get_manage_stock() && $cv->get_stock_quantity() !== null ) ? (string) (int) $cv->get_stock_quantity() : '',
+				];
+			}
+		}
+		$has_var_checked = ! empty( $existing_variations );
+
 		$all_cats = get_terms( [ 'taxonomy' => 'product_cat', 'hide_empty' => false ] );
 
 		?>
@@ -153,6 +179,74 @@ final class ProductFormView {
 					</div>
 				</section>
 
+				<section class="nkzmp-vd-form-section" data-nkzmp-variations>
+					<header class="nkzmp-vd-form-shead"><span class="num">2b</span><h2><?php esc_html_e( 'Varianty (volitelné)', 'nkz-mp-vendor-dashboard' ); ?></h2></header>
+
+					<div class="nkzmp-vd-field">
+						<label class="nkzmp-vd-check">
+							<input type="checkbox" name="has_variations" value="1" id="nkzmp-has-var" <?php checked( $has_var_checked ); ?> />
+							<span><?php esc_html_e( 'Produkt má varianty (např. velikosti) s vlastní cenou a skladem', 'nkz-mp-vendor-dashboard' ); ?></span>
+						</label>
+						<small><?php esc_html_e( 'Zapni, když prodáváš víc verzí (A4 / A3 / A2, malá / velká…). Cenu a sklad pak nastavíš u každé varianty zvlášť — pole „Cena" nahoře můžeš nechat prázdné.', 'nkz-mp-vendor-dashboard' ); ?></small>
+					</div>
+
+					<div id="nkzmp-var-body" style="<?php echo $has_var_checked ? '' : 'display:none;'; ?>">
+						<div class="nkzmp-vd-field">
+							<label for="nkzmp-var-attr"><?php esc_html_e( 'Název atributu', 'nkz-mp-vendor-dashboard' ); ?> <span class="req">*</span></label>
+							<input id="nkzmp-var-attr" type="text" name="variation_attribute" maxlength="60" value="<?php echo esc_attr( $existing_var_attr ); ?>" placeholder="<?php esc_attr_e( 'např. Velikost', 'nkz-mp-vendor-dashboard' ); ?>" />
+						</div>
+
+						<div class="nkzmp-vd-var-head" style="display:flex;gap:8px;font-size:12px;color:#777;margin-bottom:4px;">
+							<span style="flex:2;"><?php esc_html_e( 'Volba', 'nkz-mp-vendor-dashboard' ); ?></span>
+							<span style="flex:1;"><?php esc_html_e( 'Cena', 'nkz-mp-vendor-dashboard' ); ?></span>
+							<span style="flex:1;"><?php esc_html_e( 'Akce', 'nkz-mp-vendor-dashboard' ); ?></span>
+							<span style="flex:1;"><?php esc_html_e( 'Sklad', 'nkz-mp-vendor-dashboard' ); ?></span>
+							<span style="width:32px;"></span>
+						</div>
+
+						<div id="nkzmp-var-rows">
+							<?php
+							$rows = $existing_variations ?: [ [ 'label' => '', 'price' => '', 'sale' => '', 'stock' => '' ] ];
+							foreach ( $rows as $r ) {
+								self::render_var_row( $r );
+							}
+							?>
+						</div>
+
+						<button type="button" class="button" id="nkzmp-var-add" style="margin-top:8px;">+ <?php esc_html_e( 'Přidat variantu', 'nkz-mp-vendor-dashboard' ); ?></button>
+					</div>
+
+					<template id="nkzmp-var-tpl"><?php self::render_var_row( [ 'label' => '', 'price' => '', 'sale' => '', 'stock' => '' ] ); ?></template>
+				</section>
+
+				<script>
+				(function(){
+					var chk  = document.getElementById('nkzmp-has-var');
+					var body = document.getElementById('nkzmp-var-body');
+					var rows = document.getElementById('nkzmp-var-rows');
+					var tpl  = document.getElementById('nkzmp-var-tpl');
+					var add  = document.getElementById('nkzmp-var-add');
+					var base = document.getElementById('vd_price');
+					if(!chk||!body||!rows||!tpl||!add){ return; }
+					function sync(){
+						body.style.display = chk.checked ? '' : 'none';
+						if(base){ if(chk.checked){ base.removeAttribute('required'); } else { base.setAttribute('required','required'); } }
+					}
+					chk.addEventListener('change', sync);
+					add.addEventListener('click', function(){
+						rows.appendChild(tpl.content.cloneNode(true));
+					});
+					rows.addEventListener('click', function(e){
+						var del = e.target.closest('.nkzmp-vd-var-del');
+						if(!del){ return; }
+						var row = del.closest('.nkzmp-vd-var-row');
+						if(row && rows.querySelectorAll('.nkzmp-vd-var-row').length > 1){ row.remove(); }
+						else if(row){ row.querySelectorAll('input').forEach(function(i){ i.value=''; }); }
+					});
+					sync();
+				})();
+				</script>
+
 				<section class="nkzmp-vd-form-section">
 					<header class="nkzmp-vd-form-shead"><span class="num">03</span><h2><?php esc_html_e( 'Fotografie', 'nkz-mp-vendor-dashboard' ); ?></h2></header>
 
@@ -214,6 +308,19 @@ final class ProductFormView {
 				</div>
 			</form>
 
+		</div>
+		<?php
+	}
+
+	/** Jeden řádek varianty (volba + cena + akce + sklad + smazat). */
+	private static function render_var_row( array $r ): void {
+		?>
+		<div class="nkzmp-vd-var-row" style="display:flex;gap:8px;margin-bottom:6px;align-items:center;">
+			<input type="text" name="var_label[]" style="flex:2;" maxlength="60" value="<?php echo esc_attr( (string) ( $r['label'] ?? '' ) ); ?>" placeholder="<?php esc_attr_e( 'A4', 'nkz-mp-vendor-dashboard' ); ?>" />
+			<input type="number" name="var_price[]" style="flex:1;" min="0" step="0.01" value="<?php echo esc_attr( (string) ( $r['price'] ?? '' ) ); ?>" placeholder="<?php esc_attr_e( 'cena', 'nkz-mp-vendor-dashboard' ); ?>" />
+			<input type="number" name="var_sale[]" style="flex:1;" min="0" step="0.01" value="<?php echo esc_attr( (string) ( $r['sale'] ?? '' ) ); ?>" placeholder="<?php esc_attr_e( 'akce', 'nkz-mp-vendor-dashboard' ); ?>" />
+			<input type="number" name="var_stock[]" style="flex:1;" min="0" step="1" value="<?php echo esc_attr( (string) ( $r['stock'] ?? '' ) ); ?>" placeholder="<?php esc_attr_e( 'sklad', 'nkz-mp-vendor-dashboard' ); ?>" />
+			<button type="button" class="nkzmp-vd-var-del" aria-label="<?php esc_attr_e( 'Smazat variantu', 'nkz-mp-vendor-dashboard' ); ?>" style="width:32px;height:32px;border:1px solid #ddd;background:#fff;border-radius:6px;cursor:pointer;font-size:18px;line-height:1;">×</button>
 		</div>
 		<?php
 	}
