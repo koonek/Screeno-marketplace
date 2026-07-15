@@ -2527,3 +2527,83 @@ html body .nkzmp-shop-filters-toggle { display: none !important; }
 	}
 }
 
+
+/* ── Varianty na detailu produktu (Velikost dropdown) ─────────────────
+ * Přebarvíme defaultní WC variation form do AOZ brandu: čistý dropdown
+ * s vlastní šipkou, brand label, accent focus. */
+html body .woocommerce div.product form.cart .variations {
+	width: 100% !important;
+	margin: 0 0 20px !important;
+	border: 0 !important;
+	border-collapse: collapse !important;
+	background: var(--nkzmp-color-bg-warm) !important;
+	border-radius: var(--nkzmp-radius) !important;
+	padding: 20px !important;
+	display: block !important;
+}
+html body .woocommerce div.product form.cart .variations tbody,
+html body .woocommerce div.product form.cart .variations tr {
+	display: block !important;
+}
+html body .woocommerce div.product form.cart .variations tr + tr {
+	margin-top: 16px !important;
+}
+html body .woocommerce div.product form.cart .variations td,
+html body .woocommerce div.product form.cart .variations th {
+	display: block !important;
+	border: 0 !important;
+	padding: 0 !important;
+	width: 100% !important;
+	background: transparent !important;
+}
+html body .woocommerce div.product form.cart .variations th.label,
+html body .woocommerce div.product form.cart .variations th.label label {
+	font-weight: 600 !important;
+	font-size: 12px !important;
+	letter-spacing: 0.06em !important;
+	text-transform: uppercase !important;
+	color: var(--nkzmp-color-text-muted) !important;
+	margin: 0 0 8px !important;
+	display: block !important;
+}
+html body .woocommerce div.product form.cart .variations td.value {
+	position: relative !important;
+}
+html body .woocommerce div.product form.cart .variations select {
+	width: 100% !important;
+	min-height: 50px !important;
+	margin: 0 !important;
+	padding: 0 46px 0 16px !important;
+	border: 1px solid var(--nkzmp-color-border) !important;
+	border-radius: var(--nkzmp-radius-soft, 8px) !important;
+	background-color: var(--nkzmp-color-surface) !important;
+	color: var(--nkzmp-color-text) !important;
+	font-size: 15px !important;
+	line-height: 1.3 !important;
+	-webkit-appearance: none !important;
+	-moz-appearance: none !important;
+	appearance: none !important;
+	cursor: pointer !important;
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23111111' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") !important;
+	background-repeat: no-repeat !important;
+	background-position: right 16px center !important;
+	transition: border-color .15s ease, box-shadow .15s ease !important;
+}
+html body .woocommerce div.product form.cart .variations select:focus {
+	border-color: var(--nkzmp-color-accent) !important;
+	box-shadow: 0 0 0 3px var(--nkzmp-color-accent-soft) !important;
+	outline: none !important;
+}
+html body .woocommerce div.product form.cart .reset_variations {
+	display: inline-block !important;
+	margin-top: 12px !important;
+	font-size: 13px !important;
+	color: var(--nkzmp-color-text-muted) !important;
+	text-decoration: underline !important;
+	visibility: visible !important;
+}
+/* Cena zvolené varianty (pod dropdownem) */
+html body .woocommerce div.product form.cart .single_variation .price {
+	color: var(--nkzmp-color-accent) !important;
+	font-weight: 600 !important;
+}
