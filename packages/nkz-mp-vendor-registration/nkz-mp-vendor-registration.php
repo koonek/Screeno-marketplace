@@ -2,7 +2,7 @@
 /**
  * Plugin Name: NKZ Marketplace – Vendor Registration
  * Description: Frontend registrační formulář + 2-stage approval workflow + AOZ tone-of-voice e-maily. Závisí na nkz-marketplace core + nkz-mp-stripe adapter.
- * Version: 0.7.4
+ * Version: 0.7.5
  * Author: NKZ
  * Requires at least: 6.2
  * Requires PHP: 8.1

@@ -26,7 +26,21 @@ final class FormHandler {
 	}
 
 	public function handle(): void {
-		check_admin_referer( self::NONCE );
+		// Nonce ověřujeme NEzávazně. Veřejná /registrace bývá cachovaná →
+		// token se uloží do cache a při odeslání je už „vypršelý" → WP by
+		// jinak zabil request legitimním lidem ("Vámi sledovaný odkaz vypršel").
+		// Proti zneužití chrání antibot (honeypot + time gate + rate limit)
+		// + honeypot níže. Filtr pro vynucení striktního nonce:
+		//   add_filter( 'nkzmp/v1/registration/strict_nonce', '__return_true' );
+		$nonce   = isset( $_POST['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ) : '';
+		$valid   = (bool) wp_verify_nonce( $nonce, self::NONCE );
+		$strict  = (bool) apply_filters( 'nkzmp/v1/registration/strict_nonce', false );
+		if ( ! $valid ) {
+			if ( $strict ) {
+				$this->redirect_error( __( 'Odkaz vypršel. Obnov prosím stránku a zkus to znovu.', 'nkz-mp-vendor-registration' ) );
+			}
+			error_log( '[NKZMP] registrace: neplatny/vyprsely nonce – pokracuji (chrani antibot). IP=' . ( $_SERVER['REMOTE_ADDR'] ?? '?' ) );
+		}
 
 		// Honeypot.
 		if ( ! empty( $_POST['nkzmp_hp'] ) ) {
