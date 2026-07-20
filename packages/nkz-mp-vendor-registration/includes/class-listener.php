@@ -37,6 +37,13 @@ final class Listener {
 		add_filter( 'password_reset_expiration', static function ( $seconds ) {
 			return (int) apply_filters( 'nkzmp/v1/registration/reset_expiration', 7 * DAY_IN_SECONDS );
 		} );
+
+		// Když si prodejce nastaví heslo, smaž příznak „čeká na nastavení hesla".
+		add_action( 'after_password_reset', static function ( $user ): void {
+			if ( $user instanceof \WP_User ) {
+				delete_user_meta( $user->ID, '_nkzmp_needs_pw_setup' );
+			}
+		} );
 	}
 
 	public function on_status( int $vendor_id, string $from, string $to, array $context = [] ): void {
@@ -88,6 +95,10 @@ final class Listener {
 			$user    = get_user_by( 'id', $user_id );
 			$created = true;
 
+			// Příznak: tenhle účet jsme vytvořili my a čeká na nastavení hesla.
+			// Necháme ho, dokud si prodejce heslo nenastaví (after_password_reset).
+			update_user_meta( $user_id, '_nkzmp_needs_pw_setup', 1 );
+
 			// Display name = vendor name pokud user nemá nick.
 			wp_update_user( [
 				'ID'           => $user_id,
@@ -106,9 +117,14 @@ final class Listener {
 		update_post_meta( $vendor_id, '_nkzmp_wp_user_id', (int) $user->ID );
 		update_post_meta( $vendor_id, '_nkv_wp_user_id', (int) $user->ID );
 
-		// Pošli password setup link jen pokud user byl právě vytvořen
-		// (ne když propojujeme existující admin / customer účet).
-		if ( $created ) {
+		// Pošli password setup link když:
+		//  - user byl právě vytvořen, NEBO
+		//  - user existuje, ale ještě si NEnastavil heslo (příznak
+		//    _nkzmp_needs_pw_setup). Řeší re-registraci/re-schválení na e-mail,
+		//    kde WP účet zůstal (odkaz vypršel, nový e-mail by jinak nedorazil).
+		// NEspamujeme existující reálné účty (admin/zákazník) – ty příznak nemají.
+		$needs_setup = (bool) get_user_meta( (int) $user->ID, '_nkzmp_needs_pw_setup', true );
+		if ( $created || $needs_setup ) {
 			$this->send_password_setup_email( (int) $user->ID );
 		}
 	}
