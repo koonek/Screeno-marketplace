@@ -44,6 +44,32 @@ final class Listener {
 				delete_user_meta( $user->ID, '_nkzmp_needs_pw_setup' );
 			}
 		} );
+
+		// Nadpis WC „Zapomenuté heslo" mate prodejce, kteří si přes onboarding
+		// odkaz nastavují heslo POPRVÉ (nic nezapomněli). Na kroku s formulářem
+		// pro NOVÉ heslo (key+login v URL, nebo show-reset-form po WC redirectu)
+		// ho zneutralníme na „Nastavení hesla" – sedí na první nastavení
+		// i na skutečné zapomenuté heslo. Ostatní kroky nech, filtrovatelné.
+		add_filter( 'woocommerce_endpoint_lost-password_title', [ $this, 'maybe_reset_form_title' ], 20 );
+	}
+
+	/**
+	 * Přepíše nadpis lost-password endpointu na „Nastavení hesla", ale jen když
+	 * uživatel právě zadává nové heslo (reset formulář), ne na kroku „zadej e-mail".
+	 */
+	public function maybe_reset_form_title( $title ) {
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended
+		$on_reset_form = isset( $_GET['show-reset-form'] )
+			|| ( isset( $_GET['key'] ) && isset( $_GET['login'] ) );
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended
+		if ( ! $on_reset_form ) {
+			return $title;
+		}
+		return (string) apply_filters(
+			'nkzmp/v1/registration/reset_form_title',
+			__( 'Nastavení hesla', 'nkz-mp-vendor-registration' ),
+			$title
+		);
 	}
 
 	public function on_status( int $vendor_id, string $from, string $to, array $context = [] ): void {
