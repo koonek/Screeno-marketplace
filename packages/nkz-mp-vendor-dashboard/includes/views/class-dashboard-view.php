@@ -167,8 +167,9 @@ final class DashboardView {
 
 		// Krok: schváleno (>= approved_awaiting_kyc).
 		$approved = in_array( $status, [ Status::APPROVED_AWAITING_KYC, Status::ACTIVE ], true );
-		// KYC = active.
-		$kyc = $is_active;
+		// KYC = SKUTEČNÉ ověření Stripe účtu (charges enabled), ne celkový status
+		// (ten se u nového účtu může defaultně brát jako active → falešné hotovo).
+		$kyc = \NKZMP\Dashboard\VendorContext::is_kyc_done( $vendor_id );
 		// Předplatné (jen pokud billing modul + zapnuto).
 		$billing_on = class_exists( \NKZMP\Billing\Settings::class ) && \NKZMP\Billing\Settings::is_enabled();
 		$billing_ok = $billing_on && (string) get_post_meta( $vendor_id, '_nkzmp_billing_status', true ) === 'active';

@@ -51,13 +51,20 @@ final class VendorContext {
 		return self::current_vendor_id() > 0;
 	}
 
-	/** Stripe/KYC hotové (status = active)? */
+	/**
+	 * Stripe ověření reálně dokončené? Řídíme se SKUTEČNÝM stavem Stripe účtu
+	 * (charges/payouts enabled), NE celkovým statusem vendora – ten se u nového
+	 * účtu může defaultně brát jako „active" a falešně by ukazoval hotovo.
+	 */
 	public static function is_kyc_done( int $vendor_id ): bool {
-		$status = (string) get_post_meta( $vendor_id, '_nkzmp_vendor_status', true );
-		if ( $status === '' ) {
-			$status = (string) get_post_meta( $vendor_id, '_nkv_vendor_status', true );
+		$acc_status = (string) get_post_meta( $vendor_id, '_nkv_stripe_account_status', true );
+		if ( $acc_status === 'enabled' ) {
+			return true;
 		}
-		return $status === 'active';
+		if ( (int) get_post_meta( $vendor_id, '_nkv_stripe_charges_enabled', true ) === 1 ) {
+			return true;
+		}
+		return false;
 	}
 
 	/** Aktivní předplatné (nebo billing modul vypnutý)? */
