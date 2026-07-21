@@ -11,6 +11,7 @@ final class ProductsView {
 
 	public static function render( array $vendor ): void {
 		$vendor_id = (int) $vendor['id'];
+		$can_add   = \NKZMP\Dashboard\VendorContext::can_add_products( $vendor_id );
 
 		$query = new \WP_Query( [
 			'post_type'      => 'product',
@@ -34,9 +35,15 @@ final class ProductsView {
 					<h1><?php esc_html_e( 'Moje produkty', 'nkz-mp-vendor-dashboard' ); ?></h1>
 					<p class="nkzmp-vd-meta"><?php echo esc_html( sprintf( __( '%d produktů', 'nkz-mp-vendor-dashboard' ), (int) $query->found_posts ) ); ?></p>
 				</div>
-				<a class="nkzmp-vd-cta-new" href="<?php echo esc_url( add_query_arg( 'new', '1', wc_get_account_endpoint_url( 'vendor-products' ) ) ); ?>">
-					<span class="label"><?php esc_html_e( 'Nový produkt', 'nkz-mp-vendor-dashboard' ); ?></span> <span class="plus">+</span>
-				</a>
+				<?php if ( $can_add ) : ?>
+					<a class="nkzmp-vd-cta-new" href="<?php echo esc_url( add_query_arg( 'new', '1', wc_get_account_endpoint_url( 'vendor-products' ) ) ); ?>">
+						<span class="label"><?php esc_html_e( 'Nový produkt', 'nkz-mp-vendor-dashboard' ); ?></span> <span class="plus">+</span>
+					</a>
+				<?php else : ?>
+					<span class="nkzmp-vd-cta-new" style="opacity:.5;cursor:not-allowed;" title="<?php esc_attr_e( 'Odemkne se po dokončení Stripe a členství', 'nkz-mp-vendor-dashboard' ); ?>">
+						<span class="label">🔒 <?php esc_html_e( 'Nový produkt', 'nkz-mp-vendor-dashboard' ); ?></span>
+					</span>
+				<?php endif; ?>
 			</header>
 
 			<?php
@@ -86,10 +93,17 @@ final class ProductsView {
 				<div class="nkzmp-vd-products-empty">
 					<div class="nkzmp-vd-products-empty-art">+</div>
 					<h2><?php esc_html_e( 'Zatím tu nic není', 'nkz-mp-vendor-dashboard' ); ?></h2>
-					<p><?php esc_html_e( 'Přidej svůj první produkt. Projdeme ho a publikujeme.', 'nkz-mp-vendor-dashboard' ); ?></p>
-					<a class="nkzmp-vd-cta-new" href="<?php echo esc_url( add_query_arg( 'new', '1', wc_get_account_endpoint_url( 'vendor-products' ) ) ); ?>">
-						<span class="label"><?php esc_html_e( 'Nový produkt', 'nkz-mp-vendor-dashboard' ); ?></span> <span class="plus">+</span>
-					</a>
+					<?php if ( $can_add ) : ?>
+						<p><?php esc_html_e( 'Přidej svůj první produkt. Projdeme ho a publikujeme.', 'nkz-mp-vendor-dashboard' ); ?></p>
+						<a class="nkzmp-vd-cta-new" href="<?php echo esc_url( add_query_arg( 'new', '1', wc_get_account_endpoint_url( 'vendor-products' ) ) ); ?>">
+							<span class="label"><?php esc_html_e( 'Nový produkt', 'nkz-mp-vendor-dashboard' ); ?></span> <span class="plus">+</span>
+						</a>
+					<?php else : ?>
+						<p><?php esc_html_e( 'Přidávání produktů se odemkne po dokončení ověření Stripe a aktivaci členství. Dokonči prosím oba kroky v přehledu.', 'nkz-mp-vendor-dashboard' ); ?></p>
+						<a class="nkzmp-vd-cta-new" href="<?php echo esc_url( wc_get_account_endpoint_url( 'vendor' ) ); ?>">
+							<span class="label"><?php esc_html_e( 'Přejít na přehled', 'nkz-mp-vendor-dashboard' ); ?></span> <span class="plus">→</span>
+						</a>
+					<?php endif; ?>
 				</div>
 			<?php else : ?>
 				<div class="nkzmp-vd-product-grid">

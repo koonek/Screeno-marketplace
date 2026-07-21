@@ -28,6 +28,30 @@ final class ProductFormView {
 			$is_edit = true;
 		}
 
+		// Přidání nového produktu zamčené dokud není Stripe + členství hotové.
+		if ( ! $is_edit && ! \NKZMP\Dashboard\VendorContext::can_add_products( $vendor_id ) ) {
+			$kyc     = \NKZMP\Dashboard\VendorContext::is_kyc_done( $vendor_id );
+			$billing = \NKZMP\Dashboard\VendorContext::is_billing_ok( $vendor_id );
+			echo '<div class="nkzmp-vd nkzmp-vd-empty" style="text-align:center;padding:48px 24px;">';
+			echo '<h2>' . esc_html__( 'Přidávání produktů je zatím zamčené', 'nkz-mp-vendor-dashboard' ) . '</h2>';
+			echo '<p style="max-width:520px;margin:12px auto;color:#666;">' . esc_html__( 'Než začneš prodávat, dokonči prosím tyto dva kroky. Pak se ti přidávání produktů odemkne.', 'nkz-mp-vendor-dashboard' ) . '</p>';
+			echo '<ul style="list-style:none;padding:0;max-width:420px;margin:20px auto;text-align:left;">';
+			printf(
+				'<li style="padding:10px 0;">%s %s</li>',
+				$kyc ? '✅' : '⬜',
+				esc_html__( 'Ověření totožnosti pro přijímání plateb (Stripe)', 'nkz-mp-vendor-dashboard' )
+			);
+			printf(
+				'<li style="padding:10px 0;">%s %s</li>',
+				$billing ? '✅' : '⬜',
+				esc_html__( 'Aktivní členství (předplatné)', 'nkz-mp-vendor-dashboard' )
+			);
+			echo '</ul>';
+			echo '<a class="nkzmp-vd-cta-new" href="' . esc_url( wc_get_account_endpoint_url( 'vendor' ) ) . '" style="display:inline-block;background:#0060FF;color:#fff;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:600;">' . esc_html__( 'Přejít na přehled', 'nkz-mp-vendor-dashboard' ) . '</a>';
+			echo '</div>';
+			return;
+		}
+
 		$error = isset( $_GET['nkzmp_err'] ) ? sanitize_text_field( wp_unslash( $_GET['nkzmp_err'] ) ) : '';
 		$flash = isset( $_GET['nkzmp_msg'] ) ? sanitize_text_field( wp_unslash( $_GET['nkzmp_msg'] ) ) : '';
 

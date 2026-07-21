@@ -50,4 +50,31 @@ final class VendorContext {
 	public static function user_is_vendor(): bool {
 		return self::current_vendor_id() > 0;
 	}
+
+	/** Stripe/KYC hotové (status = active)? */
+	public static function is_kyc_done( int $vendor_id ): bool {
+		$status = (string) get_post_meta( $vendor_id, '_nkzmp_vendor_status', true );
+		if ( $status === '' ) {
+			$status = (string) get_post_meta( $vendor_id, '_nkv_vendor_status', true );
+		}
+		return $status === 'active';
+	}
+
+	/** Aktivní předplatné (nebo billing modul vypnutý)? */
+	public static function is_billing_ok( int $vendor_id ): bool {
+		$billing_on = class_exists( \NKZMP\Billing\Settings::class ) && \NKZMP\Billing\Settings::is_enabled();
+		if ( ! $billing_on ) {
+			return true;
+		}
+		return (string) get_post_meta( $vendor_id, '_nkzmp_billing_status', true ) === 'active';
+	}
+
+	/**
+	 * Smí prodejce přidávat produkty? Odemkne se až po dokončení Stripe (KYC
+	 * active) A aktivaci předplatného. Filtrovatelné.
+	 */
+	public static function can_add_products( int $vendor_id ): bool {
+		$ok = self::is_kyc_done( $vendor_id ) && self::is_billing_ok( $vendor_id );
+		return (bool) apply_filters( 'nkzmp/v1/dashboard/can_add_products', $ok, $vendor_id );
+	}
 }

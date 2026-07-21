@@ -49,8 +49,14 @@ final class Listener {
 	public function on_status( int $vendor_id, string $from, string $to, array $context = [] ): void {
 		switch ( $to ) {
 			case 'approved_awaiting_kyc':
+				// Při schválení pošleme POUZE e-mail s nastavením hesla
+				// (ensure_wp_user). Stripe/KYC + předplatné si prodejce
+				// dokončí až po přihlášení v dashboardu – žádný Stripe e-mail.
+				// Zapnout starý „schváleno + Stripe" e-mail lze filtrem.
 				$this->ensure_wp_user( $vendor_id );
-				EmailService::send_approved_awaiting_kyc( $vendor_id );
+				if ( (bool) apply_filters( 'nkzmp/v1/registration/send_approved_email', false ) ) {
+					EmailService::send_approved_awaiting_kyc( $vendor_id );
+				}
 				break;
 			case 'active':
 				$this->ensure_wp_user( $vendor_id ); // safety net pokud někdo přeskočil přes approved

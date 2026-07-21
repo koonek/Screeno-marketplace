@@ -57,6 +57,12 @@ final class ProductSubmitController {
 
 		$is_edit    = isset( $_POST['product_id'] );
 		$product_id = $is_edit ? (int) $_POST['product_id'] : 0;
+
+		// Přidání NOVÉHO produktu je zamčené dokud prodejce nedokončí Stripe
+		// (KYC) a nezaplatí členství. Editace existujícího je povolená.
+		if ( ! $is_edit && ! VendorContext::can_add_products( $vendor_id ) ) {
+			$this->redirect_error( __( 'Přidávání produktů se odemkne po dokončení ověření Stripe a aktivaci členství. Dokonči prosím oba kroky v přehledu.', 'nkz-mp-vendor-dashboard' ) );
+		}
 		$title      = sanitize_text_field( wp_unslash( $_POST['title'] ?? '' ) );
 		$short      = wp_kses_post( wp_unslash( $_POST['short_description'] ?? '' ) );
 		$desc       = wp_kses_post( wp_unslash( $_POST['description'] ?? '' ) );
