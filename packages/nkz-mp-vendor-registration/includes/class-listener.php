@@ -182,18 +182,31 @@ final class Listener {
 		if ( is_wp_error( $key ) ) {
 			return;
 		}
-		// Použij wp_login_url() – security pluginy (skrytý login /prihlaseni)
-		// tuhle URL filtrují na svůj slug, takže odkaz nevede na blokovaný
-		// wp-login.php (jinak 404). Filtrovatelné pro krajní případy.
-		$login_url = (string) apply_filters( 'nkzmp/v1/registration/reset_login_url', wp_login_url() );
-		$reset_url = add_query_arg(
-			[
-				'action' => 'rp',
-				'key'    => $key,
-				'login'  => rawurlencode( $user->user_login ),
-			],
-			$login_url
-		);
+		// Odkaz míří na WooCommerce reset formulář na /muj-ucet (lost-password
+		// endpoint). WC ho na account stránce zachytí (is_account_page + key +
+		// login), nastaví cookie a ukáže formulář pro nastavení hesla přímo v
+		// theme. Nevede na wp-login.php ani skrytý /prihlaseni → žádný 404 ani
+		// „přesměrování na login". Fallback na wp_login_url() když WC chybí.
+		if ( function_exists( 'wc_get_account_endpoint_url' ) ) {
+			$base      = wc_get_account_endpoint_url( 'lost-password' );
+			$reset_url = add_query_arg(
+				[
+					'key'   => $key,
+					'login' => rawurlencode( $user->user_login ),
+				],
+				$base
+			);
+		} else {
+			$reset_url = add_query_arg(
+				[
+					'action' => 'rp',
+					'key'    => $key,
+					'login'  => rawurlencode( $user->user_login ),
+				],
+				wp_login_url()
+			);
+		}
+		$reset_url = (string) apply_filters( 'nkzmp/v1/registration/reset_login_url', $reset_url, $user );
 
 		$vars = [
 			'name'         => $user->display_name ?: $user->user_login,
