@@ -99,6 +99,30 @@ final class Onboarding_Controller {
 		);
 	}
 
+	/**
+	 * Země, ve kterých umíme založit Stripe Connect účet. Země je u Stripe účtu
+	 * NEMĚNNÁ po vytvoření – slovenský prodejce potřebuje účet rovnou pro SK,
+	 * jinak mu Stripe pole „země" zašedne a nepustí ho dál. Filtrovatelné.
+	 *
+	 * @return array<string,string> ISO kód => název
+	 */
+	public static function allowed_countries(): array {
+		return (array) apply_filters(
+			'nkv/v1/onboarding/allowed_countries',
+			[
+				'CZ' => __( 'Česko', 'nkz-woo-stripe-vendor-split' ),
+				'SK' => __( 'Slovensko', 'nkz-woo-stripe-vendor-split' ),
+			]
+		);
+	}
+
+	/** Země prodejce pro založení Stripe účtu (default CZ, validovaná proti allowlistu). */
+	public static function vendor_country( int $vendor_id ): string {
+		$c       = strtoupper( (string) get_post_meta( $vendor_id, '_nkv_stripe_country', true ) );
+		$allowed = self::allowed_countries();
+		return isset( $allowed[ $c ] ) ? $c : 'CZ';
+	}
+
 	/* ---------------------------------------------------------------------
 	 * Public (vendor) handlers.
 	 * ------------------------------------------------------------------- */
@@ -119,9 +143,10 @@ final class Onboarding_Controller {
 		try {
 			$account_id = $vendor['stripe_account_id'];
 			if ( '' === $account_id ) {
+				$country = self::vendor_country( $vendor_id );
 				$params = [
 					'type'             => 'express',
-					'country'          => 'CZ',
+					'country'          => $country,
 					'capabilities'     => [
 						'card_payments' => [ 'requested' => 'true' ],
 						'transfers'     => [ 'requested' => 'true' ],
@@ -146,6 +171,9 @@ final class Onboarding_Controller {
 				}
 				update_post_meta( $vendor_id, '_nkv_stripe_account_id', $account_id );
 				update_post_meta( $vendor_id, '_nkv_stripe_account_status', 'pending' );
+				// Ulož zemi, se kterou byl účet reálně vytvořen (pro varování v adminu,
+				// když někdo později přepne výběr země – změna vyžaduje reset účtu).
+				update_post_meta( $vendor_id, '_nkv_stripe_account_country', $country );
 			}
 
 			$link = $client->create_account_link(
@@ -246,6 +274,7 @@ final class Onboarding_Controller {
 		delete_post_meta( $vendor_id, '_nkv_stripe_payouts_enabled' );
 		delete_post_meta( $vendor_id, '_nkv_stripe_transfers_capability' );
 		delete_post_meta( $vendor_id, '_nkv_stripe_requirements_due' );
+		delete_post_meta( $vendor_id, '_nkv_stripe_account_country' );
 		// Bump attempt counter so the next create call uses a fresh Stripe idempotency key.
 		$attempt = (int) get_post_meta( $vendor_id, '_nkv_stripe_create_attempt', true );
 		update_post_meta( $vendor_id, '_nkv_stripe_create_attempt', $attempt + 1 );

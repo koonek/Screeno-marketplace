@@ -105,6 +105,7 @@ final class Vendors {
 		$this->render_onboarding_panel( $post->ID );
 		$fields = [
 			'_nkv_vendor_status'          => [ 'label' => __( 'Stav prodejce', 'nkz-woo-stripe-vendor-split' ), 'type' => 'select', 'options' => [ 'active' => __( 'aktivní', 'nkz-woo-stripe-vendor-split' ), 'inactive' => __( 'neaktivní', 'nkz-woo-stripe-vendor-split' ) ] ],
+			'_nkv_stripe_country'         => [ 'label' => __( 'Země Stripe účtu', 'nkz-woo-stripe-vendor-split' ), 'type' => 'select', 'options' => \NKVSVS\Onboarding_Controller::allowed_countries(), 'default' => 'CZ', 'help' => __( 'Nastav PŘED prvním onboardingem. Země je u Stripe účtu neměnná – po vytvoření účtu ji lze změnit jen přes „Odpojit Stripe účet" a nový onboarding.', 'nkz-woo-stripe-vendor-split' ) ],
 			'_nkv_default_fee_percent'    => [ 'label' => __( 'Provize platformy (%)', 'nkz-woo-stripe-vendor-split' ), 'type' => 'number', 'step' => '0.01' ],
 			'_nkv_default_fee_fixed'      => [ 'label' => __( 'Fixní poplatek (v haléřích, volitelné)', 'nkz-woo-stripe-vendor-split' ), 'type' => 'number', 'step' => '1' ],
 			'_nkv_vendor_email'           => [ 'label' => __( 'Email prodejce', 'nkz-woo-stripe-vendor-split' ), 'type' => 'email' ],
@@ -117,6 +118,9 @@ final class Vendors {
 		echo '<table class="form-table">';
 		foreach ( $fields as $key => $cfg ) {
 			$value = get_post_meta( $post->ID, $key, true );
+			if ( '' === $value && isset( $cfg['default'] ) ) {
+				$value = $cfg['default'];
+			}
 			echo '<tr><th><label for="' . esc_attr( $key ) . '">' . esc_html( $cfg['label'] ) . '</label></th><td>';
 			switch ( $cfg['type'] ) {
 				case 'textarea':
@@ -139,6 +143,9 @@ final class Vendors {
 						esc_attr( $cfg['placeholder'] ?? '' ),
 						isset( $cfg['step'] ) ? 'step="' . esc_attr( $cfg['step'] ) . '"' : ''
 					);
+			}
+			if ( ! empty( $cfg['help'] ) ) {
+				echo '<p class="description">' . esc_html( $cfg['help'] ) . '</p>';
 			}
 			echo '</td></tr>';
 		}
@@ -181,6 +188,24 @@ final class Vendors {
 					echo '<div class="notice notice-error inline"><p>' . esc_html( $msg ) . '</p></div>';
 				}
 				break;
+		}
+
+		// Země účtu: zvolená vs. reálně vytvořená. Když prodejce (např. SK) dostal
+		// omylem CZ účet, admin přepne zemi nahoře a musí Odpojit + onboardovat znovu.
+		$sel_country     = \NKVSVS\Onboarding_Controller::vendor_country( $vendor_id );
+		$acct_country    = strtoupper( (string) get_post_meta( $vendor_id, '_nkv_stripe_account_country', true ) );
+		$country_labels  = \NKVSVS\Onboarding_Controller::allowed_countries();
+		if ( '' !== $account_id && '' !== $acct_country && $acct_country !== $sel_country ) {
+			printf(
+				'<div class="notice notice-warning inline"><p><strong>%s</strong><br>%s</p></div>',
+				esc_html__( 'Pozor: země Stripe účtu se neshoduje.', 'nkz-woo-stripe-vendor-split' ),
+				esc_html( sprintf(
+					/* translators: 1: created country, 2: selected country */
+					__( 'Účet byl vytvořen pro %1$s, ale nahoře je vybráno %2$s. Země Stripe účtu je neměnná — klikni „Odpojit Stripe účet" a nech prodejce onboardovat znovu, aby vznikl nový účet pro správnou zemi.', 'nkz-woo-stripe-vendor-split' ),
+					$country_labels[ $acct_country ] ?? $acct_country,
+					$country_labels[ $sel_country ] ?? $sel_country
+				) )
+			);
 		}
 
 		// Status badge (only if account exists).
@@ -339,6 +364,7 @@ final class Vendors {
 
 		$map = [
 			'_nkv_vendor_status'         => 'enum:active,inactive',
+			'_nkv_stripe_country'        => 'enum:' . implode( ',', array_keys( \NKVSVS\Onboarding_Controller::allowed_countries() ) ),
 			'_nkv_default_fee_percent'   => 'float',
 			'_nkv_default_fee_fixed'     => 'int',
 			'_nkv_vendor_email'          => 'email',
