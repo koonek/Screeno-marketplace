@@ -95,6 +95,23 @@ final class StripeApi {
 		return $this->get( 'checkout/sessions/' . $session_id );
 	}
 
+	/**
+	 * Nejnovější subscription zákazníka (jakýkoli stav). Pro self-heal, když
+	 * jsme subscription ID neuložili (webhook nedorazil + prodejce se nevrátil),
+	 * ale customer ID z checkoutu máme.
+	 */
+	public function get_latest_customer_subscription( string $customer_id ): ?array {
+		$res = $this->request( 'GET', 'subscriptions', [
+			'customer' => $customer_id,
+			'status'   => 'all',
+			'limit'    => 1,
+		] );
+		if ( ! is_array( $res ) || empty( $res['data'][0] ) ) {
+			return null;
+		}
+		return (array) $res['data'][0];
+	}
+
 	private function get( string $path ): ?array {
 		return $this->request( 'GET', $path, [] );
 	}

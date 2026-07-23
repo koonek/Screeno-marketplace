@@ -172,6 +172,11 @@ final class DashboardView {
 		$kyc = \NKZMP\Dashboard\VendorContext::is_kyc_done( $vendor_id );
 		// Předplatné (jen pokud billing modul + zapnuto).
 		$billing_on = class_exists( \NKZMP\Billing\Settings::class ) && \NKZMP\Billing\Settings::is_enabled();
+		// Self-heal ze Stripe, když stav není „active" (řeší „zaplatil, ale
+		// ukazuje neaktivní" – webhook nedorazil). Throttlováno uvnitř.
+		if ( $billing_on && class_exists( \NKZMP\Billing\AccountSection::class ) ) {
+			\NKZMP\Billing\AccountSection::reconcile_status( $vendor_id );
+		}
 		$billing_ok = $billing_on && (string) get_post_meta( $vendor_id, '_nkzmp_billing_status', true ) === 'active';
 		// První produkt.
 		$has_product = self::vendor_has_product( $vendor_id );

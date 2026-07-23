@@ -50,17 +50,35 @@ defined( 'ABSPATH' ) || exit;
 				</div>
 			</div>
 
+			<?php
+			// Země podnikání – řídí, pro kterou zemi Stripe založí výplatní účet.
+			// Bereme z Stripe modulu (allowlist), fallback CZ/SK. Neměnná po
+			// vytvoření Stripe účtu, proto ji chceme hned na začátku.
+			$reg_countries = class_exists( \NKVSVS\Onboarding_Controller::class )
+				? \NKVSVS\Onboarding_Controller::allowed_countries()
+				: [ 'CZ' => 'Česko', 'SK' => 'Slovensko' ];
+			?>
 			<div class="nkzmp-reg-grid nkzmp-reg-grid--2">
 				<div class="nkzmp-reg-field">
 					<label for="nkzmp_ico"><?php esc_html_e( 'IČO', 'nkz-mp-vendor-registration' ); ?> <span class="req">*</span></label>
 					<input id="nkzmp_ico" type="text" name="ico" required maxlength="10" inputmode="numeric" pattern="[0-9]{6,10}" />
 					<small class="nkzmp-reg-ares-status" aria-live="polite"></small>
-					<small><?php esc_html_e( 'Bez IČO ti Stripe neumí vyplácet. Jméno se ti samo vyplní z ARES.', 'nkz-mp-vendor-registration' ); ?></small>
+					<small><?php esc_html_e( 'Bez IČO ti Stripe neumí vyplácet. České IČO se samo vyplní z ARES.', 'nkz-mp-vendor-registration' ); ?></small>
 				</div>
 				<div class="nkzmp-reg-field">
-					<label for="nkzmp_website"><?php esc_html_e( 'Web nebo Instagram', 'nkz-mp-vendor-registration' ); ?></label>
-					<input id="nkzmp_website" type="url" name="website" placeholder="https://" autocomplete="url" />
+					<label for="nkzmp_country"><?php esc_html_e( 'Země podnikání', 'nkz-mp-vendor-registration' ); ?> <span class="req">*</span></label>
+					<select id="nkzmp_country" name="country" required>
+						<?php foreach ( $reg_countries as $cc => $clabel ) : ?>
+							<option value="<?php echo esc_attr( $cc ); ?>" <?php selected( $cc, 'CZ' ); ?>><?php echo esc_html( $clabel ); ?></option>
+						<?php endforeach; ?>
+					</select>
+					<small><?php esc_html_e( 'Podle země ti Stripe založí výplatní účet. Po vytvoření účtu ji nelze změnit.', 'nkz-mp-vendor-registration' ); ?></small>
 				</div>
+			</div>
+
+			<div class="nkzmp-reg-field">
+				<label for="nkzmp_website"><?php esc_html_e( 'Web nebo Instagram', 'nkz-mp-vendor-registration' ); ?></label>
+				<input id="nkzmp_website" type="url" name="website" placeholder="https://" autocomplete="url" />
 			</div>
 		</section>
 

@@ -87,6 +87,10 @@ final class AccountSection {
 			$this->sync_from_session( $vendor_id, sanitize_text_field( wp_unslash( $_GET['session_id'] ) ) );
 		}
 
+		// Self-heal: prodejce zaplatil, ale stav není „active" (webhook nedorazil
+		// A prodejce se nevrátil se session_id). Ověříme reálný stav u Stripe.
+		self::reconcile_status( $vendor_id );
+
 		$status    = (string) get_post_meta( $vendor_id, NKZMP_BILLING_STATUS_META, true ) ?: 'none';
 		$amount    = Settings::amount_for_vendor( $vendor_id );
 		$currency  = (string) Settings::get()['currency'];
@@ -130,6 +134,87 @@ final class AccountSection {
 		}
 
 		echo '</div>';
+	}
+
+	/**
+	 * Self-heal billing stavu ze Stripe. Když meta stav není „active", ale máme
+	 * subscription (nebo aspoň customer z checkoutu), zeptáme se Stripe na
+	 * skutečný stav subscription a meta srovnáme. Řeší „zaplatil, ale ukazuje
+	 * neaktivní" (chybějící webhook + nevrácení se z Checkoutu). Throttlováno.
+	 */
+	public static function reconcile_status( int $vendor_id ): void {
+		if ( $vendor_id <= 0 || ! class_exists( StripeApi::class ) ) {
+			return;
+		}
+		$current = (string) get_post_meta( $vendor_id, NKZMP_BILLING_STATUS_META, true );
+		if ( $current === 'active' ) {
+			return; // není co léčit
+		}
+
+		$sub_id  = (string) get_post_meta( $vendor_id, NKZMP_BILLING_SUBSCRIPTION_META, true );
+		$cust_id = (string) get_post_meta( $vendor_id, NKZMP_BILLING_CUSTOMER_META, true );
+		if ( $sub_id === '' && $cust_id === '' ) {
+			return; // nikdy nezačal checkout → opravdu neaktivní
+		}
+
+		// Throttle: max 1× / 2 min na prodejce (Stripe API šetříme).
+		$tkey = 'nkzmp_bill_reconcile_' . $vendor_id;
+		if ( get_transient( $tkey ) ) {
+			return;
+		}
+		set_transient( $tkey, 1, 2 * MINUTE_IN_SECONDS );
+
+		$api = new StripeApi();
+		if ( ! $api->is_ready() ) {
+			return;
+		}
+
+		$sub = $sub_id !== '' ? $api->get_subscription( $sub_id ) : null;
+		if ( ( ! $sub || ! empty( $sub['error'] ) ) && $cust_id !== '' ) {
+			$sub = $api->get_latest_customer_subscription( $cust_id );
+		}
+		if ( ! is_array( $sub ) || empty( $sub['status'] ) ) {
+			return;
+		}
+
+		$mapped = match ( (string) $sub['status'] ) {
+			'active', 'trialing'                => 'active',
+			'past_due', 'unpaid'                => 'past_due',
+			'canceled', 'incomplete_expired'    => 'canceled',
+			default                             => '', // incomplete → nech být
+		};
+		if ( $mapped === '' || $mapped === $current ) {
+			return;
+		}
+
+		update_post_meta( $vendor_id, NKZMP_BILLING_STATUS_META, $mapped );
+		if ( ! empty( $sub['id'] ) ) {
+			update_post_meta( $vendor_id, NKZMP_BILLING_SUBSCRIPTION_META, (string) $sub['id'] );
+		}
+
+		if ( $mapped === 'active' ) {
+			delete_post_meta( $vendor_id, '_nkzmp_billing_failed_at' );
+			if ( class_exists( \NKZMP\Vendor\Repository::class ) ) {
+				$vstatus = ( new \NKZMP\Vendor\Repository() )->status( $vendor_id );
+				if ( $vstatus === \NKZMP\Vendor\Status::SUSPENDED ) {
+					try {
+						( new \NKZMP\Vendor\StatusService() )->transition( $vendor_id, \NKZMP\Vendor\Status::ACTIVE, [ 'source' => 'billing_reconcile' ] );
+					} catch ( \Throwable $e ) {
+						update_post_meta( $vendor_id, '_nkzmp_vendor_status', 'active' );
+					}
+				}
+			}
+		}
+
+		if ( class_exists( \NKZMP\Audit\Recorder::class ) ) {
+			( new \NKZMP\Audit\Recorder() )->record(
+				action:      'billing.reconciled_from_stripe',
+				entity_type: 'vendor',
+				entity_id:   $vendor_id,
+				summary:     sprintf( 'Billing status self-heal: %s → %s (Stripe: %s)', $current ?: 'none', $mapped, (string) $sub['status'] ),
+				actor_label: 'billing_reconcile',
+			);
+		}
 	}
 
 	/**

@@ -55,6 +55,15 @@ final class FormHandler {
 		$terms   = ! empty( $_POST['terms'] );
 		$gdpr    = ! empty( $_POST['gdpr'] );
 
+		// Země podnikání – validujeme proti allowlistu Stripe modulu (fallback CZ).
+		$allowed_countries = class_exists( \NKVSVS\Onboarding_Controller::class )
+			? array_keys( \NKVSVS\Onboarding_Controller::allowed_countries() )
+			: [ 'CZ', 'SK' ];
+		$country = strtoupper( sanitize_text_field( wp_unslash( $_POST['country'] ?? '' ) ) );
+		if ( ! in_array( $country, $allowed_countries, true ) ) {
+			$country = 'CZ';
+		}
+
 		if ( $name === '' || ! is_email( $email ) || $ico === '' || $bio === '' || ! $terms || ! $gdpr ) {
 			$this->redirect_error( __( 'Vyplň prosím všechna povinná pole a odsouhlas oba checkboxy.', 'nkz-mp-vendor-registration' ) );
 		}
@@ -96,6 +105,8 @@ final class FormHandler {
 		update_post_meta( $vendor_id, '_nkzmp_vendor_bio', $bio );
 		update_post_meta( $vendor_id, '_nkzmp_vendor_status', 'pending' );
 		update_post_meta( $vendor_id, '_nkzmp_registration_submitted_at', time() );
+		// Země pro Stripe onboarding (per-vendor, čte ji Onboarding_Controller).
+		update_post_meta( $vendor_id, '_nkv_stripe_country', $country );
 
 		// Nepovinná adresa pro odeslání (odesílatel na štítku Zásilkovny).
 		$sender = [
