@@ -2,7 +2,7 @@
 /**
  * Plugin Name: NKZ Marketplace – Platform Fee
  * Description: 1% servisní poplatek z mezisoučtu produktů, min 5 Kč. Platí kupující, jde celý platformě. Konfigurovatelné přes filtry.
- * Version: 0.2.0
+ * Version: 0.2.5
  * Author: NKZ
  * Requires at least: 6.2
  * Requires PHP: 8.1
@@ -34,7 +34,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'NKZMP_PLATFORM_FEE_VERSION', '0.2.4' );
+define( 'NKZMP_PLATFORM_FEE_VERSION', '0.2.5' );
 
 add_action( 'plugins_loaded', static function (): void {
 	if ( ! class_exists( 'WooCommerce' ) ) {
@@ -83,6 +83,11 @@ function nkzmp_platform_fee_enqueue_tooltip_js(): void {
 	$js = <<<JS
 (function(){
 	var cfg = $data;
+	// Kontejnery se součty (košík/pokladna, classic i Blocks i Elementor).
+	// Prohledáváme JEN uvnitř nich – NIKDY celý dokument, jinak na pokladně
+	// s Apple Pay / Stripe express checkout (těžké DOM mutace + iframe) tooltip
+	// zahltí stránku a checkout se „nenačte".
+	var TOTALS_SEL = '.cart_totals, .woocommerce-checkout-review-order, .woocommerce-checkout-review-order-table, .wc-block-components-totals-item, .wc-block-components-order-meta, .elementor-widget-woocommerce-cart, .e-checkout__order-review, .shop_table';
 	function buildIcon(){
 		var i = document.createElement('span');
 		i.className = 'nkzmp-fee-tooltip';
@@ -106,7 +111,6 @@ function nkzmp_platform_fee_enqueue_tooltip_js(): void {
 				th.appendChild(buildIcon());
 				return;
 			}
-			// fallback: visible label via ::before data-title (responsive pattern)
 			var td = tr.querySelector('td[data-title]');
 			if (td && (td.getAttribute('data-title') || '').trim() === cfg.label) {
 				td.insertBefore(buildIcon(), td.firstChild);
@@ -118,26 +122,36 @@ function nkzmp_platform_fee_enqueue_tooltip_js(): void {
 				el.appendChild(buildIcon());
 			}
 		});
-		// 3) Generic leaf fallback (custom theme / Elementor).
-		document.querySelectorAll('span, div, p, dt, dd, label, strong').forEach(function(el){
-			if (alreadyDecorated(el)) return;
-			if (el.children.length !== 0) return;
-			if (el.textContent.trim() !== cfg.label) return;
-			el.appendChild(buildIcon());
+		// 3) Fallback pro custom theme / Elementor – ale JEN uvnitr totals boxu,
+		//    ne přes celý dokument (výkon na pokladně!).
+		document.querySelectorAll(TOTALS_SEL).forEach(function(box){
+			box.querySelectorAll('span, div, p, dt, dd, label, strong').forEach(function(el){
+				if (el.children.length !== 0) return;
+				if (el.textContent.trim() !== cfg.label) return;
+				if (el.querySelector && el.querySelector('[data-nkzmp-fee]')) return;
+				el.appendChild(buildIcon());
+			});
 		});
 	}
-	if (document.readyState === 'loading') {
-		document.addEventListener('DOMContentLoaded', decorate);
-	} else {
+	function init(){
 		decorate();
+		if (!document.body || typeof MutationObserver === 'undefined') return;
+		var scheduled = false;
+		var mo = new MutationObserver(function(){
+			if (scheduled) return;
+			scheduled = true;
+			requestAnimationFrame(function(){ scheduled = false; decorate(); });
+		});
+		mo.observe(document.body, { childList: true, subtree: true });
+		// Po 12 s přestaň sledovat – totals už jsou vykreslené a nechceme
+		// nekonečně observovat těžkou pokladnu (Stripe/Apple Pay iframe apod.).
+		setTimeout(function(){ try { mo.disconnect(); } catch(e){} }, 12000);
 	}
-	var scheduled = false;
-	var mo = new MutationObserver(function(){
-		if (scheduled) return;
-		scheduled = true;
-		requestAnimationFrame(function(){ scheduled = false; decorate(); });
-	});
-	mo.observe(document.body, { childList: true, subtree: true });
+	if (document.readyState === 'loading') {
+		document.addEventListener('DOMContentLoaded', init);
+	} else {
+		init();
+	}
 })();
 JS;
 	wp_register_style( 'nkzmp-platform-fee-tooltip', false, [], NKZMP_PLATFORM_FEE_VERSION );
