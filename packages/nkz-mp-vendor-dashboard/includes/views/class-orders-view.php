@@ -52,6 +52,28 @@ final class OrdersView {
 								<span class="nkzmp-vd-order-status nkzmp-vd-ostatus--<?php echo esc_attr( $o['status'] ); ?>"><?php echo esc_html( $o['status_label'] ); ?></span>
 							</header>
 
+							<?php if ( ! empty( $o['ship'] ) ) :
+								$ship = $o['ship'];
+								if ( $ship['state'] === 'done' ) : ?>
+									<div class="nkzmp-vd-ship nkzmp-vd-ship--done" style="display:flex;align-items:center;gap:8px;margin:10px 0;padding:8px 12px;border-radius:8px;font-size:13px;font-weight:500;background:#e8f5e9;color:#1b5e20;">
+										<span aria-hidden="true">✓</span> <?php esc_html_e( 'Odesláno', 'nkz-mp-vendor-dashboard' ); ?>
+									</div>
+								<?php else :
+									$tones = [
+										'ok'      => [ '#eef4ff', '#0060FF', '📦' ],
+										'soon'    => [ '#fff7e6', '#a86400', '⏳' ],
+										'overdue' => [ '#fdecec', '#b00020', '⚠️' ],
+									];
+									[ $bg, $fg, $ic ] = $tones[ $ship['state'] ] ?? $tones['ok'];
+									?>
+									<div class="nkzmp-vd-ship nkzmp-vd-ship--<?php echo esc_attr( $ship['state'] ); ?>" style="display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin:10px 0;padding:8px 12px;border-radius:8px;font-size:13px;background:<?php echo esc_attr( $bg ); ?>;color:<?php echo esc_attr( $fg ); ?>;">
+										<span style="font-weight:600;"><?php echo esc_html( $ic ); ?> <?php esc_html_e( 'Čas na odeslání:', 'nkz-mp-vendor-dashboard' ); ?></span>
+										<span style="font-weight:600;"><?php echo esc_html( $ship['remain'] ); ?></span>
+										<span style="opacity:.75;"><?php echo esc_html( sprintf( __( '(do %s)', 'nkz-mp-vendor-dashboard' ), $ship['deadline'] ) ); ?></span>
+									</div>
+								<?php endif; ?>
+							<?php endif; ?>
+
 							<ul class="nkzmp-vd-order-items">
 								<?php foreach ( $o['items'] as $line ) : ?>
 									<li>
@@ -174,8 +196,9 @@ final class OrdersView {
 	 * @return array{number:string,date:string,status:string,status_label:string,items:array,vendor_total:string,packeta:?array}|null
 	 */
 	private static function build_row( \WC_Order $order, int $vendor_id ): ?array {
-		$lines    = [];
-		$subtotal = 0.0;
+		$lines          = [];
+		$subtotal       = 0.0;
+		$needs_shipping = false;
 		foreach ( $order->get_items( 'line_item' ) as $item ) {
 			if ( ! $item instanceof \WC_Order_Item_Product ) {
 				continue;
@@ -188,6 +211,10 @@ final class OrdersView {
 			if ( $item_vendor !== $vendor_id ) {
 				continue;
 			}
+			$product = $item->get_product();
+			if ( $product && $product->needs_shipping() ) {
+				$needs_shipping = true;
+			}
 			$line_total = (float) $item->get_total();
 			$subtotal  += $line_total;
 			$lines[]    = [
@@ -199,6 +226,7 @@ final class OrdersView {
 		if ( empty( $lines ) ) {
 			return null;
 		}
+		$packeta = self::packeta_action( $order, $vendor_id );
 		return [
 			'number'       => $order->get_order_number(),
 			'date'         => $order->get_date_created() ? $order->get_date_created()->date_i18n( 'j. n. Y' ) : '',
@@ -206,7 +234,60 @@ final class OrdersView {
 			'status_label' => wc_get_order_status_name( $order->get_status() ),
 			'items'        => $lines,
 			'vendor_total' => wc_price( $subtotal, [ 'currency' => $order->get_currency() ] ),
-			'packeta'      => self::packeta_action( $order, $vendor_id ),
+			'packeta'      => $packeta,
+			'ship'         => self::ship_deadline( $order, $packeta, $needs_shipping ),
+		];
+	}
+
+	/**
+	 * Odpočet „čas na odeslání". Běží od zaplacení objednávky (fallback vytvoření)
+	 * po vytvoření Packeta štítku. Vrací null, když se nemá zobrazit (digitální
+	 * zboží, už odesláno, nebo uzavřená objednávka). Čistě informativní – žádná
+	 * automatická akce. Lhůta ve dnech je filtrovatelná.
+	 *
+	 * @param array|null $packeta  Výsledek packeta_action (barcode = odesláno).
+	 * @return array{state:string,deadline:string,remain:string,dispatched:bool}|null
+	 */
+	private static function ship_deadline( \WC_Order $order, ?array $packeta, bool $needs_shipping ): ?array {
+		$dispatched = ! empty( $packeta['barcode'] );
+
+		// Odesláno → krátké potvrzení, žádný odpočet.
+		if ( $dispatched ) {
+			return [ 'state' => 'done', 'deadline' => '', 'remain' => '', 'dispatched' => true ];
+		}
+
+		// Odpočet jen u otevřených, fyzických, ještě neodeslaných objednávek.
+		if ( ! $needs_shipping || ! $order->has_status( [ 'processing', 'on-hold' ] ) ) {
+			return null;
+		}
+
+		$paid = $order->get_date_paid() ?: $order->get_date_created();
+		if ( ! $paid ) {
+			return null;
+		}
+
+		$days        = (int) apply_filters( 'nkzmp/v1/dashboard/ship_deadline_days', 3, $order );
+		$deadline_ts = $paid->getTimestamp() + $days * DAY_IN_SECONDS;
+		$now         = time();
+		$remain      = $deadline_ts - $now;
+
+		if ( $remain < 0 ) {
+			$state  = 'overdue';
+			/* translators: %s = doba (např. „2 dny") */
+			$remain_label = sprintf( __( 'Po termínu o %s', 'nkz-mp-vendor-dashboard' ), human_time_diff( $deadline_ts, $now ) );
+		} elseif ( $remain < DAY_IN_SECONDS ) {
+			$state        = 'soon';
+			$remain_label = sprintf( __( 'Zbývá %s', 'nkz-mp-vendor-dashboard' ), human_time_diff( $now, $deadline_ts ) );
+		} else {
+			$state        = 'ok';
+			$remain_label = sprintf( __( 'Zbývá %s', 'nkz-mp-vendor-dashboard' ), human_time_diff( $now, $deadline_ts ) );
+		}
+
+		return [
+			'state'      => $state,
+			'deadline'   => wp_date( 'j. n. Y H:i', $deadline_ts ),
+			'remain'     => $remain_label,
+			'dispatched' => false,
 		];
 	}
 
