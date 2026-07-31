@@ -27,6 +27,7 @@ final class Plugin {
 		ProductSubmitController::instance()->init_actions();
 		ProfileSubmitController::instance()->init();
 		OrderNotifications::instance()->init();
+		ShipDeadline::instance()->init();
 		OrderVendorIndex::instance()->init();
 	}
 }

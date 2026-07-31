@@ -261,15 +261,12 @@ final class OrdersView {
 			return null;
 		}
 
-		$paid = $order->get_date_paid() ?: $order->get_date_created();
-		if ( ! $paid ) {
+		$deadline_ts = \NKZMP\Dashboard\ShipDeadline::deadline_ts( $order );
+		if ( $deadline_ts <= 0 ) {
 			return null;
 		}
-
-		$days        = (int) apply_filters( 'nkzmp/v1/dashboard/ship_deadline_days', 3, $order );
-		$deadline_ts = $paid->getTimestamp() + $days * DAY_IN_SECONDS;
-		$now         = time();
-		$remain      = $deadline_ts - $now;
+		$now    = time();
+		$remain = $deadline_ts - $now;
 
 		if ( $remain < 0 ) {
 			$state  = 'overdue';
