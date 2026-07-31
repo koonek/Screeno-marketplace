@@ -58,7 +58,7 @@ final class ShipDeadline {
 
 	/** Lhůta na odeslání ve dnech (filtrovatelné). */
 	public static function days( ?\WC_Order $order = null ): int {
-		return max( 0, (int) apply_filters( 'nkzmp/v1/dashboard/ship_deadline_days', 3, $order ) );
+		return max( 0, (int) apply_filters( 'nkzmp/v1/dashboard/ship_deadline_days', 5, $order ) );
 	}
 
 	/** Čas zaplacení (fallback vytvoření), nebo 0. */
