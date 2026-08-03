@@ -40,15 +40,20 @@ final class Shortcodes {
 			return '';
 		}
 		$a = shortcode_atts( [
-			'limit'    => '4',
-			'columns'  => '4',
-			'category' => '',
-			'orderby'  => 'date',
-			'order'    => 'DESC',
-			'button'   => 'no',
+			'limit'      => '4',
+			'columns'    => '4',
+			'category'   => '',
+			'orderby'    => 'date',
+			'order'      => 'DESC',
+			'button'     => 'no',
+			// Odkaz „Vidět vše" pod gridem (default zapnutý).
+			'more'       => 'yes',
+			'more_text'  => '',
+			'more_url'   => '',
 		], (array) $atts, 'nkzmp_latest_products' );
 
 		$show_button = in_array( strtolower( (string) $a['button'] ), [ 'yes', 'true', '1' ], true );
+		$show_more   = in_array( strtolower( (string) $a['more'] ), [ 'yes', 'true', '1' ], true );
 
 		$inner = sprintf(
 			'[products limit="%d" columns="%d" orderby="%s" order="%s"%s]',
@@ -73,12 +78,55 @@ final class Shortcodes {
 
 		$out = '<div class="woocommerce nkzmp-latest-products">' . do_shortcode( $inner ) . '</div>';
 
+		if ( $show_more ) {
+			$out .= $this->more_link( (string) $a['more_url'], (string) $a['more_text'], (string) $a['category'] );
+		}
+
 		if ( ! $show_button ) {
 			add_action( 'woocommerce_after_shop_loop_item', 'woocommerce_template_loop_add_to_cart', 10 );
 		}
 		unset( $GLOBALS['nkzmp_force_shop_loop'] );
 
 		return $out;
+	}
+
+	/**
+	 * Tlačítko „Vidět vše" pod gridem – vede do obchodu. Když je grid omezený
+	 * na kategorii, odkaz vede rovnou na tu kategorii.
+	 *
+	 * @param string $url      Vlastní URL (prázdné = obchod).
+	 * @param string $text     Vlastní text (prázdné = „Vidět vše").
+	 * @param string $category Slug kategorie z gridu (volitelné).
+	 */
+	private function more_link( string $url, string $text, string $category = '' ): string {
+		if ( '' === $url ) {
+			// Kategorie má přednost – uživatel klikne na to, co vidí nad tlačítkem.
+			if ( '' !== $category ) {
+				$slug = trim( explode( ',', $category )[0] );
+				$term = $slug !== '' ? get_term_by( 'slug', $slug, 'product_cat' ) : null;
+				if ( $term && ! is_wp_error( $term ) ) {
+					$link = get_term_link( $term );
+					if ( ! is_wp_error( $link ) ) {
+						$url = (string) $link;
+					}
+				}
+			}
+			if ( '' === $url ) {
+				$shop = function_exists( 'wc_get_page_permalink' ) ? wc_get_page_permalink( 'shop' ) : '';
+				$url  = $shop ?: home_url( '/obchod/' );
+			}
+		}
+		$url  = (string) apply_filters( 'nkzmp/v1/storefront/latest_more_url', $url, $category );
+		$text = $text !== '' ? $text : __( 'Vidět vše', 'nkz-mp-storefront' );
+
+		return sprintf(
+			'<div class="nkzmp-latest-more"><a class="nkzmp-latest-more__link" href="%s"><span>%s</span>'
+			. '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" aria-hidden="true">'
+			. '<path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'
+			. '</svg></a></div>',
+			esc_url( $url ),
+			esc_html( $text )
+		);
 	}
 
 	/**

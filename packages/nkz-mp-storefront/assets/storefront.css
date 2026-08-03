@@ -220,3 +220,38 @@ html body .nkzmp-vendor-header__meta {
 	border-bottom: 1px solid currentColor;
 }
 .nkzmp-product-vendor a:hover { color: var(--nkzmp-color-accent-hover); }
+
+/* ── „Vidět vše" pod gridem [nkzmp_latest_products] ─────────────────────
+   Odkaz do obchodu. Ve stylu ostatních AOZ pilulek (vendor header web). */
+.nkzmp-latest-more {
+	display: flex;
+	justify-content: center;
+	margin-top: var(--nkzmp-gap-lg, 32px);
+}
+.nkzmp-latest-more__link {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	padding: 12px 26px;
+	background: var(--nkzmp-color-surface, #fff);
+	border: 1px solid var(--nkzmp-color-border, rgba(17,17,17,0.14));
+	border-radius: 999px;
+	color: var(--nkzmp-color-accent, #0060FF);
+	text-decoration: none;
+	font-size: var(--nkzmp-font-small, 14px);
+	font-weight: 500;
+	letter-spacing: 0.01em;
+	transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+.nkzmp-latest-more__link:hover,
+.nkzmp-latest-more__link:focus-visible {
+	color: var(--nkzmp-color-accent-hover, #0047c2);
+	border-color: var(--nkzmp-color-accent, #0060FF);
+}
+.nkzmp-latest-more__link svg { transition: transform 0.15s ease; }
+.nkzmp-latest-more__link:hover svg { transform: translateX(3px); }
+@media (prefers-reduced-motion: reduce) {
+	.nkzmp-latest-more__link,
+	.nkzmp-latest-more__link svg { transition: none; }
+	.nkzmp-latest-more__link:hover svg { transform: none; }
+}
