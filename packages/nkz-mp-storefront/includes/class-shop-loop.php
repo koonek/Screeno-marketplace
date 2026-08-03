@@ -28,6 +28,26 @@ final class ShopLoop {
 		return self::$instance ??= new self();
 	}
 
+	/**
+	 * Vlastní „SLEVA!" badge. Vrací vždy neprázdný text, aby se nestalo, že
+	 * šablona vyrenderuje prázdnou pilulku.
+	 *
+	 * @param string $html    Původní HTML badge.
+	 * @param mixed  $post    WP_Post.
+	 * @param mixed  $product WC_Product.
+	 */
+	public function sale_flash( $html, $post = null, $product = null ): string {
+		$label = (string) apply_filters(
+			'nkzmp/v1/storefront/sale_label',
+			__( 'Sleva!', 'nkz-mp-storefront' ),
+			$product
+		);
+		if ( '' === trim( $label ) ) {
+			return (string) $html;
+		}
+		return '<span class="onsale nkzmp-onsale">' . esc_html( $label ) . '</span>';
+	}
+
 	public function init(): void {
 		if ( ! apply_filters( 'nkzmp/v1/storefront/shop_loop', true ) ) {
 			return;
@@ -43,6 +63,12 @@ final class ShopLoop {
 		add_action( 'woocommerce_before_shop_loop', [ $this, 'intro_row' ], 5 );
 		add_action( 'woocommerce_after_shop_loop_item_title', [ $this, 'vendor_badge' ], 8 );
 		add_action( 'woocommerce_after_main_content', [ $this, 'become_vendor_cta' ], 5 );
+
+		// Sale badge vlastní. Některé šablony renderují prázdný/špatně obarvený
+		// `.onsale` (v obchodě z něj byla jen černá pilulka bez textu), proto si
+		// obsah i markup určíme sami – text je pak vždy vidět a shodný s tím,
+		// co ukazuje landing page. Text: filtr `nkzmp/v1/storefront/sale_label`.
+		add_filter( 'woocommerce_sale_flash', [ $this, 'sale_flash' ], 20, 3 );
 
 		// Single product page: vendor badge hned pod titulem (priority 6,
 		// mezi title @5 a price @10). Větší varianta s 36px avatarem.

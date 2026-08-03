@@ -627,7 +627,14 @@ body.woocommerce .woocommerce-result-count,
 body.woocommerce-page .woocommerce-result-count {
 	display: none !important;
 }
-.woocommerce ul.products li.product .onsale {
+/* Sale badge. `!important` + širší selektory schválně: některé šablony
+   (a Elementor) přebíjejí barvu textu na tmavou → v obchodě z badge zbyla
+   jen černá pilulka bez textu. Text musí být za všech okolností vidět. */
+.woocommerce ul.products li.product .onsale,
+.woocommerce ul.products li.product span.onsale,
+.woocommerce span.onsale,
+.woocommerce-page span.onsale,
+span.onsale.nkzmp-onsale {
 	position: absolute;
 	top: 12px;
 	left: 12px;
@@ -635,16 +642,23 @@ body.woocommerce-page .woocommerce-result-count {
 	min-height: 0;
 	min-width: 0;
 	padding: 4px 10px;
-	background: var(--nkzmp-color-text);
-	color: #fff;
+	background: var(--nkzmp-color-text) !important;
+	color: #fff !important;
+	-webkit-text-fill-color: #fff !important;
 	border-radius: 999px;
-	font-size: 11px;
+	font-size: 11px !important;
 	font-weight: 600;
 	letter-spacing: 0.04em;
 	text-transform: uppercase;
 	line-height: 1.4;
 	margin: 0;
 	border: 0;
+	text-indent: 0 !important;
+	opacity: 1 !important;
+	visibility: visible !important;
+	overflow: visible !important;
+	white-space: nowrap;
+	z-index: 2;
 }
 .woocommerce ul.products li.product { position: relative; }
 
