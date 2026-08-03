@@ -2167,11 +2167,21 @@ html body .nkzmp-shop-promo__d {
  * (.woocommerce-shop / archive), abychom nezasáhli editor.
  * ───────────────────────────────────────────────────────────── */
 
-body.woocommerce-shop ul.products li.product :is(h1,h2,h3,h4,a,span,bdi,p,div),
-body.archive.woocommerce ul.products li.product :is(h1,h2,h3,h4,a,span,bdi,p,div),
-body.tax-product_cat ul.products li.product :is(h1,h2,h3,h4,a,span,bdi,p,div),
-body.tax-product_tag ul.products li.product :is(h1,h2,h3,h4,a,span,bdi,p,div) {
+body.woocommerce-shop ul.products li.product :is(h1,h2,h3,h4,a,span,bdi,p,div):not(.onsale),
+body.archive.woocommerce ul.products li.product :is(h1,h2,h3,h4,a,span,bdi,p,div):not(.onsale),
+body.tax-product_cat ul.products li.product :is(h1,h2,h3,h4,a,span,bdi,p,div):not(.onsale),
+body.tax-product_tag ul.products li.product :is(h1,h2,h3,h4,a,span,bdi,p,div):not(.onsale) {
 	color: var(--nkzmp-color-text) !important;
+}
+/* Sale badge výjimka – bílý text na tmavé pilulce. Musí mít stejnou
+   specificitu jako vrstva výše, jinak ho přebije a badge zůstane
+   „černá pilulka bez textu". */
+body.woocommerce-shop ul.products li.product span.onsale,
+body.archive.woocommerce ul.products li.product span.onsale,
+body.tax-product_cat ul.products li.product span.onsale,
+body.tax-product_tag ul.products li.product span.onsale {
+	color: #fff !important;
+	-webkit-text-fill-color: #fff !important;
 }
 /* Vendor badge výjimka – chceme decentní muted, ne plný text color. */
 body.woocommerce-shop ul.products li.product a.nkzmp-shop-vendor,
