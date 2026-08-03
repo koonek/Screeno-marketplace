@@ -80,7 +80,12 @@ final class ProfileSubmitController {
 			if ( $raw === '' ) {
 				delete_post_meta( $vendor_id, NKZMP_SHIPPING_VENDOR_RATE_META );
 			} elseif ( is_numeric( $raw ) ) {
-				update_post_meta( $vendor_id, NKZMP_SHIPPING_VENDOR_RATE_META, (float) $raw );
+				// Rate::set_vendor_flat zvedne částku pod minimem na minimum.
+				if ( class_exists( \NKZMP\Shipping\Rate::class ) ) {
+					\NKZMP\Shipping\Rate::set_vendor_flat( $vendor_id, (float) $raw );
+				} else {
+					update_post_meta( $vendor_id, NKZMP_SHIPPING_VENDOR_RATE_META, (float) $raw );
+				}
 			}
 		}
 

@@ -196,8 +196,11 @@ final class ProductSubmitController {
 		// Shipping flag. Digital = virtual (WC nepožaduje dopravu).
 		update_post_meta( $product_id, '_nkzmp_requires_shipping', $requires_shipping ? 'yes' : 'no' );
 		// Per-produkt override poštovného (prázdné = smazat → použije se paušál).
+		// Hodnotu pod minimem zvedneme na minimum (Rate::set_… clampuje).
 		if ( $ship_override === null ) {
 			delete_post_meta( $product_id, '_nkzmp_shipping_override' );
+		} elseif ( class_exists( \NKZMP\Shipping\Rate::class ) ) {
+			\NKZMP\Shipping\Rate::set_product_shipping_override( $product_id, $ship_override );
 		} else {
 			update_post_meta( $product_id, '_nkzmp_shipping_override', $ship_override );
 		}

@@ -29,8 +29,24 @@ final class Rate {
 	}
 
 	public static function set_vendor_flat( int $vendor_id, float $amount ): void {
-		update_post_meta( $vendor_id, NKZMP_SHIPPING_VENDOR_RATE_META, $amount );
+		update_post_meta( $vendor_id, NKZMP_SHIPPING_VENDOR_RATE_META, self::clamp_min( $amount ) );
 		self::invalidate_shipping_cache();
+	}
+
+	/**
+	 * Minimální poštovné, které si prodejce může nastavit (Kč).
+	 * 0 = bez omezení. Filtr: `nkzmp/v1/shipping/min_flat`.
+	 */
+	public static function min_flat(): float {
+		$s   = Settings::get();
+		$min = (float) ( $s['min_flat'] ?? 0 );
+		return max( 0.0, (float) apply_filters( 'nkzmp/v1/shipping/min_flat', $min ) );
+	}
+
+	/** Zvedne částku na minimum, pokud je pod ním. */
+	public static function clamp_min( float $amount ): float {
+		$min = self::min_flat();
+		return ( $min > 0 && $amount < $min ) ? $min : $amount;
 	}
 
 	public static function has_explicit_rate( int $vendor_id ): bool {
@@ -88,7 +104,7 @@ final class Rate {
 		if ( $amount === '' || $amount === null || ! is_numeric( $amount ) ) {
 			delete_post_meta( $product_id, NKZMP_SHIPPING_PRODUCT_OVERRIDE_META );
 		} else {
-			update_post_meta( $product_id, NKZMP_SHIPPING_PRODUCT_OVERRIDE_META, (float) $amount );
+			update_post_meta( $product_id, NKZMP_SHIPPING_PRODUCT_OVERRIDE_META, self::clamp_min( (float) $amount ) );
 		}
 		self::invalidate_shipping_cache();
 	}
@@ -143,6 +159,14 @@ final class Rate {
 			return 0.0;
 		}
 		$strategy = (string) apply_filters( 'nkzmp/v1/shipping/strategy', 'max', $vendor_id, $products );
-		return $strategy === 'sum' ? (float) array_sum( $candidates ) : (float) max( $candidates );
+		$cost     = $strategy === 'sum' ? (float) array_sum( $candidates ) : (float) max( $candidates );
+
+		// Pojistka: minimum platí i pro dřív uložené (nižší) sazby, aby se
+		// nedostaly do košíku. Vypnutelné filtrem `nkzmp/v1/shipping/min_flat`
+		// (0 = bez omezení) nebo `nkzmp/v1/shipping/enforce_min_on_cart`.
+		if ( apply_filters( 'nkzmp/v1/shipping/enforce_min_on_cart', true, $vendor_id, $products ) ) {
+			$cost = self::clamp_min( $cost );
+		}
+		return $cost;
 	}
 }

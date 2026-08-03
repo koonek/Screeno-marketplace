@@ -27,6 +27,8 @@ final class Settings {
 	public static function get(): array {
 		$defaults = [
 			'default_flat' => 79,
+			// Spodní hranice poštovného, které si prodejce může nastavit.
+			'min_flat'     => 99,
 		];
 		$saved = get_option( self::OPTION, [] );
 		return array_merge( $defaults, is_array( $saved ) ? $saved : [] );
@@ -58,6 +60,10 @@ final class Settings {
 		echo '<th><label for="default_flat">' . esc_html__( 'Výchozí paušál (Kč)', 'nkz-mp-shipping' ) . '</label></th>';
 		echo '<td><input id="default_flat" type="number" min="0" step="1" name="' . esc_attr( self::OPTION ) . '[default_flat]" value="' . esc_attr( (string) $s['default_flat'] ) . '" />';
 		echo '<p class="description">' . esc_html__( 'Použije se pro vendory, kteří nemají vlastní paušál nastavený.', 'nkz-mp-shipping' ) . '</p></td>';
+		echo '</tr><tr>';
+		echo '<th><label for="min_flat">' . esc_html__( 'Minimální poštovné (Kč)', 'nkz-mp-shipping' ) . '</label></th>';
+		echo '<td><input id="min_flat" type="number" min="0" step="1" name="' . esc_attr( self::OPTION ) . '[min_flat]" value="' . esc_attr( (string) $s['min_flat'] ) . '" />';
+		echo '<p class="description">' . esc_html__( 'Nejnižší částka, kterou si prodejce může nastavit (u sebe i u produktu). Nižší hodnota se automaticky zvedne na tuto. 0 = bez omezení.', 'nkz-mp-shipping' ) . '</p></td>';
 		echo '</tr></table>';
 		submit_button();
 		echo '</form></div>';

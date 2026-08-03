@@ -106,10 +106,16 @@ final class ProfileFormView {
 					<section class="nkzmp-vd-form-section">
 						<header class="nkzmp-vd-form-shead"><span class="num">03</span><h2><?php esc_html_e( 'Doprava', 'nkz-mp-vendor-dashboard' ); ?></h2></header>
 
+						<?php $ship_min = (float) \NKZMP\Shipping\Rate::min_flat(); ?>
 						<div class="nkzmp-vd-field" style="max-width:280px;">
 							<label for="vp_ship"><?php esc_html_e( 'Paušál za dopravu (Kč)', 'nkz-mp-vendor-dashboard' ); ?></label>
-							<input id="vp_ship" type="number" min="0" step="1" name="shipping_flat" value="<?php echo esc_attr( (string) $shipping_rate ); ?>" placeholder="<?php echo esc_attr( sprintf( __( 'výchozí %s', 'nkz-mp-vendor-dashboard' ), \NKZMP\Shipping\Rate::default_flat() ) ); ?>" />
-							<small><?php esc_html_e( 'Účtuje se jednou za objednávku, pokud má zákazník v košíku tvůj fyzický produkt. Prázdné = použít výchozí sazbu platformy.', 'nkz-mp-vendor-dashboard' ); ?></small>
+							<input id="vp_ship" type="number" min="<?php echo esc_attr( (string) (int) $ship_min ); ?>" step="1" name="shipping_flat" value="<?php echo esc_attr( (string) $shipping_rate ); ?>" placeholder="<?php echo esc_attr( sprintf( __( 'výchozí %s', 'nkz-mp-vendor-dashboard' ), \NKZMP\Shipping\Rate::default_flat() ) ); ?>" />
+							<small>
+								<?php esc_html_e( 'Účtuje se jednou za objednávku, pokud má zákazník v košíku tvůj fyzický produkt. Prázdné = použít výchozí sazbu platformy.', 'nkz-mp-vendor-dashboard' ); ?>
+								<?php if ( $ship_min > 0 ) : ?>
+									<?php echo esc_html( sprintf( __( ' Minimum je %d Kč.', 'nkz-mp-vendor-dashboard' ), (int) $ship_min ) ); ?>
+								<?php endif; ?>
+							</small>
 						</div>
 					</section>
 				<?php endif; ?>

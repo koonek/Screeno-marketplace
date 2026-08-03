@@ -195,11 +195,18 @@ final class ProductFormView {
 
 					<?php
 					$ship_override = $product ? get_post_meta( $product->get_id(), '_nkzmp_shipping_override', true ) : '';
+					$ship_min      = class_exists( \NKZMP\Shipping\Rate::class ) ? (float) \NKZMP\Shipping\Rate::min_flat() : 0.0;
 					?>
 					<div class="nkzmp-vd-field">
 						<label for="vd_ship_override"><?php esc_html_e( 'Poštovné za tento produkt (volitelné)', 'nkz-mp-vendor-dashboard' ); ?></label>
-						<input id="vd_ship_override" type="number" name="shipping_override" min="0" step="1" value="<?php echo esc_attr( (string) $ship_override ); ?>" placeholder="<?php esc_attr_e( 'např. 150', 'nkz-mp-vendor-dashboard' ); ?>" />
-						<small><?php esc_html_e( 'Necháš prázdné = použije se tvůj běžný paušál. Vyplň jen u větších/těžších věcí, kde je doprava jiná. 0 = doprava zdarma.', 'nkz-mp-vendor-dashboard' ); ?></small>
+						<input id="vd_ship_override" type="number" name="shipping_override" min="<?php echo esc_attr( (string) (int) $ship_min ); ?>" step="1" value="<?php echo esc_attr( (string) $ship_override ); ?>" placeholder="<?php echo esc_attr( $ship_min > 0 ? sprintf( __( 'např. %d', 'nkz-mp-vendor-dashboard' ), (int) $ship_min + 51 ) : __( 'např. 150', 'nkz-mp-vendor-dashboard' ) ); ?>" />
+						<small>
+							<?php if ( $ship_min > 0 ) : ?>
+								<?php echo esc_html( sprintf( __( 'Necháš prázdné = použije se tvůj běžný paušál. Vyplň jen u větších/těžších věcí, kde je doprava jiná. Minimum je %d Kč.', 'nkz-mp-vendor-dashboard' ), (int) $ship_min ) ); ?>
+							<?php else : ?>
+								<?php esc_html_e( 'Necháš prázdné = použije se tvůj běžný paušál. Vyplň jen u větších/těžších věcí, kde je doprava jiná. 0 = doprava zdarma.', 'nkz-mp-vendor-dashboard' ); ?>
+							<?php endif; ?>
+						</small>
 					</div>
 				</section>
 

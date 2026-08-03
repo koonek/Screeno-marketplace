@@ -2,7 +2,7 @@
 /**
  * Plugin Name: NKZ Marketplace – Shipping
  * Description: Per-vendor paušální doprava. Pro každého prodejce v košíku s fyzickým produktem se přičte jeho paušál. Digital produkty dopravu nevyžadují.
- * Version: 0.3.0
+ * Version: 0.4.0
  * Author: NKZ
  * Requires at least: 6.2
  * Requires PHP: 8.1
