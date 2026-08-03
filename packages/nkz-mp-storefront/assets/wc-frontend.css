@@ -642,7 +642,7 @@ span.onsale.nkzmp-onsale {
 	min-height: 0;
 	min-width: 0;
 	padding: 4px 10px;
-	background: var(--nkzmp-color-text) !important;
+	background: var(--nkzmp-color-accent) !important;
 	color: #fff !important;
 	-webkit-text-fill-color: #fff !important;
 	border-radius: 999px;
@@ -2182,6 +2182,7 @@ body.tax-product_cat ul.products li.product span.onsale,
 body.tax-product_tag ul.products li.product span.onsale {
 	color: #fff !important;
 	-webkit-text-fill-color: #fff !important;
+	background: var(--nkzmp-color-accent) !important;
 }
 /* Vendor badge výjimka – chceme decentní muted, ne plný text color. */
 body.woocommerce-shop ul.products li.product a.nkzmp-shop-vendor,

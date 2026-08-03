@@ -45,10 +45,13 @@ final class ShopLoop {
 		if ( '' === trim( $label ) ) {
 			return (string) $html;
 		}
-		// Barvu píšeme inline s !important. Inline `!important` má nejvyšší
+		// Barvy píšeme inline s !important. Inline `!important` má nejvyšší
 		// prioritu v kaskádě, takže badge zůstane čitelný i když ho přebíjí
 		// jiná (klidně cachovaná) vrstva stylů nebo Elementor.
-		$style = 'color:#fff !important;-webkit-text-fill-color:#fff !important;';
+		// Pozadí = AOZ brand modrá, filtrovatelné.
+		$bg    = (string) apply_filters( 'nkzmp/v1/storefront/sale_badge_bg', '#0060FF' );
+		$style = 'color:#fff !important;-webkit-text-fill-color:#fff !important;'
+			. 'background:' . $bg . ' !important;';
 		return '<span class="onsale nkzmp-onsale" style="' . esc_attr( $style ) . '">' . esc_html( $label ) . '</span>';
 	}
 
