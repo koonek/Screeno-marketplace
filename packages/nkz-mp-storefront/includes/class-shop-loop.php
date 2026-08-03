@@ -45,7 +45,11 @@ final class ShopLoop {
 		if ( '' === trim( $label ) ) {
 			return (string) $html;
 		}
-		return '<span class="onsale nkzmp-onsale">' . esc_html( $label ) . '</span>';
+		// Barvu píšeme inline s !important. Inline `!important` má nejvyšší
+		// prioritu v kaskádě, takže badge zůstane čitelný i když ho přebíjí
+		// jiná (klidně cachovaná) vrstva stylů nebo Elementor.
+		$style = 'color:#fff !important;-webkit-text-fill-color:#fff !important;';
+		return '<span class="onsale nkzmp-onsale" style="' . esc_attr( $style ) . '">' . esc_html( $label ) . '</span>';
 	}
 
 	public function init(): void {
