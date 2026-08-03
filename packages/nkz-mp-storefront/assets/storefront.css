@@ -221,37 +221,51 @@ html body .nkzmp-vendor-header__meta {
 }
 .nkzmp-product-vendor a:hover { color: var(--nkzmp-color-accent-hover); }
 
-/* ── „Vidět vše" pod gridem [nkzmp_latest_products] ─────────────────────
-   Odkaz do obchodu. Ve stylu ostatních AOZ pilulek (vendor header web). */
+/* ── „Vidět vše" – tlačítko pod gridem / sekcí ─────────────────────────
+   `!important` schválně: šablona i Elementor barví globálně všechny <a>
+   (odkaz se jinak vykreslí jako holý růžový text bez tlačítka). */
 .nkzmp-latest-more {
-	display: flex;
+	display: flex !important;
 	justify-content: center;
 	margin-top: var(--nkzmp-gap-lg, 32px);
 }
-.nkzmp-latest-more__link {
-	display: inline-flex;
+.nkzmp-latest-more.is-left { justify-content: flex-start; }
+.nkzmp-latest-more.is-right { justify-content: flex-end; }
+
+.nkzmp-latest-more a.nkzmp-latest-more__link,
+.nkzmp-latest-more .nkzmp-latest-more__link:link,
+.nkzmp-latest-more .nkzmp-latest-more__link:visited {
+	display: inline-flex !important;
 	align-items: center;
 	gap: 8px;
-	padding: 12px 26px;
-	background: var(--nkzmp-color-surface, #fff);
-	border: 1px solid var(--nkzmp-color-border, rgba(17,17,17,0.14));
-	border-radius: 999px;
-	color: var(--nkzmp-color-accent, #0060FF);
-	text-decoration: none;
-	font-size: var(--nkzmp-font-small, 14px);
+	padding: 14px 30px;
+	background: var(--nkzmp-color-accent, #0060FF) !important;
+	border: 0 !important;
+	border-radius: 999px !important;
+	color: #fff !important;
+	-webkit-text-fill-color: #fff !important;
+	text-decoration: none !important;
+	font-size: var(--nkzmp-font-small, 15px);
 	font-weight: 500;
+	line-height: 1.2;
 	letter-spacing: 0.01em;
-	transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+	box-shadow: none;
+	transition: background 0.15s ease, transform 0.15s ease;
 }
-.nkzmp-latest-more__link:hover,
-.nkzmp-latest-more__link:focus-visible {
-	color: var(--nkzmp-color-accent-hover, #0047c2);
-	border-color: var(--nkzmp-color-accent, #0060FF);
+.nkzmp-latest-more a.nkzmp-latest-more__link:hover,
+.nkzmp-latest-more a.nkzmp-latest-more__link:focus-visible {
+	background: var(--nkzmp-color-accent-hover, #0047c2) !important;
+	color: #fff !important;
+	-webkit-text-fill-color: #fff !important;
 }
-.nkzmp-latest-more__link svg { transition: transform 0.15s ease; }
-.nkzmp-latest-more__link:hover svg { transform: translateX(3px); }
+.nkzmp-latest-more .nkzmp-latest-more__link svg {
+	flex: 0 0 auto;
+	transition: transform 0.15s ease;
+}
+.nkzmp-latest-more .nkzmp-latest-more__link:hover svg { transform: translateX(3px); }
+
 @media (prefers-reduced-motion: reduce) {
-	.nkzmp-latest-more__link,
-	.nkzmp-latest-more__link svg { transition: none; }
-	.nkzmp-latest-more__link:hover svg { transform: none; }
+	.nkzmp-latest-more .nkzmp-latest-more__link,
+	.nkzmp-latest-more .nkzmp-latest-more__link svg { transition: none; }
+	.nkzmp-latest-more .nkzmp-latest-more__link:hover svg { transform: none; }
 }

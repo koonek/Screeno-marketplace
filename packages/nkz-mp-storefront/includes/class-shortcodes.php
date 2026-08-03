@@ -30,6 +30,9 @@ final class Shortcodes {
 	public function init(): void {
 		add_shortcode( 'nkzmp_latest_products', [ $this, 'latest_products' ] );
 		add_shortcode( 'nkzmp_product_categories', [ $this, 'product_categories' ] );
+		// Samostatné tlačítko „Vidět vše" – k vložení pod libovolnou sekci
+		// (prodejci v Elementoru, kategorie…), aby byl vzhled všude stejný.
+		add_shortcode( 'nkzmp_more_link', [ $this, 'more_link_shortcode' ] );
 	}
 
 	/**
@@ -88,6 +91,31 @@ final class Shortcodes {
 		unset( $GLOBALS['nkzmp_force_shop_loop'] );
 
 		return $out;
+	}
+
+	/**
+	 * [nkzmp_more_link] – samostatné tlačítko „Vidět vše".
+	 *
+	 * Použití pod sekcí prodejců (nebo kdekoli jinde):
+	 *   [nkzmp_more_link url="/vendors/" text="Všichni prodejci"]
+	 *
+	 * @param array<string,string> $atts
+	 */
+	public function more_link_shortcode( $atts = [] ): string {
+		$a = shortcode_atts( [
+			'url'   => '',
+			'text'  => '',
+			'align' => 'center',
+		], (array) $atts, 'nkzmp_more_link' );
+
+		Assets::ensure_storefront_css();
+
+		$html = $this->more_link( (string) $a['url'], (string) $a['text'] );
+		$align = strtolower( (string) $a['align'] );
+		if ( in_array( $align, [ 'left', 'right' ], true ) ) {
+			$html = str_replace( 'nkzmp-latest-more"', 'nkzmp-latest-more is-' . $align . '"', $html );
+		}
+		return $html;
 	}
 
 	/**
