@@ -147,7 +147,7 @@ final class Shortcodes {
 		$url  = (string) apply_filters( 'nkzmp/v1/storefront/latest_more_url', $url, $category );
 		$text = $text !== '' ? $text : __( 'Vidět vše', 'nkz-mp-storefront' );
 
-		return sprintf(
+		return self::more_link_css() . sprintf(
 			'<div class="nkzmp-latest-more"><a class="nkzmp-latest-more__link" href="%s"><span>%s</span>'
 			. '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" aria-hidden="true">'
 			. '<path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'
@@ -155,6 +155,48 @@ final class Shortcodes {
 			esc_url( $url ),
 			esc_html( $text )
 		);
+	}
+
+	/**
+	 * Styl tlačítka vytištěný přímo do stránky (jednou za request).
+	 *
+	 * Proč inline a ne jen v storefront.css: CSS soubor bývá agresivně
+	 * cachovaný (cache plugin / CDN), takže se po updatu načte stará verze bez
+	 * nových pravidel a z tlačítka zbude holý odkaz obarvený šablonou. HTML
+	 * stránky je oproti tomu čerstvé, takže tenhle blok dorazí vždy.
+	 */
+	private static function more_link_css(): string {
+		static $printed = false;
+		if ( $printed ) {
+			return '';
+		}
+		$printed = true;
+
+		$css = '
+.nkzmp-latest-more{display:flex!important;justify-content:center;margin-top:32px;}
+.nkzmp-latest-more.is-left{justify-content:flex-start;}
+.nkzmp-latest-more.is-right{justify-content:flex-end;}
+.nkzmp-latest-more a.nkzmp-latest-more__link,
+.nkzmp-latest-more a.nkzmp-latest-more__link:link,
+.nkzmp-latest-more a.nkzmp-latest-more__link:visited{
+display:inline-flex!important;align-items:center;gap:8px;padding:14px 30px;
+background:var(--nkzmp-color-accent,#0060FF)!important;border:0!important;
+border-radius:999px!important;color:#fff!important;-webkit-text-fill-color:#fff!important;
+text-decoration:none!important;font-size:15px;font-weight:500;line-height:1.2;
+letter-spacing:.01em;box-shadow:none;transition:background .15s ease;}
+.nkzmp-latest-more a.nkzmp-latest-more__link:hover,
+.nkzmp-latest-more a.nkzmp-latest-more__link:focus-visible{
+background:var(--nkzmp-color-accent-hover,#0047c2)!important;color:#fff!important;
+-webkit-text-fill-color:#fff!important;}
+.nkzmp-latest-more a.nkzmp-latest-more__link span{color:inherit!important;-webkit-text-fill-color:inherit!important;}
+.nkzmp-latest-more a.nkzmp-latest-more__link svg{flex:0 0 auto;transition:transform .15s ease;}
+.nkzmp-latest-more a.nkzmp-latest-more__link:hover svg{transform:translateX(3px);}
+@media(prefers-reduced-motion:reduce){
+.nkzmp-latest-more a.nkzmp-latest-more__link,
+.nkzmp-latest-more a.nkzmp-latest-more__link svg{transition:none;}
+.nkzmp-latest-more a.nkzmp-latest-more__link:hover svg{transform:none;}}
+';
+		return '<style id="nkzmp-more-link-css">' . preg_replace( '/\s+/', ' ', $css ) . '</style>';
 	}
 
 	/**
