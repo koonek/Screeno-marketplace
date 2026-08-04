@@ -154,6 +154,23 @@ defined( 'ABSPATH' ) || exit;
 						<?php endif; ?>
 					</span>
 				</label>
+				<?php
+				$vendor_terms_url = \NKZMP\Registration\Settings::get()['vendor_terms_url'] ?? '';
+				if ( $vendor_terms_url !== '' ) :
+					?>
+					<label class="nkzmp-reg-check">
+						<input type="checkbox" name="vendor_terms" value="1" required />
+						<span>
+							<?php
+							printf(
+								/* translators: %s: odkaz na podmínky pro prodejce */
+								esc_html__( 'Přečetl(a) jsem si %s a souhlasím s nimi.', 'nkz-mp-vendor-registration' ),
+								'<a href="' . esc_url( $vendor_terms_url ) . '" target="_blank" rel="noopener">' . esc_html__( 'podmínky pro prodejce', 'nkz-mp-vendor-registration' ) . '</a>'
+							);
+							?>
+						</span>
+					</label>
+				<?php endif; ?>
 				<label class="nkzmp-reg-check">
 					<input type="checkbox" name="gdpr" value="1" required />
 					<span><?php esc_html_e( 'Souhlasím se zpracováním osobních údajů za účelem vyřízení této přihlášky.', 'nkz-mp-vendor-registration' ); ?></span>

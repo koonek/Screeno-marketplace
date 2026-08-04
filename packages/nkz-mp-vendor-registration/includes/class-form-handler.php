@@ -55,6 +55,10 @@ final class FormHandler {
 		$terms   = ! empty( $_POST['terms'] );
 		$gdpr    = ! empty( $_POST['gdpr'] );
 
+		// Souhlas s podmínkami pro prodejce – povinný jen když je URL nastavená.
+		$vendor_terms_url = (string) ( Settings::get()['vendor_terms_url'] ?? '' );
+		$vendor_terms_ok  = $vendor_terms_url === '' || ! empty( $_POST['vendor_terms'] );
+
 		// Země podnikání – validujeme proti allowlistu Stripe modulu (fallback CZ).
 		$allowed_countries = class_exists( \NKVSVS\Onboarding_Controller::class )
 			? array_keys( \NKVSVS\Onboarding_Controller::allowed_countries() )
@@ -64,8 +68,8 @@ final class FormHandler {
 			$country = 'CZ';
 		}
 
-		if ( $name === '' || ! is_email( $email ) || $ico === '' || $bio === '' || ! $terms || ! $gdpr ) {
-			$this->redirect_error( __( 'Vyplň prosím všechna povinná pole a odsouhlas oba checkboxy.', 'nkz-mp-vendor-registration' ) );
+		if ( $name === '' || ! is_email( $email ) || $ico === '' || $bio === '' || ! $terms || ! $gdpr || ! $vendor_terms_ok ) {
+			$this->redirect_error( __( 'Vyplň prosím všechna povinná pole a odsouhlas všechny souhlasy.', 'nkz-mp-vendor-registration' ) );
 		}
 
 		// Duplicate email check.
@@ -107,6 +111,17 @@ final class FormHandler {
 		update_post_meta( $vendor_id, '_nkzmp_registration_submitted_at', time() );
 		// Země pro Stripe onboarding (per-vendor, čte ji Onboarding_Controller).
 		update_post_meta( $vendor_id, '_nkv_stripe_country', $country );
+
+		// Důkaz o udělení souhlasů – co, kdy a na jaké URL prodejce odsouhlasil.
+		// U právních souhlasů je podstatné umět doložit i znění v daném čase,
+		// proto ukládáme URL dokumentu, ne jen „ano".
+		update_post_meta( $vendor_id, '_nkzmp_consents', [
+			'terms'        => [ 'accepted' => true, 'url' => (string) ( Settings::get()['terms_url'] ?? '' ) ],
+			'vendor_terms' => [ 'accepted' => (bool) ! empty( $_POST['vendor_terms'] ), 'url' => $vendor_terms_url ],
+			'gdpr'         => [ 'accepted' => true ],
+			'at'           => time(),
+			'ip'           => isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '',
+		] );
 
 		// Nepovinná adresa pro odeslání (odesílatel na štítku Zásilkovny).
 		$sender = [

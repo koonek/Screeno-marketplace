@@ -83,6 +83,25 @@ final class DashboardView {
 				</aside>
 			<?php endif; ?>
 
+			<?php
+			// Podmínky pro prodejce – ať je má prodejce pořád po ruce,
+			// nejen v okamžiku registrace.
+			$vt_url = class_exists( \NKZMP\Registration\Settings::class )
+				? (string) ( \NKZMP\Registration\Settings::get()['vendor_terms_url'] ?? '' )
+				: '';
+			if ( $vt_url !== '' ) :
+				?>
+				<p class="nkzmp-vd-note" style="margin-top:28px;">
+					<?php
+					printf(
+						/* translators: %s: odkaz na podmínky pro prodejce */
+						esc_html__( 'Prodejem na Art of život se řídíš %s.', 'nkz-mp-vendor-dashboard' ),
+						'<a href="' . esc_url( $vt_url ) . '" target="_blank" rel="noopener">' . esc_html__( 'podmínkami pro prodejce', 'nkz-mp-vendor-dashboard' ) . '</a>'
+					);
+					?>
+				</p>
+			<?php endif; ?>
+
 		</div>
 		<?php
 	}

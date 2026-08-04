@@ -29,6 +29,9 @@ final class Settings {
 			'admin_notification_email' => get_option( 'admin_email' ),
 			'success_redirect'         => '',
 			'terms_url'                => '',
+			// Podmínky pro prodejce – samostatný souhlas (jiný dokument než
+			// obecné podmínky platformy). Prázdné = checkbox se nezobrazí.
+			'vendor_terms_url'         => '/podminky-prodejce/',
 			'status_page_url'          => '',
 			'from_name'                => 'Art of život',
 
@@ -138,7 +141,8 @@ final class Settings {
 					<?php
 					$this->text_row( $s, 'from_name', __( 'Odesílatel e-mailů (From name)', 'nkz-mp-vendor-registration' ) );
 					$this->text_row( $s, 'admin_notification_email', __( 'Admin notification e-mail', 'nkz-mp-vendor-registration' ) );
-					$this->text_row( $s, 'terms_url', __( 'URL podmínek (povinný checkbox)', 'nkz-mp-vendor-registration' ) );
+					$this->text_row( $s, 'terms_url', __( 'URL podmínek platformy (povinný checkbox)', 'nkz-mp-vendor-registration' ) );
+				$this->text_row( $s, 'vendor_terms_url', __( 'URL podmínek pro prodejce (povinný checkbox)', 'nkz-mp-vendor-registration' ) );
 					$this->text_row( $s, 'success_redirect', __( 'Redirect po odeslání (volitelné)', 'nkz-mp-vendor-registration' ) );
 					$this->text_row( $s, 'status_page_url', __( 'URL status page (kam vede {status_url})', 'nkz-mp-vendor-registration' ) );
 					?>
