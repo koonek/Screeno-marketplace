@@ -2724,7 +2724,8 @@ html body .nkzmp-filters__scrollwrap.is-scrollable::after {
 html body .nkzmp-filters__list--vendors {
 	scrollbar-width: thin !important;
 	scrollbar-color: rgba(0,0,0,0.28) transparent !important;
-	padding-right: 6px !important;
+	/* Odstup, aby počty nekolidovaly se scrollbarem. */
+	padding-right: 18px !important;
 	padding-bottom: 8px !important;
 }
 html body .nkzmp-filters__list--vendors::-webkit-scrollbar { width: 8px !important; }
