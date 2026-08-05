@@ -88,12 +88,19 @@ html body .nkzmp-vendor-header__cover img {
 	border-radius: 0 !important;
 	aspect-ratio: auto !important;
 }
+/* Flex + wrap místo pevné mřížky 180px+1fr. Zalomení pak řídí SKUTEČNÉ
+   dostupné místo, ne šířka okna – v úzkém kontejneru (Elementor sloupec,
+   theme s užším obsahem) se jinak text namáčkl do pár znaků na řádek. */
 html body .nkzmp-vendor-header__body {
-	display: grid !important;
-	grid-template-columns: 180px 1fr !important;
+	display: flex !important;
+	flex-wrap: wrap !important;
 	gap: var(--nkzmp-gap-lg) !important;
-	align-items: start !important;
+	align-items: flex-start !important;
 	padding: 0 var(--nkzmp-gap-md) !important;
+}
+html body .nkzmp-vendor-header__meta {
+	flex: 1 1 320px !important; /* pod 320 px se text zalomí pod avatar */
+	min-width: 0 !important;    /* jinak flex nedovolí zúžení a text přeteče */
 }
 /* Bez coveru: stačí menší padding, avatar zarovnaný k textu. */
 html body .nkzmp-vendor-header:not(.has-cover) .nkzmp-vendor-header__body {

@@ -100,6 +100,48 @@ final class ProfileFormView {
 						<input type="file" name="profile_image" accept="image/*" />
 						<small><?php esc_html_e( 'Logo nebo portrét. Čtvercová fotka 400 × 400 px je ideální, ale zobrazí se kruhem.', 'nkz-mp-vendor-dashboard' ); ?></small>
 					</div>
+
+					<script>
+					/* Živý náhled cover/avatar – jinak prodejce před uložením
+					   vidí jen název souboru. Cover 3:1, avatar kruh. */
+					(function(){
+						var scope = document.currentScript && document.currentScript.closest('section');
+						if (!scope) return;
+
+						scope.querySelectorAll('input[type="file"]').forEach(function(input){
+							var isCover = input.name === 'cover_image';
+							var style = isCover
+								? 'display:block;width:100%;max-width:480px;aspect-ratio:3/1;object-fit:cover;border-radius:8px;'
+								: 'display:block;width:160px;height:160px;object-fit:cover;border-radius:50%;';
+
+							var preview = document.createElement('div');
+							preview.style.cssText = 'display:none;margin:8px 0;';
+							preview.innerHTML =
+								'<img alt="" style="' + style + '">' +
+								'<small style="display:block;margin-top:4px;color:#1b5e20;">✓ ' +
+								<?php echo wp_json_encode( __( 'Vybráno – uloží se po odeslání', 'nkz-mp-vendor-dashboard' ) ); ?> +
+								'</small>';
+							input.insertAdjacentElement('afterend', preview);
+
+							var img = preview.querySelector('img');
+							var url = null;
+
+							input.addEventListener('change', function(){
+								if (url) { URL.revokeObjectURL(url); url = null; }
+								var file = input.files && input.files[0];
+								if (!file || !/^image\//.test(file.type)) {
+									preview.style.display = 'none';
+									return;
+								}
+								url = URL.createObjectURL(file);
+								img.src = url;
+								preview.style.display = '';
+								var old = input.parentNode.querySelector('.nkzmp-vd-img-thumb');
+								if (old) { old.style.opacity = '.35'; }
+							});
+						});
+					})();
+					</script>
 				</section>
 
 				<?php if ( $shipping_active ) : ?>
