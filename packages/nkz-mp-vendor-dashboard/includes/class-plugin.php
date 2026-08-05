@@ -28,6 +28,7 @@ final class Plugin {
 		ProfileSubmitController::instance()->init();
 		OrderNotifications::instance()->init();
 		ShipDeadline::instance()->init();
+		HeicUploads::instance()->init();
 		OrderVendorIndex::instance()->init();
 	}
 }

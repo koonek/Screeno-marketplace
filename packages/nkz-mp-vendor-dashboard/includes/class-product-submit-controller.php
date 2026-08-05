@@ -257,10 +257,19 @@ final class ProductSubmitController {
 		require_once ABSPATH . 'wp-admin/includes/media.php';
 		require_once ABSPATH . 'wp-admin/includes/image.php';
 
+		// Chyby nahrávání sbíráme a ukážeme prodejci (dřív se jen logovaly –
+		// produkt se uložil bez fotky a nikdo nevěděl proč). Typicky HEIC.
+		$upload_errors = [];
+
 		if ( ! empty( $_FILES['featured_image']['name'] ) ) {
 			$att_id = media_handle_upload( 'featured_image', $product_id );
 			if ( is_wp_error( $att_id ) ) {
 				error_log( '[NKZMP] featured image upload failed: ' . $att_id->get_error_message() );
+				$upload_errors[] = sprintf(
+					/* translators: %s: důvod */
+					__( 'Hlavní fotka se nenahrála: %s', 'nkz-mp-vendor-dashboard' ),
+					$att_id->get_error_message()
+				);
 			} else {
 				set_post_thumbnail( $product_id, $att_id );
 			}
@@ -287,6 +296,12 @@ final class ProductSubmitController {
 			$att_id = media_handle_upload( $field, $product_id );
 			if ( is_wp_error( $att_id ) ) {
 				error_log( '[NKZMP] gallery ' . $i . ' upload failed: ' . $att_id->get_error_message() );
+				$upload_errors[] = sprintf(
+					/* translators: 1: číslo slotu, 2: důvod */
+					__( 'Fotka v poli Galerie %1$d se nenahrála: %2$s', 'nkz-mp-vendor-dashboard' ),
+					$i,
+					$att_id->get_error_message()
+				);
 				continue;
 			}
 			$gallery_touched = true;
@@ -328,8 +343,12 @@ final class ProductSubmitController {
 			ProductEmails::on_submitted( $product_id, $vendor_id, $is_edit );
 		}
 
-		$msg = $stayed_live ? 'live_updated' : ( $is_edit ? 'updated' : 'submitted' );
-		wp_safe_redirect( add_query_arg( [ 'nkzmp_msg' => $msg ], wc_get_account_endpoint_url( 'vendor-products' ) ) );
+		$msg  = $stayed_live ? 'live_updated' : ( $is_edit ? 'updated' : 'submitted' );
+		$args = [ 'nkzmp_msg' => $msg ];
+		if ( ! empty( $upload_errors ) ) {
+			$args['nkzmp_upload_err'] = rawurlencode( implode( ' | ', $upload_errors ) );
+		}
+		wp_safe_redirect( add_query_arg( $args, wc_get_account_endpoint_url( 'vendor-products' ) ) );
 		exit;
 	}
 

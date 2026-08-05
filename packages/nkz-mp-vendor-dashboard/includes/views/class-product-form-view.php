@@ -281,6 +281,12 @@ final class ProductFormView {
 				<section class="nkzmp-vd-form-section">
 					<header class="nkzmp-vd-form-shead"><span class="num">03</span><h2><?php esc_html_e( 'Fotografie', 'nkz-mp-vendor-dashboard' ); ?></h2></header>
 
+					<?php if ( ! ( class_exists( \NKZMP\Dashboard\HeicUploads::class ) && \NKZMP\Dashboard\HeicUploads::server_supports_heic() ) ) : ?>
+						<p class="nkzmp-vd-hint" style="margin:0 0 14px;padding:10px 14px;background:#fff7e6;border-radius:8px;font-size:13px;color:#7a4b00;">
+							<?php esc_html_e( 'Fotky nahrávej jako JPEG nebo PNG. Fotky z iPhonu bývají ve formátu HEIC, který prohlížeče nezobrazí — přepni si Nastavení → Fotoaparát → Formáty → „Nejkompatibilnější“.', 'nkz-mp-vendor-dashboard' ); ?>
+						</p>
+					<?php endif; ?>
+
 					<div class="nkzmp-vd-image-featured-wrap">
 						<label class="nkzmp-vd-img-label"><?php esc_html_e( 'Hlavní fotka', 'nkz-mp-vendor-dashboard' ); ?> <span class="req">*</span></label>
 						<?php if ( $featured_id ) : ?>

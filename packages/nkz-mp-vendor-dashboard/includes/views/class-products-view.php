@@ -47,6 +47,18 @@ final class ProductsView {
 			</header>
 
 			<?php
+			// Fotka se nenahrála (typicky HEIC z iPhonu) – produkt se uložil,
+			// ale prodejce musí vědět, že mu chybí obrázek.
+			$upload_err = isset( $_GET['nkzmp_upload_err'] ) ? sanitize_text_field( wp_unslash( $_GET['nkzmp_upload_err'] ) ) : '';
+			if ( $upload_err !== '' ) :
+				?>
+				<div class="nkzmp-vd-form-error" style="margin-bottom:16px;">
+					<strong><?php esc_html_e( 'Pozor – fotka se nenahrála.', 'nkz-mp-vendor-dashboard' ); ?></strong>
+					<p style="margin:6px 0 0;"><?php echo esc_html( $upload_err ); ?></p>
+				</div>
+				<?php
+			endif;
+
 			$flash = isset( $_GET['nkzmp_msg'] ) ? sanitize_text_field( wp_unslash( $_GET['nkzmp_msg'] ) ) : '';
 			if ( $flash === 'submitted' ) :
 				?>
