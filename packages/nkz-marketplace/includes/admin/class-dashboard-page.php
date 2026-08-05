@@ -48,6 +48,10 @@ final class DashboardPage {
 		} else {
 			$product->set_status( 'publish' );
 			$product->save();
+			// Cache – bez pročištění by se nový produkt v katalogu neobjevil.
+			if ( class_exists( \NKZMP\Dashboard\CacheFlush::class ) ) {
+				\NKZMP\Dashboard\CacheFlush::purge();
+			}
 			if ( class_exists( \NKZMP\Audit\Recorder::class ) ) {
 				( new \NKZMP\Audit\Recorder() )->record(
 					action:      'product.published',

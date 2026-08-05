@@ -343,6 +343,10 @@ final class ProductSubmitController {
 			ProductEmails::on_submitted( $product_id, $vendor_id, $is_edit );
 		}
 
+		// Pročistit cache – jinak by se stará verze stránky (a stará fotka)
+		// servírovala dál a prodejce by si myslel, že se nahrání nepovedlo.
+		CacheFlush::purge();
+
 		$msg  = $stayed_live ? 'live_updated' : ( $is_edit ? 'updated' : 'submitted' );
 		$args = [ 'nkzmp_msg' => $msg ];
 		if ( ! empty( $upload_errors ) ) {

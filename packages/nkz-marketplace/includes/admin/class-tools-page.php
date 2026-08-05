@@ -407,6 +407,10 @@ final class ToolsPage {
 		if ( is_array( $meta ) ) {
 			wp_update_attachment_metadata( $att_id, $meta );
 		}
+		// Cache – jinak by se v katalogu držela stará (nezobrazitelná) fotka.
+		if ( class_exists( \NKZMP\Dashboard\CacheFlush::class ) ) {
+			\NKZMP\Dashboard\CacheFlush::purge();
+		}
 		return true;
 	}
 

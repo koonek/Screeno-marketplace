@@ -120,6 +120,9 @@ final class ProfileSubmitController {
 			);
 		}
 
+		// Pročistit cache – nový avatar/cover by se jinak neprojevil.
+		CacheFlush::purge();
+
 		wp_safe_redirect( add_query_arg( 'nkzmp_msg', 'profile_saved', wc_get_account_endpoint_url( 'vendor-profile' ) ) );
 		exit;
 	}
