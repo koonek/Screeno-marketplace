@@ -316,6 +316,50 @@ final class ProductFormView {
 					<?php if ( ! empty( $gallery_ids ) ) : ?>
 						<small><?php esc_html_e( 'Nahráním nové fotky do políčka se ta původní přepíše. Zaškrtnutím „Odebrat" fotku z galerie odstraníš.', 'nkz-mp-vendor-dashboard' ); ?></small>
 					<?php endif; ?>
+
+					<script>
+					/* Živý náhled vybraných fotek – prodejce jinak před uložením
+					   vidí jen název souboru a netuší, co vlastně nahrál. */
+					(function(){
+						var scope = document.currentScript && document.currentScript.closest('section');
+						if (!scope) return;
+
+						scope.querySelectorAll('input[type="file"]').forEach(function(input){
+							var isFeatured = input.name === 'featured_image';
+							var size = isFeatured ? 200 : 100;
+
+							var preview = document.createElement('div');
+							preview.className = 'nkzmp-vd-img-preview';
+							preview.style.cssText = 'display:none;margin:8px 0;';
+							preview.innerHTML =
+								'<img alt="" style="width:' + size + 'px;height:' + size + 'px;object-fit:cover;border-radius:8px;display:block;">' +
+								'<small style="display:block;margin-top:4px;color:#1b5e20;">✓ ' +
+								<?php echo wp_json_encode( __( 'Vybráno – uloží se po odeslání', 'nkz-mp-vendor-dashboard' ) ); ?> +
+								'</small>';
+							input.insertAdjacentElement('afterend', preview);
+
+							var img = preview.querySelector('img');
+							var url = null;
+
+							input.addEventListener('change', function(){
+								if (url) { URL.revokeObjectURL(url); url = null; }
+								var file = input.files && input.files[0];
+								if (!file) { preview.style.display = 'none'; return; }
+								if (!/^image\//.test(file.type)) {
+									preview.style.display = 'none';
+									return;
+								}
+								url = URL.createObjectURL(file);
+								img.src = url;
+								preview.style.display = '';
+								// Původní (uloženou) fotku schováme, ať je jasné, co nahradí.
+								var slot = input.closest('.nkzmp-vd-gallery-slot, .nkzmp-vd-image-featured-wrap');
+								var old  = slot && slot.querySelector('.nkzmp-vd-img-thumb');
+								if (old) { old.style.opacity = '.35'; }
+							});
+						});
+					})();
+					</script>
 				</section>
 
 				<section class="nkzmp-vd-form-section">
