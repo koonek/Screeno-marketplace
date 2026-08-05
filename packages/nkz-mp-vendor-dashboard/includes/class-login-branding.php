@@ -53,7 +53,7 @@ final class LoginBranding {
 			'text'        => '#111111',
 			'border'      => 'rgba(17,17,17,0.10)',
 			'radius'      => '10px',
-			'font'        => "'Fabio XM','Inter',system-ui,-apple-system,'Segoe UI',sans-serif",
+			'font'        => "'Fabio XM AOZ','Fabio XM','Inter',system-ui,-apple-system,'Segoe UI',sans-serif",
 			'logo'        => '',          // prázdné = textový název webu
 			'logo_height' => '48px',
 			'kicker'      => '',          // malý text nad formulářem (volitelné)

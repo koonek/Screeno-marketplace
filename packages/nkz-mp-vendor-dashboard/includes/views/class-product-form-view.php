@@ -308,7 +308,7 @@ final class ProductFormView {
 						<?php endfor; ?>
 					</div>
 					<?php if ( ! empty( $gallery_ids ) ) : ?>
-						<small><?php esc_html_e( 'Zaškrtnutím „Odebrat" fotku po uložení odstraníš z galerie. Nahráním nové ve stejném poli fotku přidáš.', 'nkz-mp-vendor-dashboard' ); ?></small>
+						<small><?php esc_html_e( 'Nahráním nové fotky do políčka se ta původní přepíše. Zaškrtnutím „Odebrat" fotku z galerie odstraníš.', 'nkz-mp-vendor-dashboard' ); ?></small>
 					<?php endif; ?>
 				</section>
 

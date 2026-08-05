@@ -266,34 +266,46 @@ final class ProductSubmitController {
 			}
 		}
 
-		$gallery_ids = [];
-		for ( $i = 1; $i <= 4; $i++ ) {
-			$field = 'gallery_' . $i;
-			if ( ! empty( $_FILES[ $field ]['name'] ) ) {
-				$att_id = media_handle_upload( $field, $product_id );
-				if ( is_wp_error( $att_id ) ) {
-					error_log( '[NKZMP] gallery ' . $i . ' upload failed: ' . $att_id->get_error_message() );
-				} else {
-					$gallery_ids[] = (int) $att_id;
-				}
-			}
-		}
-		// Odebrání fotek z galerie (checkbox u nahraných). Řeší se i bez uploadu.
+		// Galerie: sloty jsou poziční – slot N odpovídá N-té fotce v galerii.
+		// Nahrání do slotu tu fotku PŘEPÍŠE (dřív se přidávala na konec, což
+		// mátlo). Zaškrtnutí „Odebrat" ji vyhodí. Obojí lze kombinovat.
+		$gallery = $is_edit
+			? array_values( array_filter( array_map( 'intval', explode( ',', (string) get_post_meta( $product_id, '_product_image_gallery', true ) ) ) ) )
+			: [];
+
 		$remove_ids = [];
 		if ( ! empty( $_POST['gallery_remove'] ) && is_array( $_POST['gallery_remove'] ) ) {
 			$remove_ids = array_filter( array_map( 'intval', (array) wp_unslash( $_POST['gallery_remove'] ) ) );
 		}
 
-		if ( ! empty( $gallery_ids ) || ! empty( $remove_ids ) ) {
-			// Připojit k existujícím (pokud edit) a odebrat odškrtnuté.
-			$existing_gallery = $is_edit ? array_map( 'intval', explode( ',', (string) get_post_meta( $product_id, '_product_image_gallery', true ) ) ) : [];
-			$merged = array_values( array_unique( array_filter( array_merge( $existing_gallery, $gallery_ids ) ) ) );
-			if ( ! empty( $remove_ids ) ) {
-				// Odebíráme jen z galerie produktu; soubor v Médiích zůstává
-				// (mohl by být použitý jinde) – bezpečnější než mazat natvrdo.
-				$merged = array_values( array_diff( $merged, $remove_ids ) );
+		$gallery_touched = ! empty( $remove_ids );
+		for ( $i = 1; $i <= 4; $i++ ) {
+			$field = 'gallery_' . $i;
+			if ( empty( $_FILES[ $field ]['name'] ) ) {
+				continue;
 			}
-			update_post_meta( $product_id, '_product_image_gallery', implode( ',', $merged ) );
+			$att_id = media_handle_upload( $field, $product_id );
+			if ( is_wp_error( $att_id ) ) {
+				error_log( '[NKZMP] gallery ' . $i . ' upload failed: ' . $att_id->get_error_message() );
+				continue;
+			}
+			$gallery_touched = true;
+			$slot            = $i - 1;
+			if ( isset( $gallery[ $slot ] ) ) {
+				$gallery[ $slot ] = (int) $att_id; // přepis konkrétního slotu
+			} else {
+				$gallery[] = (int) $att_id;        // volný slot → přidat
+			}
+		}
+
+		if ( $gallery_touched ) {
+			// Odebíráme jen z galerie produktu; soubor v Médiích zůstává
+			// (mohl by být použitý jinde) – bezpečnější než mazat natvrdo.
+			if ( ! empty( $remove_ids ) ) {
+				$gallery = array_diff( $gallery, $remove_ids );
+			}
+			$final = array_values( array_unique( array_filter( $gallery ) ) );
+			update_post_meta( $product_id, '_product_image_gallery', implode( ',', $final ) );
 		}
 
 		// Audit + hook.

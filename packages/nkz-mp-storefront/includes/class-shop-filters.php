@@ -222,19 +222,30 @@ final class ShopFilters {
 			return;
 		}
 		echo '<fieldset class="nkzmp-filters__group" data-nkzmp-group="vendor">';
-		echo '<legend>' . esc_html__( 'Prodejce', 'nkz-mp-storefront' ) . '</legend>';
-		echo '<ul class="nkzmp-filters__list">';
-		foreach ( $vendors as $vid => $name ) {
-			$id = 'nkzmp-vendor-' . $vid;
+		printf(
+			'<legend>%s <em class="nkzmp-filters__legend-count">%d</em></legend>',
+			esc_html__( 'Prodejce', 'nkz-mp-storefront' ),
+			count( $vendors )
+		);
+		// is-scrollable → CSS přidá dole fade, aby bylo poznat, že seznam
+		// pokračuje (uživatelé si jinak nevšimnou prodejců pod ohybem).
+		echo '<div class="nkzmp-filters__scrollwrap' . ( count( $vendors ) > 8 ? ' is-scrollable' : '' ) . '">';
+		echo '<ul class="nkzmp-filters__list nkzmp-filters__list--vendors">';
+		foreach ( $vendors as $vid => $v ) {
+			$id    = 'nkzmp-vendor-' . $vid;
+			$name  = is_array( $v ) ? (string) $v['name'] : (string) $v;
+			$count = is_array( $v ) ? (int) $v['count'] : 0;
 			printf(
-				'<li><label for="%1$s"><input type="checkbox" id="%1$s" name="vendor[]" value="%2$d"%3$s> <span>%4$s</span></label></li>',
+				'<li><label for="%1$s"><input type="checkbox" id="%1$s" name="vendor[]" value="%2$d"%3$s> <span>%4$s</span>%5$s</label></li>',
 				esc_attr( $id ),
 				(int) $vid,
 				in_array( (int) $vid, $selected, true ) ? ' checked' : '',
-				esc_html( $name )
+				esc_html( $name ),
+				$count > 0 ? ' <em>' . (int) $count . '</em>' : ''
 			);
 		}
 		echo '</ul>';
+		echo '</div>';
 		echo '</fieldset>';
 	}
 
@@ -523,6 +534,21 @@ final class ShopFilters {
 			   AND pm.meta_value != '' AND pm.meta_value != '0'
 			   AND p.post_type = 'product' AND p.post_status = 'publish'"
 		);
+		// Počty produktů na prodejce – ať filtr ukazuje totéž co kategorie.
+		$counts = [];
+		$rows   = $wpdb->get_results(
+			"SELECT pm.meta_value AS vid, COUNT(DISTINCT p.ID) AS cnt
+			 FROM {$wpdb->postmeta} pm
+			 INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
+			 WHERE pm.meta_key IN ('_nkzmp_vendor_id','_nkv_vendor_id')
+			   AND pm.meta_value != '' AND pm.meta_value != '0'
+			   AND p.post_type = 'product' AND p.post_status = 'publish'
+			 GROUP BY pm.meta_value"
+		);
+		foreach ( (array) $rows as $row ) {
+			$counts[ (int) $row->vid ] = (int) $row->cnt;
+		}
+
 		$out = [];
 		foreach ( array_unique( array_map( 'absint', (array) $ids ) ) as $vid ) {
 			if ( $vid <= 0 ) {
@@ -530,10 +556,13 @@ final class ShopFilters {
 			}
 			$post = get_post( $vid );
 			if ( $post && $post->post_status === 'publish' ) {
-				$out[ $vid ] = $post->post_title;
+				$out[ $vid ] = [
+					'name'  => $post->post_title,
+					'count' => $counts[ $vid ] ?? 0,
+				];
 			}
 		}
-		asort( $out, SORT_NATURAL | SORT_FLAG_CASE );
+		uasort( $out, static fn( $a, $b ) => strnatcasecmp( $a['name'], $b['name'] ) );
 		set_transient( 'nkzmp_shop_product_vendors', $out, HOUR_IN_SECONDS );
 		return $out;
 	}

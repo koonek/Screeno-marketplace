@@ -21,7 +21,7 @@
 	--nkzmp-color-accent-soft: rgba(0, 96, 255, 0.06);
 
 	/* Typografie */
-	--nkzmp-font-family: 'Fabio XM', 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+	--nkzmp-font-family: 'Fabio XM AOZ', 'Fabio XM', 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
 	--nkzmp-font-weight: 400;
 
 	--nkzmp-font-h1: clamp(32px, 5vw, 56px);

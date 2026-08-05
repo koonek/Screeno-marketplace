@@ -120,6 +120,22 @@ final class Assets {
 			. '.nkzmp-product-categories .woocommerce-loop-category__title,'
 			. '.nkzmp-rm__inner,.nkzmp-filters__group'
 			. '{font-family:' . $stack . ' !important;}';
+		// Portál prodejce (/muj-ucet/…) + registrace. Dashboard.css si drzi
+		// vlastni font-family s !important a byva agresivne cachovany – tenhle
+		// blok jde inline v HTML (vzdy cerstve), takze prebije i starou CSS.
+		// Bez toho se v portalu komoli diakritika (Nez zacnes → „Neż zaćneś").
+		$css .= 'body.woocommerce-account,body.nkzmp-account,'
+			. 'body.woocommerce-account .woocommerce,body.nkzmp-account .woocommerce,'
+			. '.nkzmp-vd,.nkzmp-vd *,'
+			. '.woocommerce-MyAccount-navigation,.woocommerce-MyAccount-navigation a,'
+			. '.woocommerce-MyAccount-content,'
+			. '.nkzmp-reg-form-wrap,.nkzmp-reg-form-wrap *,'
+			. '.nkzmp-reg-success,.nkzmp-reg-success *'
+			. '{font-family:' . $stack . ' !important;}';
+		// Vyjimka: ikony (svg/i) font nededi – at nerozbijeme ikonove fonty.
+		$css .= '.nkzmp-vd i,.nkzmp-vd svg,.nkzmp-vd [class*="icon"],'
+			. '.nkzmp-reg-form-wrap i,.nkzmp-reg-form-wrap svg'
+			. '{font-family:inherit;}';
 		// Elementor Theme Builder – single product widgety (titulek, cena,
 		// popis, breadcrumb, add-to-cart) renderuji vlastni markup a dedi
 		// rozbity variable font. Prebijeme jen textem.
