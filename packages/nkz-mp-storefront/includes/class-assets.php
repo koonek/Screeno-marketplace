@@ -22,7 +22,10 @@ final class Assets {
 	}
 
 	public function init(): void {
-		add_action( 'wp_enqueue_scripts', [ $this, 'enqueue' ] );
+		// Priorita 999: naše styly (a hlavně @font-face) musí jít až ZA Elementor.
+		// Když dvě @font-face pravidla popisují stejnou rodinu, platí to pozdější
+		// – jen tak dokážeme přebít Elementorův variabilní Fabio XM.
+		add_action( 'wp_enqueue_scripts', [ $this, 'enqueue' ], 999 );
 	}
 
 	public function enqueue(): void {
@@ -34,6 +37,10 @@ final class Assets {
 		);
 
 		if ( ! $on_vendor && ! $on_wc ) {
+			// I mimo obchod potřebujeme opravený font – Elementor (a tím pádem
+			// rozbitá diakritika) je na celém webu. Pošleme jen @font-face,
+			// nic víc, ať ostatní stránky nezatěžujeme.
+			self::ensure_font_faces();
 			return;
 		}
 
@@ -41,6 +48,23 @@ final class Assets {
 		if ( $on_wc && apply_filters( 'nkzmp/v1/storefront/style_wc', true ) ) {
 			self::ensure_wc_css();
 		}
+	}
+
+	/**
+	 * Samostatné @font-face pro stránky mimo obchod (landing, blog, …).
+	 * Bez nich by na nich Elementor dál kreslil rozbité háčky.
+	 */
+	public static function ensure_font_faces(): void {
+		if ( wp_style_is( 'nkzmp-fontfix', 'enqueued' ) || wp_style_is( 'nkz-mp-storefront', 'enqueued' ) ) {
+			return;
+		}
+		$css = self::font_faces_css();
+		if ( $css === '' ) {
+			return;
+		}
+		wp_register_style( 'nkzmp-fontfix', false, [], NKZMP_STOREFRONT_VERSION );
+		wp_enqueue_style( 'nkzmp-fontfix' );
+		wp_add_inline_style( 'nkzmp-fontfix', $css );
 	}
 
 	/** Vynutí storefront CSS – idempotentní. Volá se i mimo WC stránky (shortcode). */
@@ -75,20 +99,15 @@ final class Assets {
 	 * URL přes content_url() → přežije migraci domény. Cesta i celý blok
 	 * je filtrovatelný. Prázdná URL = vypnuto.
 	 */
-	private static function font_face_css(): string {
-		$base = content_url( '/uploads/2026/03/' );
-		// STATIC font (ne variable). Variable Fabio-XM-Variable.ttf ma rozbite
-		// ceske hacky (c s z r e). Static FabioXM-Regular.woff2 renderuje
-		// spravne (pouziva ho i Elementor).
+	/** Zdroje statického fontu + název rodiny. Prázdné pole = vypnuto. */
+	private static function font_sources(): array {
+		$base   = content_url( '/uploads/2026/03/' );
 		$woff2  = (string) apply_filters( 'nkzmp/v1/storefront/font_woff2', $base . 'FabioXM-Regular.woff2' );
 		$woff   = (string) apply_filters( 'nkzmp/v1/storefront/font_woff', $base . 'FabioXM-Regular.woff' );
 		$family = (string) apply_filters( 'nkzmp/v1/storefront/font_family', 'Fabio XM AOZ' );
 		if ( ( $woff2 === '' && $woff === '' ) || $family === '' ) {
-			return '';
+			return [];
 		}
-
-		$stack = "'" . $family . "', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
-
 		$srcs = [];
 		if ( $woff2 !== '' ) {
 			$srcs[] = "url('" . esc_url( $woff2 ) . "') format('woff2')";
@@ -96,9 +115,48 @@ final class Assets {
 		if ( $woff !== '' ) {
 			$srcs[] = "url('" . esc_url( $woff ) . "') format('woff')";
 		}
-		$src = implode( ',', $srcs );
+		return [ 'family' => $family, 'src' => implode( ',', $srcs ) ];
+	}
 
-		$css  = "@font-face{font-family:'" . $family . "';src:" . $src . ";font-weight:400 700;font-display:swap;}";
+	/**
+	 * Jen @font-face deklarace – načítáme je na CELÉM webu, ne jen na WC
+	 * stránkách. Diakritika se lámala i mimo obchod (Elementor je všude).
+	 */
+	public static function font_faces_css(): string {
+		$f = self::font_sources();
+		if ( empty( $f ) ) {
+			return '';
+		}
+		$family = $f['family'];
+		$src    = $f['src'];
+
+		$css = "@font-face{font-family:'" . $family . "';src:" . $src . ";font-weight:400 700;font-display:swap;}";
+
+		// KLÍČOVÉ: předefinujeme i rodinu, kterou používá Elementor („Fabio XM").
+		// Ta míří na variabilní soubor s rozbitými háčky (č š ž ř ě se kreslí
+		// jako ć ś ż ŕ ė). Deklarace se stejným názvem rodiny, ale statickým
+		// souborem – protože náš styl jde až za Elementorem (priorita 999),
+		// vyhrává ta naše a háčky jsou správně VŠUDE, bez honění selektorů.
+		$broken = (array) apply_filters( 'nkzmp/v1/storefront/font_override_families', [ 'Fabio XM' ] );
+		foreach ( $broken as $bf ) {
+			$bf = trim( (string) $bf );
+			if ( $bf === '' || $bf === $family ) {
+				continue;
+			}
+			$css .= "@font-face{font-family:'" . $bf . "';src:" . $src . ";font-weight:400;font-style:normal;font-display:swap;}";
+			$css .= "@font-face{font-family:'" . $bf . "';src:" . $src . ";font-weight:500 900;font-style:normal;font-display:swap;}";
+		}
+		return $css;
+	}
+
+	private static function font_face_css(): string {
+		$f = self::font_sources();
+		if ( empty( $f ) ) {
+			return '';
+		}
+		$family = $f['family'];
+		$stack  = "'" . $family . "', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
+		$css    = self::font_faces_css();
 		// Kontejnery – dedena zakladni sazba.
 		$css .= 'body.woocommerce,body.woocommerce-page,'
 			. '.nkzmp-single-vendor,.nkzmp-vendor-header,.nkzmp-vendor-card,'
