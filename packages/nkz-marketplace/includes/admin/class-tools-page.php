@@ -35,6 +35,7 @@ final class ToolsPage {
 		add_action( 'admin_post_nkzmp_run_backfill', [ $this, 'handle_backfill' ] );
 		add_action( 'admin_post_nkzmp_cleanup_roles', [ $this, 'handle_cleanup_roles' ] );
 		add_action( 'wp_ajax_nkzmp_convert_heic_batch', [ $this, 'ajax_convert_heic_batch' ] );
+		add_action( 'admin_post_nkzmp_heic_reset_failed', [ $this, 'handle_heic_reset_failed' ] );
 	}
 
 	private const LEGACY_ROLES = [
@@ -92,16 +93,33 @@ final class ToolsPage {
 		echo '</div>';
 	}
 
-	/** Najde HEIC/HEIF přílohy v Médiích. */
-	private static function find_heic_attachments( int $limit = 200 ): array {
+	private const HEIC_FAIL_META = '_nkzmp_heic_failed';
+
+	/**
+	 * Najde HEIC/HEIF přílohy v Médiích.
+	 *
+	 * Přílohy, u kterých převod selhal, přeskakujeme (mají HEIC_FAIL_META) –
+	 * jinak by je dávkový převod bral pořád dokola a nikdy by neskončil.
+	 */
+	private static function find_heic_attachments( int $limit = 200, bool $include_failed = false ): array {
 		global $wpdb;
+		$skip = $include_failed
+			? ''
+			: $wpdb->prepare(
+				" AND NOT EXISTS (
+					SELECT 1 FROM {$wpdb->postmeta} f
+					WHERE f.post_id = p.ID AND f.meta_key = %s
+				)",
+				self::HEIC_FAIL_META
+			);
 		$rows = $wpdb->get_results( $wpdb->prepare(
 			"SELECT p.ID, p.post_title, pm.meta_value AS relpath
 			 FROM {$wpdb->posts} p
 			 INNER JOIN {$wpdb->postmeta} pm ON pm.post_id = p.ID AND pm.meta_key = '_wp_attached_file'
 			 WHERE p.post_type = 'attachment'
-			   AND ( pm.meta_value LIKE %s OR pm.meta_value LIKE %s )
-			 ORDER BY p.ID DESC LIMIT %d",
+			   AND ( pm.meta_value LIKE %s OR pm.meta_value LIKE %s )"
+			 . $skip .
+			" ORDER BY p.ID DESC LIMIT %d",
 			'%.heic', '%.heif', $limit
 		) );
 		return (array) $rows;
@@ -139,6 +157,29 @@ final class ToolsPage {
 			);
 		}
 		echo '</ul>';
+
+		// Přílohy, u kterých převod selhal – s důvodem, ať je co řešit.
+		$failed = array_filter(
+			self::find_heic_attachments( 200, true ),
+			static fn( $it ) => (string) get_post_meta( (int) $it->ID, self::HEIC_FAIL_META, true ) !== ''
+		);
+		if ( ! empty( $failed ) ) {
+			echo '<div class="notice notice-warning inline"><p><strong>'
+				. esc_html( sprintf( __( 'Nepodařilo se převést: %d', 'nkz-marketplace' ), count( $failed ) ) )
+				. '</strong></p><ul style="margin:0 0 10px 18px;list-style:disc;">';
+			foreach ( array_slice( $failed, 0, 10 ) as $it ) {
+				printf(
+					'<li>#%d — %s: <em>%s</em></li>',
+					(int) $it->ID,
+					esc_html( (string) $it->post_title ),
+					esc_html( (string) get_post_meta( (int) $it->ID, self::HEIC_FAIL_META, true ) )
+				);
+			}
+			echo '</ul><p>';
+			echo '<a href="' . esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=nkzmp_heic_reset_failed' ), self::NONCE_ACTION ) ) . '" class="button button-small">'
+				. esc_html__( 'Zkusit tyhle znovu', 'nkz-marketplace' ) . '</a>';
+			echo '</p></div>';
+		}
 		if ( count( $items ) > 20 ) {
 			printf( '<p class="description">%s</p>', esc_html( sprintf( __( '…a dalších %d.', 'nkz-marketplace' ), count( $items ) - 20 ) ) );
 		}
@@ -159,6 +200,9 @@ final class ToolsPage {
 			<button type="button" class="button button-primary" id="nkzmp-heic-start">
 				<?php esc_html_e( 'Převést HEIC → JPEG', 'nkz-marketplace' ); ?>
 			</button>
+			<button type="button" class="button" id="nkzmp-heic-stop" style="display:none;">
+				<?php esc_html_e( 'Zastavit', 'nkz-marketplace' ); ?>
+			</button>
 			<div id="nkzmp-heic-progress" style="display:none;margin-top:14px;max-width:520px;">
 				<div style="height:12px;background:#e5e5e5;border-radius:999px;overflow:hidden;">
 					<div id="nkzmp-heic-bar" style="height:100%;width:0;background:#2271b1;transition:width .25s ease;"></div>
@@ -170,21 +214,37 @@ final class ToolsPage {
 		(function(){
 			var box = document.getElementById('nkzmp-heic-tool');
 			if (!box) return;
-			var btn    = document.getElementById('nkzmp-heic-start');
-			var wrap   = document.getElementById('nkzmp-heic-progress');
-			var bar    = document.getElementById('nkzmp-heic-bar');
-			var status = document.getElementById('nkzmp-heic-status');
-			var total  = parseInt(box.getAttribute('data-total'), 10) || 0;
-			var done = 0, failed = 0;
+			var btn      = document.getElementById('nkzmp-heic-start');
+			var stopBtn  = document.getElementById('nkzmp-heic-stop');
+			var wrap     = document.getElementById('nkzmp-heic-progress');
+			var bar      = document.getElementById('nkzmp-heic-bar');
+			var status   = document.getElementById('nkzmp-heic-status');
+			var total    = parseInt(box.getAttribute('data-total'), 10) || 0;
+			var done = 0, failed = 0, rounds = 0, stopped = false;
+			// Tvrdá pojistka proti zacyklení – nikdy víc kol, než je fotek.
+			var maxRounds = Math.ceil(total / 3) + 5;
+
+			function finish(text){
+				stopped = true;
+				status.textContent = text;
+				btn.disabled = false;
+				stopBtn.style.display = 'none';
+			}
 
 			function render(){
-				var pct = total ? Math.round((done + failed) / total * 100) : 100;
+				var processed = Math.min(done + failed, total);
+				var pct = total ? Math.min(100, Math.round(processed / total * 100)) : 100;
 				bar.style.width = pct + '%';
 				status.textContent = 'Převedeno ' + done + ' z ' + total +
 					(failed ? ' (nepovedlo se: ' + failed + ')' : '') + ' — ' + pct + ' %';
 			}
 
 			function step(){
+				if (stopped) return;
+				if (++rounds > maxRounds) {
+					finish('Zastaveno – převod se nedařilo dokončit. Zkontroluj chyby v seznamu po obnovení stránky.');
+					return;
+				}
 				var body = new FormData();
 				body.append('action', 'nkzmp_convert_heic_batch');
 				body.append('_ajax_nonce', <?php echo wp_json_encode( $nonce ); ?>);
@@ -193,39 +253,59 @@ final class ToolsPage {
 				})
 				.then(function(r){ return r.json(); })
 				.then(function(res){
+					if (stopped) return;
 					if (!res || !res.success) {
-						status.textContent = 'Chyba: ' + ((res && res.data) ? res.data : 'neznámá');
-						btn.disabled = false;
+						finish('Chyba: ' + ((res && res.data) ? res.data : 'neznámá'));
 						return;
 					}
 					done   += res.data.done;
 					failed += res.data.failed;
 					render();
-					if (res.data.remaining > 0) {
+					// Konec i když dávka nic nezpracovala – jinak nekonečná smyčka.
+					if (res.data.remaining > 0 && (res.data.done + res.data.failed) > 0) {
 						setTimeout(step, 300); // pauza, ať server dýchá
 					} else {
-						status.textContent = 'Hotovo. Převedeno: ' + done +
-							(failed ? ', nepovedlo se: ' + failed : '') + '. Obnov stránku.';
-						btn.disabled = false;
+						finish('Hotovo. Převedeno: ' + done +
+							(failed ? ', nepovedlo se: ' + failed : '') + '. Obnov stránku.');
 					}
 				})
 				.catch(function(e){
-					status.textContent = 'Spojení selhalo: ' + e.message + ' — zkus to prosím znovu.';
-					btn.disabled = false;
+					finish('Spojení selhalo: ' + e.message + ' — zkus to prosím znovu.');
 				});
 			}
 
 			btn.addEventListener('click', function(){
 				if (!confirm(<?php echo wp_json_encode( __( 'Převést HEIC fotky na JPEG? Poběží to po dávkách, nechej okno otevřené. Původní soubory zůstanou na serveru.', 'nkz-marketplace' ) ); ?>)) return;
 				btn.disabled = true;
+				stopBtn.style.display = '';
 				wrap.style.display = '';
-				done = 0; failed = 0;
+				done = 0; failed = 0; rounds = 0; stopped = false;
 				render();
 				step();
+			});
+
+			stopBtn.addEventListener('click', function(){
+				finish('Zastaveno uživatelem. Převedeno: ' + done +
+					(failed ? ', nepovedlo se: ' + failed : '') + '.');
 			});
 		})();
 		</script>
 		<?php
+	}
+
+	/** Smaže příznak selhání – přílohy půjdou zkusit znovu. */
+	public function handle_heic_reset_failed(): void {
+		check_admin_referer( self::NONCE_ACTION );
+		if ( ! current_user_can( Capabilities::MANAGE_VENDORS ) ) {
+			wp_die( esc_html__( 'Nedostatečná oprávnění.', 'nkz-marketplace' ) );
+		}
+		$n = 0;
+		foreach ( self::find_heic_attachments( 500, true ) as $it ) {
+			if ( delete_post_meta( (int) $it->ID, self::HEIC_FAIL_META ) ) {
+				$n++;
+			}
+		}
+		$this->redirect( 'ok', sprintf( __( 'Připraveno k dalšímu pokusu: %d.', 'nkz-marketplace' ), $n ) );
 	}
 
 	/** Jedna dávka převodu (AJAX). Malá, ať se request stihne a nesežere paměť. */
@@ -254,9 +334,9 @@ final class ToolsPage {
 			}
 		}
 
-		// Kolik ještě zbývá (po tomhle kole). Neúspěšné by se točily dokola,
-		// proto je odečteme – frontend pak správně skončí.
-		$remaining = max( 0, count( self::find_heic_attachments( 500 ) ) - $fail );
+		// Zbývající = ještě nezpracované (neúspěšné mají HEIC_FAIL_META a query
+		// je vynechává), takže číslo vždy klesá a smyčka spolehlivě skončí.
+		$remaining = count( self::find_heic_attachments( 1000 ) );
 
 		if ( $done > 0 && class_exists( \NKZMP\Audit\Recorder::class ) ) {
 			( new \NKZMP\Audit\Recorder() )->record(
@@ -274,15 +354,32 @@ final class ToolsPage {
 		] );
 	}
 
-	/** Převede jednu přílohu HEIC → JPEG. */
+	/**
+	 * Převede jednu přílohu HEIC → JPEG.
+	 *
+	 * Při selhání uloží důvod do HEIC_FAIL_META – díky tomu se příloha přeskočí
+	 * v dalších dávkách (jinak nekonečná smyčka) a admin uvidí, co se pokazilo.
+	 */
 	private static function convert_attachment( int $att_id ): bool {
-		$path = get_attached_file( $att_id );
-		if ( ! $path || ! file_exists( $path ) ) {
+		$fail = static function ( int $id, string $why ): bool {
+			error_log( '[NKZMP] HEIC převod #' . $id . ' selhal: ' . $why );
+			update_post_meta( $id, self::HEIC_FAIL_META, $why );
 			return false;
+		};
+
+		$path = get_attached_file( $att_id );
+		if ( ! $path ) {
+			return $fail( $att_id, 'soubor není u přílohy evidovaný' );
+		}
+		if ( ! file_exists( $path ) ) {
+			return $fail( $att_id, 'soubor na disku neexistuje: ' . basename( $path ) );
 		}
 		$new_path = preg_replace( '/\.(heic|heif)$/i', '.jpg', $path );
 		if ( ! $new_path || $new_path === $path ) {
-			return false;
+			return $fail( $att_id, 'nepodařilo se odvodit název .jpg' );
+		}
+		if ( ! is_writable( dirname( $path ) ) ) {
+			return $fail( $att_id, 'složka není zapisovatelná: ' . dirname( $path ) );
 		}
 		try {
 			$img = new \Imagick( $path );
@@ -296,11 +393,10 @@ final class ToolsPage {
 			$img->clear();
 			$img->destroy();
 			if ( ! $ok ) {
-				return false;
+				return $fail( $att_id, 'Imagick nezapsal výsledný soubor' );
 			}
 		} catch ( \Throwable $e ) {
-			error_log( '[NKZMP] HEIC převod #' . $att_id . ' selhal: ' . $e->getMessage() );
-			return false;
+			return $fail( $att_id, $e->getMessage() );
 		}
 
 		// Přepneme přílohu na nový soubor a přegenerujeme náhledy. Původní

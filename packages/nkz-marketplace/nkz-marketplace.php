@@ -2,7 +2,7 @@
 /**
  * Plugin Name: NKZ Marketplace
  * Description: Marketplace jádro – vendor model, product ownership, allocation service, ledger, payout state machine. PSP integrace přes samostatné adaptéry (např. nkz-mp-stripe).
- * Version: 0.10.26-dev
+ * Version: 0.10.27-dev
  * Author: NKZ
  * Requires at least: 6.2
  * Requires PHP: 8.1
