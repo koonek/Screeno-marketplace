@@ -298,11 +298,18 @@ final class ProductFormView {
 								<label class="nkzmp-vd-img-label"><?php echo esc_html( sprintf( __( 'Galerie %d', 'nkz-mp-vendor-dashboard' ), $i ) ); ?></label>
 								<?php $g = $gallery_ids[ $i - 1 ] ?? 0; if ( $g ) : ?>
 									<div class="nkzmp-vd-img-thumb"><?php echo wp_get_attachment_image( $g, [ 100, 100 ] ); ?></div>
+									<label class="nkzmp-vd-img-remove" style="display:flex;align-items:center;gap:6px;margin:6px 0;font-size:13px;color:#b00020;cursor:pointer;">
+										<input type="checkbox" name="gallery_remove[]" value="<?php echo (int) $g; ?>" />
+										<span><?php esc_html_e( 'Odebrat tuto fotku', 'nkz-mp-vendor-dashboard' ); ?></span>
+									</label>
 								<?php endif; ?>
 								<input type="file" name="gallery_<?php echo $i; ?>" accept="image/*" />
 							</div>
 						<?php endfor; ?>
 					</div>
+					<?php if ( ! empty( $gallery_ids ) ) : ?>
+						<small><?php esc_html_e( 'Zaškrtnutím „Odebrat" fotku po uložení odstraníš z galerie. Nahráním nové ve stejném poli fotku přidáš.', 'nkz-mp-vendor-dashboard' ); ?></small>
+					<?php endif; ?>
 				</section>
 
 				<section class="nkzmp-vd-form-section">

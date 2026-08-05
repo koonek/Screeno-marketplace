@@ -278,10 +278,21 @@ final class ProductSubmitController {
 				}
 			}
 		}
-		if ( ! empty( $gallery_ids ) ) {
-			// Připojit k existujícím (pokud edit).
+		// Odebrání fotek z galerie (checkbox u nahraných). Řeší se i bez uploadu.
+		$remove_ids = [];
+		if ( ! empty( $_POST['gallery_remove'] ) && is_array( $_POST['gallery_remove'] ) ) {
+			$remove_ids = array_filter( array_map( 'intval', (array) wp_unslash( $_POST['gallery_remove'] ) ) );
+		}
+
+		if ( ! empty( $gallery_ids ) || ! empty( $remove_ids ) ) {
+			// Připojit k existujícím (pokud edit) a odebrat odškrtnuté.
 			$existing_gallery = $is_edit ? array_map( 'intval', explode( ',', (string) get_post_meta( $product_id, '_product_image_gallery', true ) ) ) : [];
 			$merged = array_values( array_unique( array_filter( array_merge( $existing_gallery, $gallery_ids ) ) ) );
+			if ( ! empty( $remove_ids ) ) {
+				// Odebíráme jen z galerie produktu; soubor v Médiích zůstává
+				// (mohl by být použitý jinde) – bezpečnější než mazat natvrdo.
+				$merged = array_values( array_diff( $merged, $remove_ids ) );
+			}
 			update_post_meta( $product_id, '_product_image_gallery', implode( ',', $merged ) );
 		}
 
