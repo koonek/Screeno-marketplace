@@ -74,6 +74,9 @@ final class VendorMetaBox {
 				esc_html( number_format( $global, 0, ',', ' ' ) . ' ' . $currency )
 			);
 			?>
+			<br>
+			<strong><?php esc_html_e( '0 = členství zdarma', 'nkz-mp-vendor-billing' ); ?></strong>
+			<?php esc_html_e( '– prodejce neplatí nic, Stripe se vůbec nevolá a předplatné se bere jako splněné. (Stripe neumí částku 0, zaokrouhlil by ji na 1 Kč – proto to řešíme takhle.)', 'nkz-mp-vendor-billing' ); ?>
 		</p>
 		<p class="description" style="color:#a00;">
 			<?php esc_html_e( 'Pozn: změna se projeví u příští faktury. Existující Stripe předplatné je třeba upravit ručně ve Stripe nebo přes zrušení + novou aktivaci.', 'nkz-mp-vendor-billing' ); ?>

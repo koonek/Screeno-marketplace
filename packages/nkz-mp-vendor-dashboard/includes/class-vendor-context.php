@@ -67,10 +67,14 @@ final class VendorContext {
 		return false;
 	}
 
-	/** Aktivní předplatné (nebo billing modul vypnutý)? */
+	/** Aktivní předplatné (nebo billing vypnutý / členství zdarma)? */
 	public static function is_billing_ok( int $vendor_id ): bool {
 		$billing_on = class_exists( \NKZMP\Billing\Settings::class ) && \NKZMP\Billing\Settings::is_enabled();
 		if ( ! $billing_on ) {
+			return true;
+		}
+		// Členství zdarma (částka 0) – Stripe se neřeší.
+		if ( \NKZMP\Billing\Settings::is_exempt( $vendor_id ) ) {
 			return true;
 		}
 		return (string) get_post_meta( $vendor_id, '_nkzmp_billing_status', true ) === 'active';

@@ -92,6 +92,8 @@ final class Enforcement {
 		$blocked = false;
 		if ( $vendor_status === Status::SUSPENDED->value ) {
 			$blocked = true;
+		} elseif ( Settings::is_exempt( $vid ) ) {
+			$blocked = false; // členství zdarma (částka 0) – neblokujeme
 		} elseif ( ! in_array( $billing_status, [ 'active', 'past_due' ], true ) ) {
 			$blocked = true; // žádné aktivní předplatné → nemůže prodávat
 		}

@@ -30,6 +30,17 @@ final class Checkout {
 		check_admin_referer( self::ACTION_START );
 		[ $vendor_id, $vendor ] = $this->require_vendor();
 
+		// Členství zdarma (částka 0) – Stripe vůbec nevoláme. Předplatné by
+		// jinak spadlo na minimální částku (1 Kč), což nikdo nechce.
+		if ( Settings::is_exempt( $vendor_id ) ) {
+			update_post_meta( $vendor_id, NKZMP_BILLING_STATUS_META, 'active' );
+			wp_safe_redirect( add_query_arg(
+				[ 'nkzmp_billing' => 'free' ],
+				wc_get_account_endpoint_url( \NKZMP\Billing\AccountSection::SLUG )
+			) );
+			exit;
+		}
+
 		$api = new StripeApi();
 		if ( ! $api->is_ready() ) {
 			$this->bail( __( 'Platba není nakonfigurovaná. Ozvi se provozovateli.', 'nkz-mp-vendor-billing' ) );

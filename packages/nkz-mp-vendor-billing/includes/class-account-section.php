@@ -94,10 +94,28 @@ final class AccountSection {
 		$status    = (string) get_post_meta( $vendor_id, NKZMP_BILLING_STATUS_META, true ) ?: 'none';
 		$amount    = Settings::amount_for_vendor( $vendor_id );
 		$currency  = (string) Settings::get()['currency'];
+		$exempt    = Settings::is_exempt( $vendor_id );
 
 		echo '<div class="nkzmp-vd nkzmp-billing-account">';
 		echo '<header class="nkzmp-vd-section-head"><h1>' . esc_html__( 'Předplatné', 'nkz-mp-vendor-billing' ) . '</h1>';
-		echo '<p class="nkzmp-vd-meta">' . esc_html( sprintf( __( 'Členství prodejce: %d %s / měsíc.', 'nkz-mp-vendor-billing' ), $amount, $currency ) ) . '</p></header>';
+		echo '<p class="nkzmp-vd-meta">' . (
+			$exempt
+				? esc_html__( 'Členství máš zdarma.', 'nkz-mp-vendor-billing' )
+				: esc_html( sprintf( __( 'Členství prodejce: %d %s / měsíc.', 'nkz-mp-vendor-billing' ), $amount, $currency ) )
+		) . '</p></header>';
+
+		// Členství zdarma – žádné platby, žádný Stripe.
+		if ( $exempt ) {
+			echo '<div class="nkzmp-vd-stats"><div class="nkzmp-vd-stat">';
+			echo '<div class="nkzmp-vd-stat-label">' . esc_html__( 'Stav předplatného', 'nkz-mp-vendor-billing' ) . '</div>';
+			echo '<div class="nkzmp-vd-stat-value" style="font-size:24px;">' . esc_html__( 'Zdarma', 'nkz-mp-vendor-billing' ) . '</div>';
+			echo '</div></div>';
+			echo '<p class="nkzmp-vd-note" style="margin-top:20px;">'
+				. esc_html__( 'Pro tvůj účet je členství zdarma – nic neplatíš a nic nemusíš nastavovat. Prodávat můžeš hned, jakmile máš dokončené ověření pro příjem plateb.', 'nkz-mp-vendor-billing' )
+				. '</p>';
+			echo '</div>';
+			return;
+		}
 
 		if ( $flash === 'success' ) {
 			echo '<div class="nkzmp-vd-flash nkzmp-vd-flash--success"><div class="icon">✓</div><div><strong>' . esc_html__( 'Předplatné aktivní. Děkujeme!', 'nkz-mp-vendor-billing' ) . '</strong></div></div>';

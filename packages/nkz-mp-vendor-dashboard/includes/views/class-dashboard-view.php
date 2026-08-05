@@ -193,10 +193,13 @@ final class DashboardView {
 		$billing_on = class_exists( \NKZMP\Billing\Settings::class ) && \NKZMP\Billing\Settings::is_enabled();
 		// Self-heal ze Stripe, když stav není „active" (řeší „zaplatil, ale
 		// ukazuje neaktivní" – webhook nedorazil). Throttlováno uvnitř.
-		if ( $billing_on && class_exists( \NKZMP\Billing\AccountSection::class ) ) {
+		// Členství zdarma (částka 0) – krok je splněný, Stripe se neřeší.
+		$billing_free = $billing_on && \NKZMP\Billing\Settings::is_exempt( $vendor_id );
+		if ( $billing_on && ! $billing_free && class_exists( \NKZMP\Billing\AccountSection::class ) ) {
 			\NKZMP\Billing\AccountSection::reconcile_status( $vendor_id );
 		}
-		$billing_ok = $billing_on && (string) get_post_meta( $vendor_id, '_nkzmp_billing_status', true ) === 'active';
+		$billing_ok = $billing_on && ( $billing_free
+			|| (string) get_post_meta( $vendor_id, '_nkzmp_billing_status', true ) === 'active' );
 		// První produkt.
 		$has_product = self::vendor_has_product( $vendor_id );
 
@@ -216,7 +219,9 @@ final class DashboardView {
 		if ( $billing_on ) {
 			$steps[] = [
 				'done'  => $billing_ok,
-				'label' => __( 'Aktivní předplatné', 'nkz-mp-vendor-dashboard' ),
+				'label' => $billing_free
+					? __( 'Členství zdarma', 'nkz-mp-vendor-dashboard' )
+					: __( 'Aktivní předplatné', 'nkz-mp-vendor-dashboard' ),
 				'cta'   => $billing_ok ? null : [ wc_get_account_endpoint_url( 'vendor-billing' ), __( 'Aktivovat', 'nkz-mp-vendor-dashboard' ) ],
 			];
 		}

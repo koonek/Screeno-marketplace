@@ -63,6 +63,21 @@ final class Settings {
 		return (int) self::get()['amount'];
 	}
 
+	/**
+	 * Má prodejce členství zdarma? (částka 0)
+	 *
+	 * Stripe neumí předplatné na 0 – zaokrouhlil by to na minimální částku.
+	 * Proto nulu bereme jako „osvobozen": Stripe se vůbec nevolá a prodejce
+	 * se chová, jako by měl aktivní předplatné. Typicky provozovatel platformy,
+	 * který sám prodává, nebo domluvená výjimka.
+	 */
+	public static function is_exempt( int $vendor_id ): bool {
+		if ( ! self::is_enabled() ) {
+			return true;
+		}
+		return self::amount_for_vendor( $vendor_id ) <= 0;
+	}
+
 	public function register(): void {
 		register_setting( 'nkzmp_billing', self::OPTION );
 	}
