@@ -34,6 +34,7 @@ final class ToolsPage {
 		add_action( 'admin_post_nkzmp_run_reconcile', [ $this, 'handle_reconcile' ] );
 		add_action( 'admin_post_nkzmp_run_backfill', [ $this, 'handle_backfill' ] );
 		add_action( 'admin_post_nkzmp_cleanup_roles', [ $this, 'handle_cleanup_roles' ] );
+		add_action( 'admin_post_nkzmp_convert_heic', [ $this, 'handle_convert_heic' ] );
 	}
 
 	private const LEGACY_ROLES = [
@@ -86,7 +87,154 @@ final class ToolsPage {
 		$this->render_reconcile_section();
 		echo '<hr style="margin:24px 0;">';
 		$this->render_cleanup_roles_section();
+		echo '<hr style="margin:24px 0;">';
+		$this->render_heic_section();
 		echo '</div>';
+	}
+
+	/** Najde HEIC/HEIF přílohy v Médiích. */
+	private static function find_heic_attachments( int $limit = 200 ): array {
+		global $wpdb;
+		$rows = $wpdb->get_results( $wpdb->prepare(
+			"SELECT p.ID, p.post_title, pm.meta_value AS relpath
+			 FROM {$wpdb->posts} p
+			 INNER JOIN {$wpdb->postmeta} pm ON pm.post_id = p.ID AND pm.meta_key = '_wp_attached_file'
+			 WHERE p.post_type = 'attachment'
+			   AND ( pm.meta_value LIKE %s OR pm.meta_value LIKE %s )
+			 ORDER BY p.ID DESC LIMIT %d",
+			'%.heic', '%.heif', $limit
+		) );
+		return (array) $rows;
+	}
+
+	private function render_heic_section(): void {
+		$supported = class_exists( \NKZMP\Dashboard\HeicUploads::class )
+			&& \NKZMP\Dashboard\HeicUploads::server_supports_heic();
+		$items = self::find_heic_attachments();
+
+		echo '<h2>' . esc_html__( 'HEIC fotky (iPhone)', 'nkz-marketplace' ) . '</h2>';
+		echo '<p class="description">' . esc_html__( 'Fotky ve formátu HEIC většina prohlížečů nezobrazí (v katalogu je místo nich rozbitá ikona). Tenhle nástroj je převede na JPEG a přepíše odkaz u produktů.', 'nkz-marketplace' ) . '</p>';
+
+		if ( empty( $items ) ) {
+			echo '<p style="color:#46b450;">' . esc_html__( 'Žádné HEIC fotky v Médiích. 👍', 'nkz-marketplace' ) . '</p>';
+			return;
+		}
+
+		printf(
+			'<p><strong>%s</strong></p>',
+			esc_html( sprintf(
+				/* translators: %d: počet */
+				__( 'Nalezeno HEIC fotek: %d', 'nkz-marketplace' ),
+				count( $items )
+			) )
+		);
+
+		echo '<ul style="margin:0 0 14px 18px;list-style:disc;">';
+		foreach ( array_slice( $items, 0, 20 ) as $it ) {
+			printf(
+				'<li>#%d — %s <code style="font-size:11px;">%s</code></li>',
+				(int) $it->ID,
+				esc_html( (string) $it->post_title ),
+				esc_html( (string) $it->relpath )
+			);
+		}
+		echo '</ul>';
+		if ( count( $items ) > 20 ) {
+			printf( '<p class="description">%s</p>', esc_html( sprintf( __( '…a dalších %d.', 'nkz-marketplace' ), count( $items ) - 20 ) ) );
+		}
+
+		if ( ! $supported ) {
+			echo '<div class="notice notice-error inline"><p><strong>'
+				. esc_html__( 'Server neumí číst HEIC.', 'nkz-marketplace' ) . '</strong><br>'
+				. esc_html__( 'Imagick na tomhle serveru nemá HEIC delegát, takže převod nelze provést automaticky. Požádej hosting o doplnění podpory HEIC do Imagicku – pak stačí kliknout na Převést. Do té doby musí prodejci fotky nahrát znovu jako JPEG.', 'nkz-marketplace' )
+				. '</p></div>';
+			return;
+		}
+
+		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" onsubmit="return confirm(\''
+			. esc_js( __( 'Převést nalezené HEIC fotky na JPEG? Původní soubory zůstanou na serveru.', 'nkz-marketplace' ) ) . '\');">';
+		echo '<input type="hidden" name="action" value="nkzmp_convert_heic" />';
+		wp_nonce_field( self::NONCE_ACTION );
+		submit_button( __( 'Převést HEIC → JPEG', 'nkz-marketplace' ), 'primary', 'submit', false );
+		echo '</form>';
+	}
+
+	public function handle_convert_heic(): void {
+		check_admin_referer( self::NONCE_ACTION );
+		if ( ! current_user_can( Capabilities::MANAGE_VENDORS ) ) {
+			wp_die( esc_html__( 'Nedostatečná oprávnění.', 'nkz-marketplace' ) );
+		}
+		if ( ! class_exists( \NKZMP\Dashboard\HeicUploads::class )
+			|| ! \NKZMP\Dashboard\HeicUploads::server_supports_heic() ) {
+			$this->redirect( 'err', __( 'Server neumí číst HEIC – převod nelze provést.', 'nkz-marketplace' ) );
+		}
+
+		require_once ABSPATH . 'wp-admin/includes/image.php';
+
+		$done = 0;
+		$fail = 0;
+		foreach ( self::find_heic_attachments() as $it ) {
+			$att_id = (int) $it->ID;
+			$path   = get_attached_file( $att_id );
+			if ( ! $path || ! file_exists( $path ) ) {
+				$fail++;
+				continue;
+			}
+			$new_path = preg_replace( '/\.(heic|heif)$/i', '.jpg', $path );
+			if ( ! $new_path || $new_path === $path ) {
+				$fail++;
+				continue;
+			}
+			try {
+				$img = new \Imagick( $path );
+				$img->setImageFormat( 'jpeg' );
+				$img->setImageCompressionQuality( 88 );
+				if ( method_exists( $img, 'autoOrient' ) ) {
+					$img->autoOrient();
+				}
+				$img->stripImage();
+				$ok = $img->writeImage( $new_path );
+				$img->clear();
+				$img->destroy();
+				if ( ! $ok ) {
+					$fail++;
+					continue;
+				}
+			} catch ( \Throwable $e ) {
+				error_log( '[NKZMP] HEIC převod #' . $att_id . ' selhal: ' . $e->getMessage() );
+				$fail++;
+				continue;
+			}
+
+			// Přepneme přílohu na nový soubor a přegenerujeme náhledy. Původní
+			// .heic soubor schválně necháváme (kdyby bylo potřeba se vrátit).
+			update_attached_file( $att_id, $new_path );
+			wp_update_post( [ 'ID' => $att_id, 'post_mime_type' => 'image/jpeg' ] );
+			$meta = wp_generate_attachment_metadata( $att_id, $new_path );
+			if ( is_array( $meta ) ) {
+				wp_update_attachment_metadata( $att_id, $meta );
+			}
+			$done++;
+		}
+
+		if ( class_exists( \NKZMP\Audit\Recorder::class ) ) {
+			( new \NKZMP\Audit\Recorder() )->record(
+				action:      'media.heic_converted',
+				entity_type: 'system',
+				entity_id:   0,
+				summary:     sprintf( 'HEIC → JPEG: %d převedeno, %d selhalo', $done, $fail ),
+			);
+		}
+
+		$this->redirect(
+			$fail === 0 ? 'ok' : 'err',
+			sprintf(
+				/* translators: 1: převedeno, 2: selhalo */
+				__( 'Převedeno: %1$d. Selhalo: %2$d.', 'nkz-marketplace' ),
+				$done,
+				$fail
+			)
+		);
 	}
 
 	private function render_cleanup_roles_section(): void {
