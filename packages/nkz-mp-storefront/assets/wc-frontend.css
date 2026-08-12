@@ -2784,3 +2784,26 @@ html body ul.products li.product img {
 	/* Menší prokládání – „OD KAROLINA FERKL" se na úzkém displeji vejde. */
 	html body .nkzmp-shop-vendor { letter-spacing: 0.04em !important; font-size: 10px !important; }
 }
+
+/* ── Pojistka proti vodorovnému posouvání v katalogu (mobil) ───────────
+   `clip` (ne `hidden`) – nevytváří scroll kontejner, takže nerozbije
+   position:sticky u filtrů. Vypnutí: nkzmp/v1/storefront/no_hscroll → false. */
+@media (max-width: 720px) {
+	html body.woocommerce-shop,
+	html body.archive.woocommerce,
+	html body.tax-product_cat,
+	html body.tax-product_tag,
+	html body.woocommerce-page {
+		overflow-x: clip !important;
+		max-width: 100% !important;
+	}
+	/* Nic v katalogu nesmí být širší než obrazovka. */
+	html body.woocommerce-shop ul.products,
+	html body.archive.woocommerce ul.products,
+	html body.tax-product_cat ul.products,
+	html body.tax-product_tag ul.products {
+		max-width: 100% !important;
+		width: 100% !important;
+		box-sizing: border-box !important;
+	}
+}
