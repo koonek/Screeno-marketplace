@@ -2744,3 +2744,43 @@ html body .nkzmp-filters__legend-count {
 	color: var(--nkzmp-color-text-muted) !important;
 	margin-left: 6px !important;
 }
+
+/* ── Mobil: katalog nesmí přetékat mimo obrazovku ──────────────────────
+   Grid má minmax(0,1fr), ale obsah dlaždice (řádek „OD PRODEJCE" jako
+   inline-flex + dlouhé názvy) se nezmenší pod min-content a vytlačí
+   stránku do strany → vodorovné posouvání a oříznuté sloupce. */
+html body .woocommerce ul.products li.product,
+html body.woocommerce ul.products li.product,
+html body .woocommerce-page ul.products li.product,
+html body.woocommerce-page ul.products li.product {
+	min-width: 0 !important;
+	max-width: 100% !important;
+}
+/* Řádek s prodejcem – smí se zúžit, dlouhé jméno se ořízne třemi tečkami. */
+html body .nkzmp-shop-vendor {
+	min-width: 0 !important;
+	max-width: 100% !important;
+}
+html body .nkzmp-shop-vendor__name,
+html body .nkzmp-shop-vendor__by {
+	min-width: 0 !important;
+	overflow: hidden !important;
+	text-overflow: ellipsis !important;
+	white-space: nowrap !important;
+}
+/* Dlouhé názvy produktů (i bez mezer) se zalomí místo přetečení. */
+html body ul.products li.product .woocommerce-loop-product__title,
+html body ul.products li.product h2,
+html body ul.products li.product .price {
+	overflow-wrap: anywhere !important;
+	word-break: break-word !important;
+	max-width: 100% !important;
+}
+html body ul.products li.product img {
+	max-width: 100% !important;
+	height: auto !important;
+}
+@media (max-width: 480px) {
+	/* Menší prokládání – „OD KAROLINA FERKL" se na úzkém displeji vejde. */
+	html body .nkzmp-shop-vendor { letter-spacing: 0.04em !important; font-size: 10px !important; }
+}
