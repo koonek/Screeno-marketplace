@@ -2807,3 +2807,20 @@ html body ul.products li.product img {
 		box-sizing: border-box !important;
 	}
 }
+
+/* ── Obchod: nic uvnitř nesmí být širší než dostupné místo ─────────────
+   min-width:0 je klíč – grid/flex potomci se jinak odmítnou zúžit pod
+   svůj min-content a vytlačí stránku do strany. */
+html body .nkzmp-shop-layout,
+html body .nkzmp-shop-results,
+html body .nkzmp-shop-intro,
+html body .nkzmp-shop-filters {
+	min-width: 0 !important;
+	max-width: 100% !important;
+	box-sizing: border-box !important;
+}
+html body .nkzmp-shop-results > *,
+html body .nkzmp-shop-intro > * {
+	min-width: 0 !important;
+	max-width: 100% !important;
+}
