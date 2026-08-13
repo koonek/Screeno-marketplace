@@ -2824,3 +2824,35 @@ html body .nkzmp-shop-intro > * {
 	min-width: 0 !important;
 	max-width: 100% !important;
 }
+
+/* ── Obal šablony kolem WC archivu musí být pružný ─────────────────────
+   Na homepage vykresluje obsah Elementor kontejner (pružný), ale /obchod
+   jede přes šablonu (#primary.content-area → main.site-main). Když má
+   theme na tomhle obalu pevnou šířku / float / min-width, celá stránka je
+   širší než displej a jde posouvat do stran (obsah useknutý po krajích).
+   Nutíme obal na 100 % šířky – jen na WC stránkách, jinam nesaháme. */
+html body.woocommerce #primary,
+html body.woocommerce .content-area,
+html body.woocommerce main.site-main,
+html body.woocommerce #main,
+html body.woocommerce-page #primary,
+html body.woocommerce-page .content-area,
+html body.woocommerce-page main.site-main,
+html body.woocommerce-page #main {
+	width: 100% !important;
+	max-width: 100% !important;
+	min-width: 0 !important;
+	float: none !important;
+	box-sizing: border-box !important;
+}
+/* Vodorovné posouvání zakážeme i na <html> – samotné body nestačí,
+   pokud scroll kontejnerem zůstane kořenový element. */
+@media (max-width: 720px) {
+	html:has(body.woocommerce-shop),
+	html:has(body.archive.woocommerce),
+	html:has(body.tax-product_cat),
+	html:has(body.tax-product_tag) {
+		overflow-x: clip !important;
+		max-width: 100% !important;
+	}
+}
