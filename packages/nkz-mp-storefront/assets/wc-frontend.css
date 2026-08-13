@@ -2802,31 +2802,6 @@ html body .nkzmp-shop-intro > * {
 	max-width: 100% !important;
 }
 
-/* ── Boční okraje v obchodě na mobilu ──────────────────────────────────
-   Homepage má obsah v Elementor kontejneru (má padding), /obchod jede
-   přes šablonu bez něj → text i dlaždice lepí na kraj displeje a působí
-   „oříznutě". Dorovnáme okraje na stejný pocit jako homepage.
-   Vypnutí/změna: nkzmp/v1/storefront/shop_mobile_padding. */
-@media (max-width: 720px) {
-	html body.woocommerce-shop .nkzmp-shop-layout,
-	html body.archive.woocommerce .nkzmp-shop-layout,
-	html body.tax-product_cat .nkzmp-shop-layout,
-	html body.tax-product_tag .nkzmp-shop-layout,
-	html body.woocommerce-shop .woocommerce-products-header,
-	html body.archive.woocommerce .woocommerce-products-header,
-	html body.woocommerce-shop .woocommerce-breadcrumb,
-	html body.archive.woocommerce .woocommerce-breadcrumb {
-		padding-left: var(--nkzmp-shop-pad, 16px) !important;
-		padding-right: var(--nkzmp-shop-pad, 16px) !important;
-		box-sizing: border-box !important;
-	}
-	/* Filtry jako bottom-sheet mají vlastní padding – ten nepřepisujeme. */
-	html body .nkzmp-shop-filters {
-		padding-left: 22px !important;
-		padding-right: 22px !important;
-	}
-}
-
 /* ── Stránkování se musí vejít do displeje ─────────────────────────────
    `inline-flex` bez zalamování se u 9+ stránek roztáhne přes šířku okna
    (naměřeno 420 px na 390px displeji) a vytlačí celou stránku do strany
@@ -2853,5 +2828,48 @@ html body.woocommerce-page nav.woocommerce-pagination {
 		min-width: 34px !important;
 		height: 34px !important;
 		font-size: 13px !important;
+	}
+}
+
+/* ── Katalog a promo banner musí lícovat ───────────────────────────────
+   Mřížka produktů a modrý banner „Tvoříš taky?" jsou sourozenci v <main>,
+   ale rozcházely se v okrajích – mřížka šla až ke kraji displeje, banner
+   měl mezeru. Dáme oběma STEJNÉ vodorovné okraje jedním pravidlem, aby
+   se nemohly rozejít. Změna hodnoty: --nkzmp-shop-pad. */
+html body.woocommerce .nkzmp-shop-layout,
+html body.woocommerce .nkzmp-shop-promo,
+html body.woocommerce nav.woocommerce-pagination,
+html body.woocommerce-page .nkzmp-shop-layout,
+html body.woocommerce-page .nkzmp-shop-promo,
+html body.woocommerce-page nav.woocommerce-pagination {
+	padding-left: var(--nkzmp-shop-pad, 0px) !important;
+	padding-right: var(--nkzmp-shop-pad, 0px) !important;
+	margin-left: 0 !important;
+	margin-right: 0 !important;
+	max-width: 100% !important;
+	box-sizing: border-box !important;
+}
+/* Banner má vlastní vnitřní odsazení – to musí zůstat, jinak by text
+   lepil na okraj. Řešíme vnořeným boxem, ne paddingem samotného asidu. */
+html body .nkzmp-shop-promo {
+	padding-top: 36px !important;
+	padding-bottom: 36px !important;
+}
+html body .nkzmp-shop-promo > * {
+	padding-left: 24px !important;
+	padding-right: 24px !important;
+}
+@media (max-width: 720px) {
+	html body.woocommerce .nkzmp-shop-layout,
+	html body.woocommerce .nkzmp-shop-promo,
+	html body.woocommerce nav.woocommerce-pagination,
+	html body.woocommerce-page .nkzmp-shop-layout,
+	html body.woocommerce-page .nkzmp-shop-promo,
+	html body.woocommerce-page nav.woocommerce-pagination {
+		--nkzmp-shop-pad: 6px;
+	}
+	html body .nkzmp-shop-promo > * {
+		padding-left: 18px !important;
+		padding-right: 18px !important;
 	}
 }
