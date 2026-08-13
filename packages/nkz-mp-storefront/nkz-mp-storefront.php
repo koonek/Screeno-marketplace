@@ -2,7 +2,7 @@
 /**
  * Plugin Name: NKZ Marketplace – Storefront
  * Description: Vendor archive (`/vendors`) + single vendor pages (`/vendor/<slug>`) s product listingem. Závisí na nkz-marketplace core.
- * Version: 0.18.4
+ * Version: 0.18.5
  * Author: NKZ
  * Requires at least: 6.2
  * Requires PHP: 8.1

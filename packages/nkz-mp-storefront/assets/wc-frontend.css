@@ -2856,3 +2856,28 @@ html body.woocommerce-page #main {
 		max-width: 100% !important;
 	}
 }
+
+/* ── Boční okraje v obchodě na mobilu ──────────────────────────────────
+   Homepage má obsah v Elementor kontejneru (má padding), /obchod jede
+   přes šablonu bez něj → text i dlaždice lepí na kraj displeje a působí
+   „oříznutě". Dorovnáme okraje na stejný pocit jako homepage.
+   Vypnutí/změna: nkzmp/v1/storefront/shop_mobile_padding. */
+@media (max-width: 720px) {
+	html body.woocommerce-shop .nkzmp-shop-layout,
+	html body.archive.woocommerce .nkzmp-shop-layout,
+	html body.tax-product_cat .nkzmp-shop-layout,
+	html body.tax-product_tag .nkzmp-shop-layout,
+	html body.woocommerce-shop .woocommerce-products-header,
+	html body.archive.woocommerce .woocommerce-products-header,
+	html body.woocommerce-shop .woocommerce-breadcrumb,
+	html body.archive.woocommerce .woocommerce-breadcrumb {
+		padding-left: var(--nkzmp-shop-pad, 16px) !important;
+		padding-right: var(--nkzmp-shop-pad, 16px) !important;
+		box-sizing: border-box !important;
+	}
+	/* Filtry jako bottom-sheet mají vlastní padding – ten nepřepisujeme. */
+	html body .nkzmp-shop-filters {
+		padding-left: 22px !important;
+		padding-right: 22px !important;
+	}
+}
