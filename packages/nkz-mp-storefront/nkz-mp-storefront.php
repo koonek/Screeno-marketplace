@@ -14,7 +14,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'NKZMP_STOREFRONT_VERSION', '0.16.15' );
+define( 'NKZMP_STOREFRONT_VERSION', '0.18.5' );
 define( 'NKZMP_STOREFRONT_FILE', __FILE__ );
 define( 'NKZMP_STOREFRONT_DIR', plugin_dir_path( __FILE__ ) );
 define( 'NKZMP_STOREFRONT_URL', plugin_dir_url( __FILE__ ) );

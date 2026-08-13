@@ -14,7 +14,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'NKZMP_BILLING_VERSION', '0.6.0' );
+define( 'NKZMP_BILLING_VERSION', '0.8.0' );
 define( 'NKZMP_BILLING_FILE', __FILE__ );
 define( 'NKZMP_BILLING_DIR', plugin_dir_path( __FILE__ ) );
 define( 'NKZMP_BILLING_URL', plugin_dir_url( __FILE__ ) );

@@ -14,7 +14,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'NKZMP_DASHBOARD_VERSION', '0.14.1' );
+define( 'NKZMP_DASHBOARD_VERSION', '0.15.4' );
 define( 'NKZMP_DASHBOARD_FILE', __FILE__ );
 define( 'NKZMP_DASHBOARD_DIR', plugin_dir_path( __FILE__ ) );
 define( 'NKZMP_DASHBOARD_URL', plugin_dir_url( __FILE__ ) );

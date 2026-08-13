@@ -14,7 +14,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'NKZMP_VERSION', '0.10.24-dev' );
+define( 'NKZMP_VERSION', '0.10.28-dev' );
 define( 'NKZMP_PLUGIN_FILE', __FILE__ );
 define( 'NKZMP_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'NKZMP_PLUGIN_URL', plugin_dir_url( __FILE__ ) );

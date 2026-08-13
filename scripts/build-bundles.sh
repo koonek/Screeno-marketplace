@@ -29,6 +29,26 @@ fi
 
 echo "Building bundles, version=$BUNDLE_VERSION"
 
+# Pojistka: verze v hlavičce modulu se MUSÍ shodovat s *_VERSION konstantou.
+# Konstanta jde do ?ver= u CSS/JS – když zůstane stará, prohlížeč i cache
+# servírují starý soubor donekonečna a opravy vzhledu se „neprojeví".
+version_mismatch=0
+for modfile in "$PACKAGES_DIR"/*/[a-z]*.php; do
+	case "$modfile" in *includes*) continue;; esac
+	hdr=$(grep -m1 '^ \* Version:' "$modfile" 2>/dev/null | awk -F': *' '{print $2}' | tr -d ' \r' || true)
+	[[ -z "$hdr" ]] && continue
+	konst=$(grep -m1 "_VERSION', *'" "$modfile" 2>/dev/null | sed "s/.*_VERSION', *'\([^']*\)'.*/\1/" || true)
+	[[ -z "$konst" ]] && continue
+	if [[ "$hdr" != "$konst" ]]; then
+		echo "  CHYBA: $(basename "$modfile") – hlavička $hdr, konstanta $konst" >&2
+		version_mismatch=1
+	fi
+done
+if [[ "$version_mismatch" == "1" ]]; then
+	echo "Build zastaven: srovnej *_VERSION konstanty s hlavičkami." >&2
+	exit 1
+fi
+
 mkdir -p "$DIST_DIR"
 rm -f "$DIST_DIR/nkz-marketplace-aoz-"*.zip
 

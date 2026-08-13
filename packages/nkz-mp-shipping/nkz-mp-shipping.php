@@ -14,7 +14,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'NKZMP_SHIPPING_VERSION', '0.3.0' );
+define( 'NKZMP_SHIPPING_VERSION', '0.4.0' );
 define( 'NKZMP_SHIPPING_FILE', __FILE__ );
 define( 'NKZMP_SHIPPING_DIR', plugin_dir_path( __FILE__ ) );
 define( 'NKZMP_SHIPPING_URL', plugin_dir_url( __FILE__ ) );

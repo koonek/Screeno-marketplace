@@ -14,7 +14,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'NKZMP_PACKETA_VERSION', '0.2.6' );
+define( 'NKZMP_PACKETA_VERSION', '0.3.0' );
 define( 'NKZMP_PACKETA_FILE', __FILE__ );
 define( 'NKZMP_PACKETA_DIR', plugin_dir_path( __FILE__ ) );
 define( 'NKZMP_PACKETA_URL', plugin_dir_url( __FILE__ ) );
