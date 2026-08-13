@@ -2,7 +2,7 @@
 /**
  * Plugin Name: NKZ Marketplace AOZ
  * Description: Kompletní bundle pro Art of život – core + Stripe adapter + storefront. Phase 1 add-ony (registration, billing, shipping) přibydou s upgrady.
- * Version: 0.54.4
+ * Version: 0.55.0
  * Author: NKZ
  * Requires at least: 6.2
  * Requires PHP: 8.1
@@ -18,7 +18,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'NKZMP_AOZ_BUNDLE_VERSION', '0.54.4' );
+define( 'NKZMP_AOZ_BUNDLE_VERSION', '0.55.0' );
 define( 'NKZMP_AOZ_BUNDLE_DIR', plugin_dir_path( __FILE__ ) );
 define( 'NKZMP_AOZ_BUNDLE_FILE', __FILE__ );
 
@@ -54,6 +54,29 @@ foreach ( $nkzmp_aoz_modules as $relative ) {
  * takže to musíme udělat ručně. Vše idempotentní – schema versioning
  * v core zajistí že opakovaná aktivace neudělá nic.
  */
+/*
+ * Pročistit cache po KAŽDÉ změně verze (aktualizace pluginu).
+ *
+ * Aktivační hook se při aktualizaci nespouští, takže samotný purge při
+ * aktivaci nestačil – LiteSpeed dál servíroval staré slepené CSS a změny
+ * vzhledu se „neprojevily". Porovnáme uloženou verzi s aktuální; když se
+ * liší, pročistíme a verzi si zapamatujeme. Běží jednou po updatu.
+ */
+add_action(
+	'init',
+	static function (): void {
+		$stored = (string) get_option( 'nkzmp_aoz_installed_version', '' );
+		if ( $stored === NKZMP_AOZ_BUNDLE_VERSION ) {
+			return;
+		}
+		update_option( 'nkzmp_aoz_installed_version', NKZMP_AOZ_BUNDLE_VERSION, false );
+		if ( class_exists( \NKZMP\Dashboard\CacheFlush::class ) ) {
+			\NKZMP\Dashboard\CacheFlush::purge();
+		}
+	},
+	5
+);
+
 register_activation_hook(
 	__FILE__,
 	static function (): void {
