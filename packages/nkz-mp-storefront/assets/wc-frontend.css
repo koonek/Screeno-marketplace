@@ -2826,3 +2826,32 @@ html body .nkzmp-shop-intro > * {
 		padding-right: 22px !important;
 	}
 }
+
+/* ── Stránkování se musí vejít do displeje ─────────────────────────────
+   `inline-flex` bez zalamování se u 9+ stránek roztáhne přes šířku okna
+   (naměřeno 420 px na 390px displeji) a vytlačí celou stránku do strany
+   → useknutý pravý sloupec katalogu. Necháme ho zalomit a zúžit. */
+html body.woocommerce nav.woocommerce-pagination ul,
+html body.woocommerce-page nav.woocommerce-pagination ul,
+html body .nkzmp-pagination ul {
+	flex-wrap: wrap !important;
+	max-width: 100% !important;
+	justify-content: center !important;
+	row-gap: 8px !important;
+}
+html body.woocommerce nav.woocommerce-pagination,
+html body.woocommerce-page nav.woocommerce-pagination {
+	max-width: 100% !important;
+	overflow: visible !important;
+}
+@media (max-width: 480px) {
+	/* Menší dlaždice čísel – ať se jich na řádek vejde víc. */
+	html body.woocommerce nav.woocommerce-pagination ul li a,
+	html body.woocommerce nav.woocommerce-pagination ul li span,
+	html body.woocommerce-page nav.woocommerce-pagination ul li a,
+	html body.woocommerce-page nav.woocommerce-pagination ul li span {
+		min-width: 34px !important;
+		height: 34px !important;
+		font-size: 13px !important;
+	}
+}
