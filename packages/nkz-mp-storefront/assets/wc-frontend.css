@@ -2901,3 +2901,29 @@ html body .nkzmp-shop-promo > * {
 		gap: 12px !important;
 	}
 }
+
+/* ── Mobil: kompaktní stránkování ──────────────────────────────────────
+   Devět čísel vedle sebe se na displej nevejde a tlačí celý layout. Na
+   úzkém displeji necháme jen šipky + aktuální stránku (běžný mobilní
+   vzor). Zbytek je dostupný proklikáním. */
+@media (max-width: 560px) {
+	html body nav.woocommerce-pagination ul.page-numbers > li {
+		display: none !important;
+	}
+	html body nav.woocommerce-pagination ul.page-numbers > li:has(> .current),
+	html body nav.woocommerce-pagination ul.page-numbers > li:has(> .prev),
+	html body nav.woocommerce-pagination ul.page-numbers > li:has(> .next) {
+		display: block !important;
+	}
+	/* Fallback pro prohlížeče bez :has() – šipky mají vlastní třídy. */
+	html body nav.woocommerce-pagination ul.page-numbers > li > .prev,
+	html body nav.woocommerce-pagination ul.page-numbers > li > .next,
+	html body nav.woocommerce-pagination ul.page-numbers > li > .current {
+		display: inline-flex !important;
+	}
+	html body nav.woocommerce-pagination ul.page-numbers {
+		flex-wrap: nowrap !important;
+		width: 100% !important;
+		max-width: 100% !important;
+	}
+}

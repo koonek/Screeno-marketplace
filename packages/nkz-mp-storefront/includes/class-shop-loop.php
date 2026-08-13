@@ -84,6 +84,15 @@ final class ShopLoop {
 		// Breadcrumb „Domů" na WC stránkách vede na marketplace landing
 		// místo rootu webu – obchod je sekce marketplace, ne celého webu.
 		// Override: add_filter( 'nkzmp/v1/storefront/breadcrumb_home_url', ... )
+		// Méně čísel ve stránkování. Default WC vypisuje široký rozsah, což se
+		// na mobilu nevejde na řádek a tlačí layout. end_size/mid_size = 1 dá
+		// kompaktní „1 … 4 [5] 6 … 9" místo devíti čísel vedle sebe.
+		add_filter( 'woocommerce_pagination_args', static function ( array $args ): array {
+			$args['end_size'] = (int) apply_filters( 'nkzmp/v1/storefront/pagination_end_size', 1 );
+			$args['mid_size'] = (int) apply_filters( 'nkzmp/v1/storefront/pagination_mid_size', 1 );
+			return $args;
+		} );
+
 		add_filter( 'woocommerce_breadcrumb_home_url', static function ( $url ) {
 			return (string) apply_filters(
 				'nkzmp/v1/storefront/breadcrumb_home_url',
