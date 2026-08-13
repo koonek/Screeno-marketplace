@@ -2873,3 +2873,31 @@ html body .nkzmp-shop-promo > * {
 		padding-right: 18px !important;
 	}
 }
+
+/* ── Mobil: layout obchodu jako blok, ne grid ──────────────────────────
+   Grid položka má min-width:auto, takže se odmítne zúžit pod obsah a
+   „vyleze" z kontejneru – katalog pak přetékal za pravý okraj, zatímco
+   promo banner (obyčejný blok) seděl správně. Na mobilu grid stejně
+   nepotřebujeme (filtry jedou jako vysouvací panel). */
+@media (max-width: 1024px) {
+	html body .nkzmp-shop-layout {
+		display: block !important;
+	}
+	html body .nkzmp-shop-results,
+	html body .nkzmp-shop-results ul.products,
+	html body .nkzmp-shop-intro {
+		display: block !important;
+		width: 100% !important;
+		max-width: 100% !important;
+		box-sizing: border-box !important;
+	}
+	/* ul.products zpět na grid – jen s jistotou, že nepřeteče rodiče. */
+	html body .nkzmp-shop-results ul.products {
+		display: grid !important;
+	}
+	html body .nkzmp-shop-intro {
+		display: flex !important;
+		flex-wrap: wrap !important;
+		gap: 12px !important;
+	}
+}
