@@ -93,6 +93,7 @@ final class GraceCron {
 		} catch ( \Throwable $e ) {
 			update_post_meta( $vendor_id, '_nkzmp_vendor_status', 'suspended' );
 		}
+		BillingEmails::suspended( $vendor_id );
 		if ( class_exists( \NKZMP\Audit\Recorder::class ) ) {
 			( new \NKZMP\Audit\Recorder() )->record(
 				action:      'billing.suspended_grace_cron',

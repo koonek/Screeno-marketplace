@@ -107,6 +107,7 @@ final class WebhookController {
 		}
 		update_post_meta( $vendor_id, NKZMP_BILLING_STATUS_META, 'active' );
 		delete_post_meta( $vendor_id, '_nkzmp_billing_failed_at' );
+		BillingEmails::reset( $vendor_id );
 		$this->maybe_reactivate( $vendor_id );
 		$this->audit( 'billing.subscription_started', $vendor_id, 'Subscription active' );
 	}
@@ -118,6 +119,7 @@ final class WebhookController {
 		}
 		update_post_meta( $vendor_id, NKZMP_BILLING_STATUS_META, 'active' );
 		delete_post_meta( $vendor_id, '_nkzmp_billing_failed_at' );
+		BillingEmails::reset( $vendor_id );
 		$this->maybe_reactivate( $vendor_id );
 		$this->audit( 'billing.invoice_paid', $vendor_id, 'Invoice paid' );
 	}
@@ -132,6 +134,7 @@ final class WebhookController {
 			update_post_meta( $vendor_id, '_nkzmp_billing_failed_at', time() );
 		}
 		$this->audit( 'billing.payment_failed', $vendor_id, 'Payment failed → past_due' );
+		BillingEmails::payment_failed( $vendor_id );
 
 		// Grace period: pokud uplynula, suspend hned. Jinak nech cron/další fail.
 		$grace = (int) Settings::get()['grace_days'] * DAY_IN_SECONDS;
@@ -171,6 +174,7 @@ final class WebhookController {
 			} catch ( \Throwable $e ) {
 				update_post_meta( $vendor_id, '_nkzmp_vendor_status', 'suspended' );
 			}
+			BillingEmails::suspended( $vendor_id );
 		}
 	}
 

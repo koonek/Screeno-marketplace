@@ -2849,15 +2849,14 @@ html body.woocommerce-page nav.woocommerce-pagination {
 	max-width: 100% !important;
 	box-sizing: border-box !important;
 }
-/* Banner má vlastní vnitřní odsazení – to musí zůstat, jinak by text
-   lepil na okraj. Řešíme vnořeným boxem, ne paddingem samotného asidu. */
+/* Banner: odsazení patří na samotný box, ne na jeho děti – padding na
+   dětech nafukoval tlačítko „Stát se prodejcem" a lepil ho ke kraji. */
 html body .nkzmp-shop-promo {
-	padding-top: 36px !important;
-	padding-bottom: 36px !important;
+	padding: 36px 40px !important;
 }
 html body .nkzmp-shop-promo > * {
-	padding-left: 24px !important;
-	padding-right: 24px !important;
+	padding-left: 0 !important;
+	padding-right: 0 !important;
 }
 @media (max-width: 720px) {
 	html body.woocommerce .nkzmp-shop-layout,
@@ -2868,9 +2867,8 @@ html body .nkzmp-shop-promo > * {
 	html body.woocommerce-page nav.woocommerce-pagination {
 		--nkzmp-shop-pad: 6px;
 	}
-	html body .nkzmp-shop-promo > * {
-		padding-left: 18px !important;
-		padding-right: 18px !important;
+	html body .nkzmp-shop-promo {
+		padding: 28px 22px !important;
 	}
 }
 
