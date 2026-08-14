@@ -405,6 +405,19 @@ final class EmailSettings {
 				],
 			],
 			[
+				'label' => __( 'Předplatné / členství', 'nkz-marketplace' ),
+				'items' => [
+					[ 'label' => __( 'Prodejce: platba členství neprošla', 'nkz-marketplace' ),
+					  'hint'  => __( 'Posílá se když Stripe nahlásí neúspěšnou platbu. Prodejce ještě prodává – má čas do konce ochranné lhůty ({deadline}, {grace_days} dní).', 'nkz-marketplace' ),
+					  'subject' => 'email_billing_failed_subject', 'body' => 'email_billing_failed_body',
+					  'placeholders' => [ 'name', 'name_vocative', 'deadline', 'grace_days', 'billing_url', 'site_name' ] ],
+					[ 'label' => __( 'Prodejce: členství pozastaveno', 'nkz-marketplace' ),
+					  'hint'  => __( 'Posílá se po vypršení ochranné lhůty – produkty jsou skryté z obchodu. Účet ani produkty se nemažou.', 'nkz-marketplace' ),
+					  'subject' => 'email_billing_suspended_subject', 'body' => 'email_billing_suspended_body',
+					  'placeholders' => [ 'name', 'name_vocative', 'billing_url', 'site_name' ] ],
+				],
+			],
+			[
 				'label' => __( 'Provoz / monitoring', 'nkz-marketplace' ),
 				'items' => [
 					[ 'label' => __( 'Admin: reconciliation drift alert', 'nkz-marketplace' ),
@@ -518,6 +531,23 @@ final class EmailSettings {
 "{vendor_name} právě podal(a) tvoji zásilku z objednávky #{order_number}. Je na cestě k výdejnímu místu {pickup_point}.\n\n" .
 "Sledovat zásilku můžeš tady:\n{tracking_url}\n\n" .
 "Číslo zásilky: {tracking_code}\n\n" .
+"Tým {site_name}",
+
+			// === Předplatné / členství ===
+			'email_billing_failed_subject' => 'Platba členství neprošla — {site_name}',
+			'email_billing_failed_body'    =>
+"Ahoj {name},\n\n" .
+"platba za měsíční členství nám nedorazila – nejspíš vypršela nebo se zamítla karta.\n\n" .
+"Prodávat můžeš dál až do {deadline} ({grace_days} dní). Pokud se do té doby platba nepodaří, tvoje produkty dočasně skryjeme z obchodu.\n\n" .
+"Oprav platební metodu tady:\n{billing_url}\n\n" .
+"Tým {site_name}",
+
+			'email_billing_suspended_subject' => 'Členství pozastaveno — {site_name}',
+			'email_billing_suspended_body'    =>
+"Ahoj {name},\n\n" .
+"platba za členství se nepodařila ani v náhradní lhůtě, takže jsme tvoje produkty dočasně skryli z obchodu. Účet ani produkty nemažeme – zůstávají ti uložené.\n\n" .
+"Jakmile členství obnovíš, produkty se vrátí do prodeje automaticky:\n{billing_url}\n\n" .
+"Kdyby něco nebylo jasné, ozvi se nám.\n\n" .
 "Tým {site_name}",
 
 			// === Provoz ===

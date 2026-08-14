@@ -40,14 +40,13 @@ final class BillingEmails {
 			return;
 		}
 
-		$subject = sprintf( __( 'Platba členství neprošla — %s', 'nkz-mp-vendor-billing' ), $vars['site'] );
-		$body    = sprintf(
-			/* translators: 1: jméno, 2: datum, 3: počet dní, 4: odkaz */
-			__( "Ahoj %1\$s,\n\nplatba za měsíční členství nám nedorazila – nejspíš vypršela nebo se zamítla karta.\n\nProdávat můžeš dál až do %2\$s (%3\$d dní). Pokud se do té doby platba nepodaří, tvoje produkty dočasně skryjeme z obchodu.\n\nOprav platební metodu tady:\n%4\$s\n\nDík!", 'nkz-mp-vendor-billing' ),
-			$vars['name'],
-			wp_date( 'j. n. Y', $deadline ),
-			max( 0, $grace ),
-			$vars['billing_url']
+		[ $subject, $body ] = self::template(
+			'email_billing_failed',
+			$vars + [
+				'deadline'   => wp_date( 'j. n. Y', $deadline ),
+				'grace_days' => (string) max( 0, $grace ),
+			],
+			$vendor_id
 		);
 
 		self::send( $vars['email'], $subject, $body, 'payment_failed', $vendor_id );
@@ -65,15 +64,57 @@ final class BillingEmails {
 			return;
 		}
 
-		$subject = sprintf( __( 'Členství pozastaveno — %s', 'nkz-mp-vendor-billing' ), $vars['site'] );
-		$body    = sprintf(
-			/* translators: 1: jméno, 2: odkaz */
-			__( "Ahoj %1\$s,\n\nplatba za členství se nepodařila ani v náhradní lhůtě, takže jsme tvoje produkty dočasně skryli z obchodu. Účet ani produkty nemažeme – zůstávají ti uložené.\n\nJakmile členství obnovíš, produkty se vrátí do prodeje automaticky:\n%2\$s\n\nKdyby něco nebylo jasné, ozvi se nám.", 'nkz-mp-vendor-billing' ),
-			$vars['name'],
-			$vars['billing_url']
-		);
+		[ $subject, $body ] = self::template( 'email_billing_suspended', $vars, $vendor_id );
 
 		self::send( $vars['email'], $subject, $body, 'suspended', $vendor_id );
+	}
+
+	/**
+	 * Načte šablonu z NKZ Marketplace → E-maily (editovatelná adminem)
+	 * a doplní placeholdery. Fallback na vestavěný text, kdyby modul chyběl.
+	 *
+	 * @return array{0:string,1:string} [subject, body]
+	 */
+	private static function template( string $key, array $vars, int $vendor_id ): array {
+		$placeholders = [
+			'name'          => (string) ( $vars['name'] ?? '' ),
+			'name_vocative' => class_exists( \NKZMP\Services\VocativeService::class )
+				? \NKZMP\Services\VocativeService::get( (string) ( $vars['name'] ?? '' ), $vendor_id )
+				: (string) ( $vars['name'] ?? '' ),
+			'billing_url'   => (string) ( $vars['billing_url'] ?? '' ),
+			'site_name'     => (string) ( $vars['site'] ?? '' ),
+			'deadline'      => (string) ( $vars['deadline'] ?? '' ),
+			'grace_days'    => (string) ( $vars['grace_days'] ?? '' ),
+		];
+
+		if ( class_exists( \NKZMP\Admin\EmailSettings::class ) ) {
+			$subject = \NKZMP\Admin\EmailSettings::interpolate( \NKZMP\Admin\EmailSettings::raw( $key . '_subject' ), $placeholders );
+			$body    = \NKZMP\Admin\EmailSettings::interpolate( \NKZMP\Admin\EmailSettings::raw( $key . '_body' ), $placeholders );
+			if ( $subject !== '' && $body !== '' ) {
+				return [ $subject, $body ];
+			}
+		}
+
+		// Fallback – kdyby core modul nebyl aktivní.
+		if ( $key === 'email_billing_suspended' ) {
+			return [
+				sprintf( __( 'Členství pozastaveno — %s', 'nkz-mp-vendor-billing' ), $placeholders['site_name'] ),
+				sprintf(
+					__( "Ahoj %1\$s,\n\nplatba za členství se nepodařila ani v náhradní lhůtě, takže jsme tvoje produkty dočasně skryli z obchodu. Účet ani produkty nemažeme.\n\nObnovit členství můžeš tady:\n%2\$s", 'nkz-mp-vendor-billing' ),
+					$placeholders['name'],
+					$placeholders['billing_url']
+				),
+			];
+		}
+		return [
+			sprintf( __( 'Platba členství neprošla — %s', 'nkz-mp-vendor-billing' ), $placeholders['site_name'] ),
+			sprintf(
+				__( "Ahoj %1\$s,\n\nplatba za měsíční členství nám nedorazila. Prodávat můžeš dál do %2\$s, pak produkty dočasně skryjeme.\n\nOprav platební metodu tady:\n%3\$s", 'nkz-mp-vendor-billing' ),
+				$placeholders['name'],
+				$placeholders['deadline'],
+				$placeholders['billing_url']
+			),
+		];
 	}
 
 	/** Platba prošla → vyčistíme příznaky, ať příště zprávy zase dorazí. */
