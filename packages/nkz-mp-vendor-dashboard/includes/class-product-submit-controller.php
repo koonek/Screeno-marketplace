@@ -68,7 +68,11 @@ final class ProductSubmitController {
 		$desc       = wp_kses_post( wp_unslash( $_POST['description'] ?? '' ) );
 		$price      = (string) ( $_POST['regular_price'] ?? '' );
 		$sale       = (string) ( $_POST['sale_price'] ?? '' );
-		$manage     = ! empty( $_POST['manage_stock'] );
+		// Sklad: množství je povinné, pokud prodejce neoznačí „na objednávku".
+		// Bez toho WC prodá libovolný počet kusů (reálně: objednávka na 2 ks,
+		// prodejkyně měla jeden).
+		$unlimited  = ! empty( $_POST['stock_unlimited'] );
+		$manage     = ! $unlimited;
 		$qty        = isset( $_POST['stock_quantity'] ) && $_POST['stock_quantity'] !== '' ? (int) $_POST['stock_quantity'] : null;
 		$requires_shipping = ! empty( $_POST['requires_shipping'] );
 		$ship_override     = isset( $_POST['shipping_override'] ) && $_POST['shipping_override'] !== '' && is_numeric( $_POST['shipping_override'] ) ? (float) $_POST['shipping_override'] : null;
@@ -110,6 +114,19 @@ final class ProductSubmitController {
 		}
 		if ( $has_variations && ! $use_variations ) {
 			$this->redirect_error( __( 'U variant vyplň název atributu (např. „Velikost") a alespoň jednu variantu s cenou.', 'nkz-mp-vendor-dashboard' ) );
+		}
+		// Množství povinné (kromě tvorby na objednávku). Kontrola i na serveru –
+		// atribut `required` v prohlížeči jde obejít.
+		if ( ! $unlimited ) {
+			if ( $use_variations ) {
+				foreach ( $variations as $v ) {
+					if ( $v['stock'] === null ) {
+						$this->redirect_error( __( 'U každé varianty vyplň počet kusů skladem, nebo zaškrtni „Vyrábím na objednávku".', 'nkz-mp-vendor-dashboard' ) );
+					}
+				}
+			} elseif ( $qty === null || $qty < 0 ) {
+				$this->redirect_error( __( 'Vyplň počet kusů skladem, nebo zaškrtni „Vyrábím na objednávku". Bez toho by si někdo mohl objednat víc kusů, než máš.', 'nkz-mp-vendor-dashboard' ) );
+			}
 		}
 
 		// Edit ownership check.

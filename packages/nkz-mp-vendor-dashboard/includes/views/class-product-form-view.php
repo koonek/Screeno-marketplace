@@ -168,18 +168,45 @@ final class ProductFormView {
 						</div>
 					</div>
 
-					<div class="nkzmp-vd-grid-2">
+					<?php
+					// Množství je povinné. Bez něj WooCommerce prodá libovolný počet
+					// kusů – prodejkyni přišla objednávka na 2 misky, měla jednu.
+					// Výjimka: tvorba na objednávku (řemeslníci reálně dovyrábí).
+					$made_to_order = $product ? ! $manage_stock : false;
+					?>
+					<div class="nkzmp-vd-grid-2" data-nkzmp-stock>
+						<div class="nkzmp-vd-field">
+							<label for="vd_qty"><?php esc_html_e( 'Počet kusů skladem', 'nkz-mp-vendor-dashboard' ); ?> <span class="req">*</span></label>
+							<input id="vd_qty" type="number" name="stock_quantity" min="0" step="1"
+								value="<?php echo esc_attr( (string) $stock_qty ); ?>"
+								<?php echo $made_to_order ? 'disabled' : 'required'; ?>
+								data-nkzmp-qty />
+							<small><?php esc_html_e( 'Kolik kusů máš právě teď. Po vyprodání se produkt sám označí jako vyprodaný a nikdo si ho neobjedná navíc.', 'nkz-mp-vendor-dashboard' ); ?></small>
+						</div>
 						<div class="nkzmp-vd-field">
 							<label class="nkzmp-vd-check">
-								<input type="checkbox" name="manage_stock" value="1" <?php checked( $manage_stock ); ?> />
-								<span><?php esc_html_e( 'Spravovat sklad', 'nkz-mp-vendor-dashboard' ); ?></span>
+								<input type="checkbox" name="stock_unlimited" value="1" <?php checked( $made_to_order ); ?> data-nkzmp-unlimited />
+								<span><?php esc_html_e( 'Vyrábím na objednávku', 'nkz-mp-vendor-dashboard' ); ?></span>
 							</label>
-						</div>
-						<div class="nkzmp-vd-field">
-							<label for="vd_qty"><?php esc_html_e( 'Počet kusů', 'nkz-mp-vendor-dashboard' ); ?></label>
-							<input id="vd_qty" type="number" name="stock_quantity" min="0" step="1" value="<?php echo esc_attr( (string) $stock_qty ); ?>" />
+							<small><?php esc_html_e( 'Zaškrtni, když nemáš pevný počet a zboží dovyrobíš. Počet kusů se pak nehlídá — do popisu napiš dodací lhůtu.', 'nkz-mp-vendor-dashboard' ); ?></small>
 						</div>
 					</div>
+					<script>
+					(function(){
+						var wrap = document.currentScript.previousElementSibling;
+						if (!wrap) return;
+						var chk = wrap.querySelector('[data-nkzmp-unlimited]');
+						var qty = wrap.querySelector('[data-nkzmp-qty]');
+						if (!chk || !qty) return;
+						function sync(){
+							qty.disabled = chk.checked;
+							qty.required = !chk.checked;
+							qty.closest('.nkzmp-vd-field').style.opacity = chk.checked ? '.45' : '';
+						}
+						chk.addEventListener('change', sync);
+						sync();
+					})();
+					</script>
 
 					<?php
 					$requires_raw = $product ? get_post_meta( $product->get_id(), '_nkzmp_requires_shipping', true ) : '';
@@ -407,7 +434,7 @@ final class ProductFormView {
 			<input type="text" name="var_label[]" style="flex:2;" maxlength="60" value="<?php echo esc_attr( (string) ( $r['label'] ?? '' ) ); ?>" placeholder="<?php esc_attr_e( 'A4', 'nkz-mp-vendor-dashboard' ); ?>" />
 			<input type="number" name="var_price[]" style="flex:1;" min="0" step="0.01" value="<?php echo esc_attr( (string) ( $r['price'] ?? '' ) ); ?>" placeholder="<?php esc_attr_e( 'cena', 'nkz-mp-vendor-dashboard' ); ?>" />
 			<input type="number" name="var_sale[]" style="flex:1;" min="0" step="0.01" value="<?php echo esc_attr( (string) ( $r['sale'] ?? '' ) ); ?>" placeholder="<?php esc_attr_e( 'akce', 'nkz-mp-vendor-dashboard' ); ?>" />
-			<input type="number" name="var_stock[]" style="flex:1;" min="0" step="1" value="<?php echo esc_attr( (string) ( $r['stock'] ?? '' ) ); ?>" placeholder="<?php esc_attr_e( 'sklad', 'nkz-mp-vendor-dashboard' ); ?>" />
+			<input type="number" name="var_stock[]" style="flex:1;" min="0" step="1" value="<?php echo esc_attr( (string) ( $r['stock'] ?? '' ) ); ?>" placeholder="<?php esc_attr_e( 'sklad (ks) *', 'nkz-mp-vendor-dashboard' ); ?>" />
 			<button type="button" class="nkzmp-vd-var-del" aria-label="<?php esc_attr_e( 'Smazat variantu', 'nkz-mp-vendor-dashboard' ); ?>" style="width:32px;height:32px;border:1px solid #ddd;background:#fff;border-radius:6px;cursor:pointer;font-size:18px;line-height:1;">×</button>
 		</div>
 		<?php
