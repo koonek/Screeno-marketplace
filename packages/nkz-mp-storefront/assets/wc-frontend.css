@@ -2852,10 +2852,6 @@ html body.woocommerce-page nav.woocommerce-pagination {
 html body .nkzmp-shop-promo {
 	padding: 36px 40px !important;
 }
-html body .nkzmp-shop-promo > * {
-	padding-left: 0 !important;
-	padding-right: 0 !important;
-}
 @media (max-width: 720px) {
 	html body.woocommerce .nkzmp-shop-layout,
 	html body.woocommerce nav.woocommerce-pagination,
