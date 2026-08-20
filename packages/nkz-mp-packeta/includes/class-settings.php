@@ -221,7 +221,7 @@ final class Settings {
 		echo '<td><input id="sender_label" type="text" name="' . esc_attr( self::OPTION ) . '[sender_label]" value="' . esc_attr( (string) $s['sender_label'] ) . '" style="width:420px" />';
 		echo ' <button type="button" class="button" id="nkzmp-packeta-verify">' . esc_html__( 'Ověřit', 'nkz-mp-packeta' ) . '</button>';
 		echo ' <span id="nkzmp-packeta-verify-out" style="margin-left:8px;font-weight:500;"></span>';
-		echo '<p class="description">' . esc_html__( 'Název odesílatele tak, jak je nakonfigurovaný v Packeta účtu. Použije se, když prodejce nemá vlastní. Prodejce si může nastavit vlastní v profilu. Tlačítkem „Ověřit" si hned zkontroluješ, že ho Zásilkovna zná — nemusíš čekat na první objednávku.', 'nkz-mp-packeta' ) . '</p></td>';
+		echo '<p class="description">' . wp_kses_post( __( 'Pozor: vyplň <strong>„Označení"</strong>, ne „Název". V klientské zóně Zásilkovny (Nastavení → Odesílatelé) je to samostatný sloupec — např. odesílatel s názvem „Art of život Market" může mít označení <code>Marketplace</code>. API pracuje s označením (SENDER_INDICATION), takže s názvem to skončí chybou <code>SenderNotExists</code>.<br>Použije se, když prodejce nemá vlastní. Tlačítkem „Ověřit" si hned zkontroluješ, že ho Zásilkovna zná — nemusíš čekat na první objednávku.', 'nkz-mp-packeta' ) ) . '</p></td>';
 		echo '</tr><tr>';
 		echo '<th><label for="default_weight">' . esc_html__( 'Výchozí váha balíku (kg)', 'nkz-mp-packeta' ) . '</label></th>';
 		echo '<td><input id="default_weight" type="number" min="0.1" step="0.1" name="' . esc_attr( self::OPTION ) . '[default_weight]" value="' . esc_attr( (string) $s['default_weight'] ) . '" />';
