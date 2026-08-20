@@ -72,6 +72,13 @@ final class ProductSubmitController {
 		// Bez toho WC prodá libovolný počet kusů (reálně: objednávka na 2 ks,
 		// prodejkyně měla jeden).
 		$unlimited  = ! empty( $_POST['stock_unlimited'] );
+		// Lhůta na výrobu (jen u „na objednávku"). Validujeme proti nabídce.
+		$preorder_days = 0;
+		if ( $unlimited ) {
+			$raw_days      = isset( $_POST['preorder_days'] ) ? (int) $_POST['preorder_days'] : 0;
+			$allowed_days  = array_keys( ShipDeadline::preorder_options() );
+			$preorder_days = in_array( $raw_days, $allowed_days, true ) ? $raw_days : (int) min( $allowed_days );
+		}
 		$manage     = ! $unlimited;
 		$qty        = isset( $_POST['stock_quantity'] ) && $_POST['stock_quantity'] !== '' ? (int) $_POST['stock_quantity'] : null;
 		$requires_shipping = ! empty( $_POST['requires_shipping'] );
@@ -212,6 +219,12 @@ final class ProductSubmitController {
 
 		// Shipping flag. Digital = virtual (WC nepožaduje dopravu).
 		update_post_meta( $product_id, '_nkzmp_requires_shipping', $requires_shipping ? 'yes' : 'no' );
+		// Lhůta „na objednávku" – prázdné meta = skladová položka (5 dní).
+		if ( $preorder_days > 0 ) {
+			update_post_meta( $product_id, ShipDeadline::PREORDER_META, $preorder_days );
+		} else {
+			delete_post_meta( $product_id, ShipDeadline::PREORDER_META );
+		}
 		// Per-produkt override poštovného (prázdné = smazat → použije se paušál).
 		// Hodnotu pod minimem zvedneme na minimum (Rate::set_… clampuje).
 		if ( $ship_override === null ) {

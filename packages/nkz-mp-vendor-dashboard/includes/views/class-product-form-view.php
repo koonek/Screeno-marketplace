@@ -188,9 +188,40 @@ final class ProductFormView {
 								<input type="checkbox" name="stock_unlimited" value="1" <?php checked( $made_to_order ); ?> data-nkzmp-unlimited />
 								<span><?php esc_html_e( 'Vyrábím na objednávku', 'nkz-mp-vendor-dashboard' ); ?></span>
 							</label>
-							<small><?php esc_html_e( 'Zaškrtni, když nemáš pevný počet a zboží dovyrobíš. Počet kusů se pak nehlídá — do popisu napiš dodací lhůtu.', 'nkz-mp-vendor-dashboard' ); ?></small>
+							<small><?php esc_html_e( 'Zaškrtni, když nemáš pevný počet a zboží dovyrobíš. Počet kusů se pak nehlídá.', 'nkz-mp-vendor-dashboard' ); ?></small>
 						</div>
 					</div>
+
+					<?php
+					// Lhůta na výrobu. Ukáže se jen u „na objednávku" – u skladových
+					// položek platí standardních 5 dní. Zákazník ji vidí u produktu,
+					// takže dopředu ví, na co čeká, a prodejci nechodí upomínky za
+					// něco, co objektivně nestihne.
+					$preorder_days    = $product ? (int) get_post_meta( $product->get_id(), '_nkzmp_preorder_days', true ) : 0;
+					$preorder_options = \NKZMP\Dashboard\ShipDeadline::preorder_options();
+					if ( $preorder_days <= 0 ) {
+						$preorder_days = (int) array_key_first( $preorder_options );
+					}
+					?>
+					<div class="nkzmp-vd-field" data-nkzmp-preorder style="<?php echo $made_to_order ? '' : 'display:none;'; ?>max-width:320px;">
+						<label for="vd_preorder_days"><?php esc_html_e( 'Do kdy zboží odešleš', 'nkz-mp-vendor-dashboard' ); ?> <span class="req">*</span></label>
+						<select id="vd_preorder_days" name="preorder_days">
+							<?php foreach ( $preorder_options as $days => $label ) : ?>
+								<option value="<?php echo (int) $days; ?>" <?php selected( $preorder_days, (int) $days ); ?>><?php echo esc_html( $label ); ?></option>
+							<?php endforeach; ?>
+						</select>
+						<small><?php esc_html_e( 'Uvidí to zákazník ještě před koupí a podle toho se ti počítá čas na odeslání. Vyber raději s rezervou.', 'nkz-mp-vendor-dashboard' ); ?></small>
+					</div>
+					<script>
+					(function(){
+						var chk  = document.querySelector('[data-nkzmp-unlimited]');
+						var pre  = document.querySelector('[data-nkzmp-preorder]');
+						if (!chk || !pre) return;
+						function sync(){ pre.style.display = chk.checked ? '' : 'none'; }
+						chk.addEventListener('change', sync);
+						sync();
+					})();
+					</script>
 					<script>
 					(function(){
 						var wrap = document.currentScript.previousElementSibling;

@@ -55,6 +55,67 @@ final class ShopLoop {
 		return '<span class="onsale nkzmp-onsale" style="' . esc_attr( $style ) . '">' . esc_html( $label ) . '</span>';
 	}
 
+	/**
+	 * Text dodací lhůty pro produkt, nebo '' když modul lhůt není aktivní.
+	 *
+	 * @return array{0:string,1:bool} [text, je na objednávku]
+	 */
+	private function delivery_text( int $product_id ): array {
+		if ( ! class_exists( \NKZMP\Dashboard\ShipDeadline::class ) ) {
+			return [ '', false ];
+		}
+		$days     = \NKZMP\Dashboard\ShipDeadline::product_days( $product_id );
+		$preorder = \NKZMP\Dashboard\ShipDeadline::is_preorder( $product_id );
+		if ( $days <= 0 ) {
+			return [ '', false ];
+		}
+		$text = $preorder
+			/* translators: %d: počet dní */
+			? sprintf( __( 'Na objednávku — odesíláme do %d dnů', 'nkz-mp-storefront' ), $days )
+			/* translators: %d: počet dní */
+			: sprintf( __( 'Skladem — odesíláme do %d dnů', 'nkz-mp-storefront' ), $days );
+
+		return [ (string) apply_filters( 'nkzmp/v1/storefront/delivery_text', $text, $product_id, $days, $preorder ), $preorder ];
+	}
+
+	/** Dodací lhůta na detailu produktu. */
+	public function delivery_promise(): void {
+		global $product;
+		if ( ! $product instanceof \WC_Product || ! $product->needs_shipping() ) {
+			return;
+		}
+		[ $text, $preorder ] = $this->delivery_text( (int) $product->get_id() );
+		if ( $text === '' ) {
+			return;
+		}
+		printf(
+			'<p class="nkzmp-delivery %s" style="display:inline-flex;align-items:center;gap:8px;margin:0 0 18px;padding:9px 16px;border-radius:999px;font-size:14px;background:%s;color:%s;">%s %s</p>',
+			esc_attr( $preorder ? 'is-preorder' : 'is-instock' ),
+			esc_attr( $preorder ? '#fff7e6' : '#eef4ff' ),
+			esc_attr( $preorder ? '#7a4b00' : '#0060FF' ),
+			$preorder ? '🕐' : '📦',
+			esc_html( $text )
+		);
+	}
+
+	/** Drobný štítek s lhůtou v katalogu (jen u „na objednávku"). */
+	public function loop_delivery_badge(): void {
+		global $product;
+		if ( ! $product instanceof \WC_Product || ! $product->needs_shipping() ) {
+			return;
+		}
+		[ $text, $preorder ] = $this->delivery_text( (int) $product->get_id() );
+		// V katalogu ukazujeme jen výjimku – „skladem do 5 dnů" je standard
+		// a u každé dlaždice by jen přidával šum.
+		if ( $text === '' || ! $preorder ) {
+			return;
+		}
+		printf(
+			'<span class="nkzmp-delivery-badge" style="display:inline-block;margin-top:4px;font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:#7a4b00;">%s</span>',
+			esc_html( $text )
+		);
+	}
+
 	public function init(): void {
 		if ( ! apply_filters( 'nkzmp/v1/storefront/shop_loop', true ) ) {
 			return;
@@ -80,6 +141,13 @@ final class ShopLoop {
 		// Single product page: vendor badge hned pod titulem (priority 6,
 		// mezi title @5 a price @10). Větší varianta s 36px avatarem.
 		add_action( 'woocommerce_single_product_summary', [ $this, 'single_vendor_badge' ], 6 );
+
+		// Dodací lhůta u produktu – zákazník musí vědět, na co čeká, ještě
+		// před koupí (jinak si objedná „na objednávku" a diví se, že to není
+		// za tři dny). Za cenou, před tlačítkem do košíku.
+		add_action( 'woocommerce_single_product_summary', [ $this, 'delivery_promise' ], 11 );
+		// V katalogu jako drobný štítek pod cenou.
+		add_action( 'woocommerce_after_shop_loop_item_title', [ $this, 'loop_delivery_badge' ], 12 );
 
 		// Breadcrumb „Domů" na WC stránkách vede na marketplace landing
 		// místo rootu webu – obchod je sekce marketplace, ne celého webu.

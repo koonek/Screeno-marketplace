@@ -56,9 +56,54 @@ final class ShipDeadline {
 	 * Sdílená logika lhůty (používá i OrdersView).
 	 * ------------------------------------------------------------------- */
 
-	/** Lhůta na odeslání ve dnech (filtrovatelné). */
+	public const PREORDER_META = '_nkzmp_preorder_days';
+
+	/**
+	 * Lhůta pro skladové zboží (dny). U „na objednávku" platí lhůta z produktu.
+	 */
 	public static function days( ?\WC_Order $order = null ): int {
 		return max( 0, (int) apply_filters( 'nkzmp/v1/dashboard/ship_deadline_days', 5, $order ) );
+	}
+
+	/**
+	 * Nabídka lhůt pro tvorbu na objednávku.
+	 *
+	 * @return array<int,string> dny => popisek
+	 */
+	public static function preorder_options(): array {
+		return (array) apply_filters( 'nkzmp/v1/dashboard/preorder_options', [
+			14 => __( 'do 14 dnů (2 týdny)', 'nkz-mp-vendor-dashboard' ),
+			21 => __( 'do 21 dnů (3 týdny)', 'nkz-mp-vendor-dashboard' ),
+			30 => __( 'do 30 dnů (měsíc)', 'nkz-mp-vendor-dashboard' ),
+		] );
+	}
+
+	/**
+	 * Lhůta na odeslání konkrétního produktu (dny).
+	 * Skladové = standardních 5; na objednávku = hodnota z produktu.
+	 */
+	public static function product_days( int $product_id ): int {
+		$days = (int) get_post_meta( $product_id, self::PREORDER_META, true );
+		if ( $days > 0 ) {
+			$allowed = array_keys( self::preorder_options() );
+			// Neznámou hodnotu (změna nabídky) zaokrouhlíme na nejbližší vyšší.
+			if ( ! in_array( $days, $allowed, true ) ) {
+				sort( $allowed );
+				foreach ( $allowed as $a ) {
+					if ( $a >= $days ) {
+						return $a;
+					}
+				}
+				return (int) end( $allowed );
+			}
+			return $days;
+		}
+		return self::days();
+	}
+
+	/** Je produkt „na objednávku"? */
+	public static function is_preorder( int $product_id ): bool {
+		return (int) get_post_meta( $product_id, self::PREORDER_META, true ) > 0;
 	}
 
 	/** Čas zaplacení (fallback vytvoření), nebo 0. */
@@ -67,10 +112,43 @@ final class ShipDeadline {
 		return $d ? (int) $d->getTimestamp() : 0;
 	}
 
-	/** Deadline timestamp = zaplaceno + N dní. */
-	public static function deadline_ts( \WC_Order $order ): int {
+	/**
+	 * Deadline timestamp = zaplaceno + lhůta.
+	 *
+	 * Lhůta se bere z produktů: skladové 5 dní, na objednávku dle nastavení
+	 * produktu. Když je v objednávce oboje, platí ta NEJDELŠÍ – prodejce balí
+	 * dohromady a nemá smysl ho hnát za položku, kterou objektivně nestíhá.
+	 *
+	 * @param int|null $vendor_id Počítat jen z položek daného prodejce.
+	 */
+	public static function deadline_ts( \WC_Order $order, ?int $vendor_id = null ): int {
 		$paid = self::paid_ts( $order );
-		return $paid > 0 ? $paid + self::days( $order ) * DAY_IN_SECONDS : 0;
+		if ( $paid <= 0 ) {
+			return 0;
+		}
+		return $paid + self::order_days( $order, $vendor_id ) * DAY_IN_SECONDS;
+	}
+
+	/** Nejdelší lhůta mezi položkami (volitelně jen jednoho prodejce). */
+	public static function order_days( \WC_Order $order, ?int $vendor_id = null ): int {
+		$days = 0;
+		foreach ( $order->get_items( 'line_item' ) as $item ) {
+			if ( ! $item instanceof \WC_Order_Item_Product ) {
+				continue;
+			}
+			$pid = $item->get_product_id();
+			if ( $vendor_id !== null ) {
+				$vid = (int) get_post_meta( $pid, '_nkzmp_vendor_id', true );
+				if ( $vid <= 0 ) {
+					$vid = (int) get_post_meta( $pid, '_nkv_vendor_id', true );
+				}
+				if ( $vid !== $vendor_id ) {
+					continue;
+				}
+			}
+			$days = max( $days, self::product_days( $pid ) );
+		}
+		return $days > 0 ? $days : self::days( $order );
 	}
 
 	/** Distinct vendor ID v objednávce. */
@@ -143,11 +221,13 @@ final class ShipDeadline {
 			if ( ! $order instanceof \WC_Order ) {
 				continue;
 			}
-			$deadline = self::deadline_ts( $order );
-			if ( $deadline <= 0 ) {
-				continue;
-			}
 			foreach ( self::order_vendor_ids( $order ) as $vid ) {
+				// Termín počítáme za položky konkrétního prodejce – každý má
+				// v objednávce svoje a lhůty se můžou lišit.
+				$deadline = self::deadline_ts( $order, $vid );
+				if ( $deadline <= 0 ) {
+					continue;
+				}
 				if ( ! self::vendor_needs_shipping( $order, $vid ) ) {
 					continue;
 				}

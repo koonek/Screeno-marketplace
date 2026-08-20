@@ -261,7 +261,7 @@ final class OrdersView {
 			return null;
 		}
 
-		$deadline_ts = \NKZMP\Dashboard\ShipDeadline::deadline_ts( $order );
+		$deadline_ts = \NKZMP\Dashboard\ShipDeadline::deadline_ts( $order, $vendor_id );
 		if ( $deadline_ts <= 0 ) {
 			return null;
 		}
