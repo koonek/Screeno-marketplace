@@ -276,24 +276,27 @@ final class ShipDeadline {
 		$deadline_str  = wp_date( 'j. n. Y', $deadline );
 		$customer_name = trim( (string) $order->get_billing_first_name() );
 
-		$subject = (string) apply_filters(
-			'nkzmp/v1/ship/customer_subject',
-			sprintf( __( 'Tvoje objednávka #%1$s je u prodejce — %2$s', 'nkz-mp-vendor-dashboard' ), $order->get_order_number(), $site ),
-			$order
-		);
-		$body = (string) apply_filters(
-			'nkzmp/v1/ship/customer_body',
-			sprintf(
-				/* translators: 1: jméno, 2: číslo, 3: datum, 4: název webu */
-				__( "Ahoj %1\$s,\n\ntvoji objednávku #%2\$s jsme předali prodejci. Zabalí ji a předá k odeslání nejpozději do %3\$s. Jakmile ji odešle, dáme ti vědět.\n\nDíky, že nakupuješ na %4\$s.", 'nkz-mp-vendor-dashboard' ),
-				$customer_name !== '' ? $customer_name : __( 'ahoj', 'nkz-mp-vendor-dashboard' ),
-				$order->get_order_number(),
-				$deadline_str,
-				$site
-			),
-			$order,
-			$deadline
-		);
+		$vars = [
+			'name'          => $customer_name !== '' ? $customer_name : __( 'ahoj', 'nkz-mp-vendor-dashboard' ),
+			'order_number'  => (string) $order->get_order_number(),
+			'ship_deadline' => $deadline_str,
+			'site_name'     => $site,
+		];
+		$subject = '';
+		$body    = '';
+		if ( class_exists( \NKZMP\Admin\EmailSettings::class ) ) {
+			$subject = \NKZMP\Admin\EmailSettings::interpolate( \NKZMP\Admin\EmailSettings::raw( 'email_ship_customer_subject' ), $vars );
+			$body    = \NKZMP\Admin\EmailSettings::interpolate( \NKZMP\Admin\EmailSettings::raw( 'email_ship_customer_body' ), $vars );
+		}
+		if ( $subject === '' || $body === '' ) {
+			$subject = sprintf( __( 'Tvoje objednávka #%1$s je u prodejce — %2$s', 'nkz-mp-vendor-dashboard' ), $vars['order_number'], $site );
+			$body    = sprintf(
+				__( "Ahoj %1\$s,\n\ntvoji objednávku #%2\$s jsme předali prodejci. Odešle ji nejpozději do %3\$s.\n\nDíky, že nakupuješ na %4\$s.", 'nkz-mp-vendor-dashboard' ),
+				$vars['name'], $vars['order_number'], $deadline_str, $site
+			);
+		}
+		$subject = (string) apply_filters( 'nkzmp/v1/ship/customer_subject', $subject, $order );
+		$body    = (string) apply_filters( 'nkzmp/v1/ship/customer_body', $body, $order, $deadline );
 
 		$this->send( $email, $subject, $body );
 		$order->update_meta_data( self::CUSTOMER_FLAG, time() );
@@ -341,20 +344,33 @@ final class ShipDeadline {
 		$orders_url   = wc_get_account_endpoint_url( 'vendor-orders' );
 		$num          = $order->get_order_number();
 
-		if ( $mode === 'overdue' ) {
-			$subject = sprintf( __( '⚠️ Objednávka #%1$s po termínu odeslání — %2$s', 'nkz-mp-vendor-dashboard' ), $num, $site );
-			$body    = sprintf(
-				/* translators: 1: jméno, 2: číslo, 3: datum, 4: odkaz */
-				__( "Ahoj %1\$s,\n\nobjednávka #%2\$s měla být odeslána do %3\$s, ale zatím pro ni nemáme štítek Zásilkovny. Odešli ji prosím co nejdřív, ať kupující nečeká a výplata se ti nezdrží.\n\nObjednávky: %4\$s", 'nkz-mp-vendor-dashboard' ),
-				$vendor_name, $num, $deadline_str, $orders_url
-			);
-		} else {
-			$subject = sprintf( __( '⏳ Připomínka: odešli objednávku #%1$s — %2$s', 'nkz-mp-vendor-dashboard' ), $num, $site );
-			$body    = sprintf(
-				/* translators: 1: jméno, 2: číslo, 3: datum, 4: odkaz */
-				__( "Ahoj %1\$s,\n\npřipomínáme objednávku #%2\$s — lhůta na odeslání končí %3\$s. Vytvoř prosím štítek Zásilkovny a předej zásilku včas.\n\nObjednávky: %4\$s", 'nkz-mp-vendor-dashboard' ),
-				$vendor_name, $num, $deadline_str, $orders_url
-			);
+		$key  = $mode === 'overdue' ? 'email_ship_overdue' : 'email_ship_remind';
+		$vars = [
+			'name'          => $vendor_name,
+			'name_vocative' => class_exists( \NKZMP\Services\VocativeService::class )
+				? \NKZMP\Services\VocativeService::get( $vendor_name, $vendor_id )
+				: $vendor_name,
+			'order_number'  => (string) $num,
+			'ship_deadline' => $deadline_str,
+			'ship_days'     => (string) self::order_days( $order, $vendor_id ),
+			'orders_url'    => $orders_url,
+			'site_name'     => $site,
+		];
+
+		$subject = '';
+		$body    = '';
+		if ( class_exists( \NKZMP\Admin\EmailSettings::class ) ) {
+			$subject = \NKZMP\Admin\EmailSettings::interpolate( \NKZMP\Admin\EmailSettings::raw( $key . '_subject' ), $vars );
+			$body    = \NKZMP\Admin\EmailSettings::interpolate( \NKZMP\Admin\EmailSettings::raw( $key . '_body' ), $vars );
+		}
+		if ( $subject === '' || $body === '' ) {
+			// Fallback, kdyby core modul nebyl aktivní.
+			$subject = $mode === 'overdue'
+				? sprintf( __( '⚠️ Objednávka #%1$s po termínu odeslání — %2$s', 'nkz-mp-vendor-dashboard' ), $num, $site )
+				: sprintf( __( '⏳ Připomínka: odešli objednávku #%1$s — %2$s', 'nkz-mp-vendor-dashboard' ), $num, $site );
+			$body = $mode === 'overdue'
+				? sprintf( __( "Ahoj %1\$s,\n\nobjednávka #%2\$s měla být odeslána do %3\$s, ale zatím pro ni nemáme štítek Zásilkovny.\n\nObjednávky: %4\$s", 'nkz-mp-vendor-dashboard' ), $vendor_name, $num, $deadline_str, $orders_url )
+				: sprintf( __( "Ahoj %1\$s,\n\npřipomínáme objednávku #%2\$s — lhůta na odeslání končí %3\$s.\n\nObjednávky: %4\$s", 'nkz-mp-vendor-dashboard' ), $vendor_name, $num, $deadline_str, $orders_url );
 		}
 		$subject = (string) apply_filters( 'nkzmp/v1/ship/vendor_subject', $subject, $mode, $order, $vendor_id );
 		$body    = (string) apply_filters( 'nkzmp/v1/ship/vendor_body', $body, $mode, $order, $vendor_id );

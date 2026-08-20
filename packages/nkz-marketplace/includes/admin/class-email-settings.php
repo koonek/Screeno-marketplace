@@ -256,6 +256,12 @@ final class EmailSettings {
 			'tracking_code' => 'Z1234567890',
 			'tracking_url'  => 'https://tracking.packeta.com/cs_CZ/?id=Z1234567890',
 			'pickup_point'  => 'Z-BOX Praha, Vinohradská 12',
+			'orders_url'    => function_exists( 'wc_get_account_endpoint_url' ) ? (string) wc_get_account_endpoint_url( 'vendor-orders' ) : home_url( '/muj-ucet/vendor-orders' ),
+			'ship_deadline' => date_i18n( 'j. n. Y', time() + 5 * DAY_IN_SECONDS ),
+			'ship_days'     => '5',
+			'billing_url'   => function_exists( 'wc_get_account_endpoint_url' ) ? (string) wc_get_account_endpoint_url( 'vendor-billing' ) : home_url( '/muj-ucet' ),
+			'deadline'      => date_i18n( 'j. n. Y', time() + 7 * DAY_IN_SECONDS ),
+			'grace_days'    => '7',
 			'count'         => '3',
 			'detail'        => "Adapter: stripe\nDrift: 3 záznamy",
 			'tools_url'     => admin_url( 'admin.php?page=nkz-marketplace-tools' ),
@@ -397,11 +403,28 @@ final class EmailSettings {
 					[ 'label' => __( 'Prodejce: nová objednávka', 'nkz-marketplace' ),
 					  'hint'  => __( 'Posílá se prodejci při přechodu objednávky na processing / completed (jen za jeho položky).', 'nkz-marketplace' ),
 					  'subject' => 'email_order_vendor_subject', 'body' => 'email_order_vendor_body',
-					  'placeholders' => [ 'name', 'name_vocative', 'order_number', 'order_date', 'items', 'subtotal', 'order_admin_url', 'site_name' ] ],
+					  'placeholders' => [ 'name', 'name_vocative', 'order_number', 'order_date', 'items', 'subtotal', 'ship_deadline', 'ship_days', 'order_admin_url', 'site_name' ] ],
 					[ 'label' => __( 'Zákazník: zásilka je na cestě (Zásilkovna)', 'nkz-marketplace' ),
 					  'hint'  => __( 'Posílá se zákazníkovi když prodejce podá zásilku přes Zásilkovnu (s tracking odkazem).', 'nkz-marketplace' ),
 					  'subject' => 'email_shipment_subject', 'body' => 'email_shipment_body',
 					  'placeholders' => [ 'name', 'name_vocative', 'vendor_name', 'vendor_name_vocative', 'order_number', 'tracking_code', 'tracking_url', 'pickup_point', 'site_name' ] ],
+				],
+			],
+			[
+				'label' => __( 'Odesílání objednávek', 'nkz-marketplace' ),
+				'items' => [
+					[ 'label' => __( 'Prodejce: připomínka před koncem lhůty', 'nkz-marketplace' ),
+					  'hint'  => __( 'Posílá se den před koncem lhůty na odeslání (skladem 5 dní, na objednávku dle nastavení produktu).', 'nkz-marketplace' ),
+					  'subject' => 'email_ship_remind_subject', 'body' => 'email_ship_remind_body',
+					  'placeholders' => [ 'name', 'name_vocative', 'order_number', 'ship_deadline', 'ship_days', 'orders_url', 'site_name' ] ],
+					[ 'label' => __( 'Prodejce: po termínu odeslání', 'nkz-marketplace' ),
+					  'hint'  => __( 'Posílá se když lhůta uplynula a pro objednávku pořád není štítek Zásilkovny.', 'nkz-marketplace' ),
+					  'subject' => 'email_ship_overdue_subject', 'body' => 'email_ship_overdue_body',
+					  'placeholders' => [ 'name', 'name_vocative', 'order_number', 'ship_deadline', 'ship_days', 'orders_url', 'site_name' ] ],
+					[ 'label' => __( 'Zákazník: objednávka je u prodejce', 'nkz-marketplace' ),
+					  'hint'  => __( 'Posílá se zákazníkovi po zaplacení – říká, do kdy prodejce odešle.', 'nkz-marketplace' ),
+					  'subject' => 'email_ship_customer_subject', 'body' => 'email_ship_customer_body',
+					  'placeholders' => [ 'name', 'order_number', 'ship_deadline', 'site_name' ] ],
 				],
 			],
 			[
@@ -521,6 +544,7 @@ final class EmailSettings {
 "přišla ti objednávka #{order_number} ({order_date}).\n\n" .
 "{items}\n" .
 "Celkem za tvé položky: {subtotal}\n\n" .
+"Odešli prosím nejpozději do {ship_deadline} ({ship_days} dní).\n\n" .
 "Detail objednávky:\n{order_admin_url}\n\n" .
 "Tým {site_name}",
 
@@ -532,6 +556,30 @@ final class EmailSettings {
 "Sledovat zásilku můžeš tady:\n{tracking_url}\n\n" .
 "Číslo zásilky: {tracking_code}\n\n" .
 "Tým {site_name}",
+
+			// === Odesílání objednávek ===
+			'email_ship_remind_subject' => '⏳ Připomínka: odešli objednávku #{order_number} — {site_name}',
+			'email_ship_remind_body'    =>
+"Ahoj {name},\n\n" .
+"připomínáme objednávku #{order_number} — lhůta na odeslání končí {ship_deadline}.\n\n" .
+"Vytvoř prosím štítek Zásilkovny a předej zásilku včas.\n\n" .
+"Objednávky:\n{orders_url}\n\n" .
+"Tým {site_name}",
+
+			'email_ship_overdue_subject' => '⚠️ Objednávka #{order_number} po termínu odeslání — {site_name}',
+			'email_ship_overdue_body'    =>
+"Ahoj {name},\n\n" .
+"objednávka #{order_number} měla být odeslána do {ship_deadline}, ale zatím pro ni nemáme štítek Zásilkovny.\n\n" .
+"Odešli ji prosím co nejdřív, ať kupující nečeká a výplata se ti nezdrží.\n\n" .
+"Objednávky:\n{orders_url}\n\n" .
+"Tým {site_name}",
+
+			'email_ship_customer_subject' => 'Tvoje objednávka #{order_number} je u prodejce — {site_name}',
+			'email_ship_customer_body'    =>
+"Ahoj {name},\n\n" .
+"tvoji objednávku #{order_number} jsme předali prodejci. Zabalí ji a předá k odeslání nejpozději do {ship_deadline}.\n\n" .
+"Jakmile ji odešle, dáme ti vědět.\n\n" .
+"Díky, že nakupuješ na {site_name}.",
 
 			// === Předplatné / členství ===
 			'email_billing_failed_subject' => 'Platba členství neprošla — {site_name}',

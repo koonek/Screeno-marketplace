@@ -78,8 +78,22 @@ final class OrderNotifications {
 			$name_vocative = class_exists( \NKZMP\Services\VocativeService::class )
 				? \NKZMP\Services\VocativeService::get( $vendor_name, (int) $vendor_id )
 				: $vendor_name;
+			// Lhůta na odeslání za položky TOHOTO prodejce (skladem 5 dní,
+			// na objednávku dle nastavení produktu; při kombinaci ta delší).
+			$ship_deadline = '';
+			$ship_days     = '';
+			if ( class_exists( ShipDeadline::class ) ) {
+				$dl = ShipDeadline::deadline_ts( $order, (int) $vendor_id );
+				if ( $dl > 0 ) {
+					$ship_deadline = wp_date( 'j. n. Y', $dl );
+					$ship_days     = (string) ShipDeadline::order_days( $order, (int) $vendor_id );
+				}
+			}
+
 			$vars = [
 				'name'            => $vendor_name,
+				'ship_deadline'   => $ship_deadline,
+				'ship_days'       => $ship_days,
 				'name_vocative'   => $name_vocative,
 				'order_number'    => (string) $order->get_order_number(),
 				'order_date'      => $order->get_date_created() ? $order->get_date_created()->date_i18n( get_option( 'date_format' ) ) : '',
@@ -98,8 +112,10 @@ final class OrderNotifications {
 				$subject = sprintf( __( 'Nová objednávka #%s — %s', 'nkz-mp-vendor-dashboard' ), $vars['order_number'], $site );
 			}
 			if ( $body === '' ) {
-				$body = sprintf( "Ahoj %s,\n\nmáš novou objednávku #%s.\n\n%s\n\nCelkem: %s\n\n%s",
-					$vars['name'], $vars['order_number'], $vars['items'], $vars['subtotal'], $vars['order_admin_url'] );
+				$body = sprintf( "Ahoj %s,\n\nmáš novou objednávku #%s.\n\n%s\n\nCelkem: %s\n\n%s%s",
+					$vars['name'], $vars['order_number'], $vars['items'], $vars['subtotal'],
+					$ship_deadline !== '' ? sprintf( "Odešli prosím do %s.\n\n", $ship_deadline ) : '',
+					$vars['order_admin_url'] );
 			}
 
 			$this->send( (string) $vendor['email'], $subject, $body );
