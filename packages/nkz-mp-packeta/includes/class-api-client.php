@@ -162,6 +162,41 @@ final class ApiClient {
 			}
 		}
 		$msg = implode( ' — ', array_filter( $parts ) );
-		return $msg !== '' ? $msg : __( 'Packeta odmítla požadavek (neznámá chyba).', 'nkz-mp-packeta' );
+		if ( $msg === '' ) {
+			return __( 'Zásilkovna odmítla požadavek (neznámá chyba).', 'nkz-mp-packeta' );
+		}
+		return self::humanize( $msg );
+	}
+
+	/**
+	 * Přeloží časté chyby Zásilkovny do češtiny s návodem, co udělat.
+	 *
+	 * Původní hlášky jsou anglicky a technické („Sender is not given") –
+	 * prodejce z nich nepozná, že se má opravit název odesílatele v nastavení.
+	 * Originál necháváme v závorce kvůli podpoře Zásilkovny.
+	 */
+	public static function humanize( string $raw ): string {
+		$l    = strtolower( $raw );
+		$hint = '';
+
+		if ( str_contains( $l, 'sender is not given' ) || str_contains( $l, 'choose a sender' ) ) {
+			$hint = __( 'Zásilkovna nezná odesílatele, kterého posíláme. Nejčastěji se stane, když se odesílatel v Zásilkovně přejmenuje. Zkontroluj NKZ Marketplace → Zásilkovna → „Výchozí odesílatel" (musí sedět znak po znaku) a taky pole odesílatele v profilu prodejce — to má přednost před globálním.', 'nkz-mp-packeta' );
+		} elseif ( str_contains( $l, 'sender' ) && ( str_contains( $l, 'unknown' ) || str_contains( $l, 'invalid' ) || str_contains( $l, 'not found' ) ) ) {
+			$hint = __( 'Odesílatel neodpovídá žádnému v účtu Zásilkovny. Oprav jeho název v nastavení Zásilkovny (nebo v profilu prodejce).', 'nkz-mp-packeta' );
+		} elseif ( str_contains( $l, 'addressid' ) || str_contains( $l, 'pickup point' ) || str_contains( $l, 'branch' ) ) {
+			$hint = __( 'Výdejní místo z objednávky Zásilkovna nezná (může být zrušené). Domluv se se zákazníkem na jiném a uprav objednávku.', 'nkz-mp-packeta' );
+		} elseif ( str_contains( $l, 'weight' ) ) {
+			$hint = __( 'Nesedí váha zásilky. Vyplň váhu u produktu, nebo výchozí váhu v nastavení Zásilkovny.', 'nkz-mp-packeta' );
+		} elseif ( str_contains( $l, 'unauthor' ) || str_contains( $l, 'api password' ) || str_contains( $l, 'wrong password' ) ) {
+			$hint = __( 'Zásilkovna odmítla přihlášení — zkontroluj API heslo v nastavení.', 'nkz-mp-packeta' );
+		} elseif ( str_contains( $l, 'cod' ) ) {
+			$hint = __( 'Problém s dobírkou. Zkontroluj částku a měnu u objednávky.', 'nkz-mp-packeta' );
+		}
+
+		if ( $hint === '' ) {
+			return $raw;
+		}
+		/* translators: 1: český popis, 2: originální hláška od Zásilkovny */
+		return sprintf( __( '%1$s (Zásilkovna hlásí: %2$s)', 'nkz-mp-packeta' ), $hint, $raw );
 	}
 }

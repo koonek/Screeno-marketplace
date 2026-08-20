@@ -102,6 +102,9 @@ final class Health {
 		if ( str_contains( $lower, 'wrong api password' ) || str_contains( $lower, 'invalid api password' ) || str_contains( $lower, 'authentication' ) ) {
 			return __( 'špatné API heslo – zkontroluj že máš API heslo (ne widget klíč) z Packeta klient → Technická nastavení', 'nkz-mp-packeta' );
 		}
+		if ( str_contains( $lower, 'sender is not given' ) || str_contains( $lower, 'choose a sender' ) ) {
+			return __( 'odesílatel neodpovídá žádnému v Zásilkovně (typicky po přejmenování) – zkontroluj „Výchozí odesílatel" v nastavení a taky pole odesílatele v profilech prodejců, to má přednost', 'nkz-mp-packeta' );
+		}
 		if ( str_contains( $lower, 'sender' ) && ( str_contains( $lower, 'unknown' ) || str_contains( $lower, 'invalid' ) ) ) {
 			return __( 'eshop label odesílatele neexistuje v Packetě – zkontroluj přesný název v Packeta klient → Nastavení → Eshopy', 'nkz-mp-packeta' );
 		}

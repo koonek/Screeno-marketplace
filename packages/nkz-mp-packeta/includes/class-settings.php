@@ -134,5 +134,74 @@ final class Settings {
 		echo '</tr></table>';
 		submit_button();
 		echo '</form>';
+
+		$this->render_sender_overview();
+	}
+
+	/**
+	 * Přehled odesílatelů u prodejců.
+	 *
+	 * Per-vendor odesílatel má přednost před globálním, takže po přejmenování
+	 * odesílatele v Zásilkovně padají štítky jen některým prodejcům – a hledat
+	 * to po profilech je otrava. Tady je to na jednom místě.
+	 */
+	private function render_sender_overview(): void {
+		$vendors = get_posts( [
+			'post_type'      => [ 'nkv_vendor', 'nkzmp_vendor' ],
+			'post_status'    => 'publish',
+			'posts_per_page' => 200,
+			'orderby'        => 'title',
+			'order'          => 'ASC',
+		] );
+		if ( empty( $vendors ) ) {
+			return;
+		}
+
+		$global = self::sender_label();
+		$custom = [];
+		foreach ( $vendors as $v ) {
+			$label = (string) get_post_meta( $v->ID, NKZMP_PACKETA_VENDOR_SENDER_LABEL_META, true );
+			if ( $label !== '' ) {
+				$custom[] = [ 'post' => $v, 'label' => $label ];
+			}
+		}
+
+		echo '<hr style="margin:28px 0;">';
+		echo '<h2>' . esc_html__( 'Odesílatelé u prodejců', 'nkz-mp-packeta' ) . '</h2>';
+		echo '<p class="description" style="max-width:720px;">'
+			. esc_html__( 'Název odesílatele musí přesně odpovídat tomu v účtu Zásilkovny. Když se tam odesílatel přejmenuje, štítky začnou padat s chybou „Sender is not given". Prodejci s vlastním odesílatelem ignorují globální nastavení – ty je potřeba opravit zvlášť.', 'nkz-mp-packeta' )
+			. '</p>';
+
+		printf(
+			'<p><strong>%s</strong> %s</p>',
+			esc_html__( 'Globální odesílatel:', 'nkz-mp-packeta' ),
+			$global !== ''
+				? '<code>' . esc_html( $global ) . '</code>'
+				: '<span style="color:#b00020;">' . esc_html__( 'nevyplněný — prodejci bez vlastního odesílatele štítek nevytvoří', 'nkz-mp-packeta' ) . '</span>'
+		);
+
+		if ( empty( $custom ) ) {
+			echo '<p style="color:#46b450;">' . esc_html__( 'Žádný prodejce nemá vlastní odesílatele — všichni jedou na globálním. Stačí opravit pole výše. 👍', 'nkz-mp-packeta' ) . '</p>';
+			return;
+		}
+
+		echo '<table class="widefat striped" style="max-width:820px;"><thead><tr>';
+		echo '<th>' . esc_html__( 'Prodejce', 'nkz-mp-packeta' ) . '</th>';
+		echo '<th>' . esc_html__( 'Vlastní odesílatel', 'nkz-mp-packeta' ) . '</th>';
+		echo '<th>' . esc_html__( 'Akce', 'nkz-mp-packeta' ) . '</th>';
+		echo '</tr></thead><tbody>';
+		foreach ( $custom as $row ) {
+			$same = ( $global !== '' && $row['label'] === $global );
+			printf(
+				'<tr><td>%s</td><td><code>%s</code>%s</td><td><a href="%s">%s</a></td></tr>',
+				esc_html( get_the_title( $row['post'] ) ),
+				esc_html( $row['label'] ),
+				$same ? ' <span style="color:#666;font-size:12px;">' . esc_html__( '(stejný jako globální)', 'nkz-mp-packeta' ) . '</span>' : '',
+				esc_url( (string) get_edit_post_link( $row['post']->ID ) ),
+				esc_html__( 'Upravit profil', 'nkz-mp-packeta' )
+			);
+		}
+		echo '</tbody></table>';
+		echo '<p class="description">' . esc_html__( 'Tip: když prodejce nemá důvod mít vlastní, vymaž mu pole — pak automaticky použije globální a stačí ho měnit na jednom místě.', 'nkz-mp-packeta' ) . '</p>';
 	}
 }
