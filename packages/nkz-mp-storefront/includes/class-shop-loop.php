@@ -89,11 +89,10 @@ final class ShopLoop {
 			return;
 		}
 		printf(
-			'<p class="nkzmp-delivery %s" style="display:inline-flex;align-items:center;gap:8px;margin:0 0 18px;padding:9px 16px;border-radius:999px;font-size:14px;background:%s;color:%s;">%s %s</p>',
+			'<p class="nkzmp-delivery %s" style="display:inline-flex;align-items:center;margin:0 0 18px;padding:9px 16px;border-radius:999px;font-size:14px;background:%s;color:%s;">%s</p>',
 			esc_attr( $preorder ? 'is-preorder' : 'is-instock' ),
 			esc_attr( $preorder ? '#fff7e6' : '#eef4ff' ),
 			esc_attr( $preorder ? '#7a4b00' : '#0060FF' ),
-			$preorder ? '🕐' : '📦',
 			esc_html( $text )
 		);
 	}
