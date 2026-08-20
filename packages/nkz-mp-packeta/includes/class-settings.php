@@ -19,13 +19,110 @@ final class Settings {
 		return self::$instance ??= new self();
 	}
 
+	public const CRON_HOOK = 'nkzmp_packeta_check_senders';
+
 	public function init(): void {
 		add_action( 'admin_init', [ $this, 'register' ] );
+		add_action( 'wp_ajax_nkzmp_packeta_validate_sender', [ $this, 'ajax_validate_sender' ] );
+
+		// Denní hlídka odesílatelů – přejmenování v Zásilkovně se jinak pozná
+		// až ve chvíli, kdy prodejce nemůže odeslat objednávku.
+		add_action( self::CRON_HOOK, [ $this, 'check_senders' ] );
+		if ( ! wp_next_scheduled( self::CRON_HOOK ) ) {
+			wp_schedule_event( time() + HOUR_IN_SECONDS, 'daily', self::CRON_HOOK );
+		}
+		add_action( 'admin_notices', [ $this, 'sender_notice' ] );
+
 		if ( class_exists( \NKZMP\Admin\SettingsHub::class ) && \NKZMP\Admin\SettingsHub::available() ) {
 			add_filter( 'nkzmp/v1/admin/settings/tabs', [ $this, 'register_tab' ] );
 		} else {
 			add_action( 'admin_menu', [ $this, 'menu' ], 35 );
 		}
+	}
+
+	public static function unschedule(): void {
+		$ts = wp_next_scheduled( self::CRON_HOOK );
+		if ( $ts ) {
+			wp_unschedule_event( $ts, self::CRON_HOOK );
+		}
+	}
+
+	/** AJAX: ověření jednoho názvu odesílatele proti Zásilkovně. */
+	public function ajax_validate_sender(): void {
+		check_ajax_referer( 'nkzmp_packeta_sender' );
+		if ( ! current_user_can( 'manage_woocommerce' ) ) {
+			wp_send_json_error( __( 'Nedostatečná oprávnění.', 'nkz-mp-packeta' ), 403 );
+		}
+		if ( ! self::is_configured() ) {
+			wp_send_json_error( __( 'Nejdřív vyplň a ulož API heslo.', 'nkz-mp-packeta' ) );
+		}
+		$label = isset( $_POST['label'] ) ? sanitize_text_field( wp_unslash( $_POST['label'] ) ) : '';
+		$res   = ( new ApiClient( self::api_password() ) )->validate_sender( $label );
+		if ( is_wp_error( $res ) ) {
+			wp_send_json_error( $res->get_error_message() );
+		}
+		wp_send_json_success( sprintf(
+			/* translators: %s: název odesílatele */
+			__( 'Odesílatel „%s" v Zásilkovně existuje.', 'nkz-mp-packeta' ),
+			$label
+		) );
+	}
+
+	/**
+	 * Denní kontrola všech používaných odesílatelů (globální + per-vendor).
+	 * Výsledek uložíme; nefunkční ukážeme jako upozornění v adminu.
+	 */
+	public function check_senders(): void {
+		if ( ! self::is_configured() ) {
+			return;
+		}
+		$labels = [];
+		$global = self::sender_label();
+		if ( $global !== '' ) {
+			$labels[ $global ] = __( 'globální', 'nkz-mp-packeta' );
+		}
+		$vendors = get_posts( [
+			'post_type'      => [ 'nkv_vendor', 'nkzmp_vendor' ],
+			'post_status'    => 'publish',
+			'posts_per_page' => 200,
+			'fields'         => 'ids',
+		] );
+		foreach ( $vendors as $vid ) {
+			$l = (string) get_post_meta( $vid, NKZMP_PACKETA_VENDOR_SENDER_LABEL_META, true );
+			if ( $l !== '' && ! isset( $labels[ $l ] ) ) {
+				$labels[ $l ] = get_the_title( $vid );
+			}
+		}
+
+		$api    = new ApiClient( self::api_password() );
+		$broken = [];
+		foreach ( $labels as $label => $who ) {
+			$res = $api->validate_sender( (string) $label );
+			if ( is_wp_error( $res ) ) {
+				$broken[] = [ 'label' => (string) $label, 'who' => (string) $who ];
+			}
+		}
+		update_option( 'nkzmp_packeta_broken_senders', $broken, false );
+	}
+
+	/** Upozornění v adminu, když nějaký odesílatel přestal platit. */
+	public function sender_notice(): void {
+		if ( ! current_user_can( 'manage_woocommerce' ) ) {
+			return;
+		}
+		$broken = get_option( 'nkzmp_packeta_broken_senders', [] );
+		if ( ! is_array( $broken ) || empty( $broken ) ) {
+			return;
+		}
+		echo '<div class="notice notice-error"><p><strong>'
+			. esc_html__( 'Zásilkovna: odesílatel neexistuje', 'nkz-mp-packeta' ) . '</strong><br>'
+			. esc_html__( 'Těmto prodejcům se nepodaří vytvořit štítek. Nejspíš se odesílatel v Zásilkovně přejmenoval.', 'nkz-mp-packeta' )
+			. '</p><ul style="list-style:disc;margin-left:20px;">';
+		foreach ( array_slice( $broken, 0, 10 ) as $b ) {
+			printf( '<li><code>%s</code> — %s</li>', esc_html( $b['label'] ), esc_html( $b['who'] ) );
+		}
+		echo '</ul><p><a href="' . esc_url( admin_url( 'admin.php?page=nkz-mp-packeta' ) ) . '">'
+			. esc_html__( 'Otevřít nastavení Zásilkovny', 'nkz-mp-packeta' ) . '</a></p></div>';
 	}
 
 	public function register_tab( array $tabs ): array {
@@ -122,7 +219,9 @@ final class Settings {
 		echo '</tr><tr>';
 		echo '<th><label for="sender_label">' . esc_html__( 'Výchozí odesílatel (eshop label)', 'nkz-mp-packeta' ) . '</label></th>';
 		echo '<td><input id="sender_label" type="text" name="' . esc_attr( self::OPTION ) . '[sender_label]" value="' . esc_attr( (string) $s['sender_label'] ) . '" style="width:420px" />';
-		echo '<p class="description">' . esc_html__( 'Název odesílatele tak, jak je nakonfigurovaný v Packeta účtu. Použije se, když prodejce nemá vlastní. Prodejce si může nastavit vlastní v profilu.', 'nkz-mp-packeta' ) . '</p></td>';
+		echo ' <button type="button" class="button" id="nkzmp-packeta-verify">' . esc_html__( 'Ověřit', 'nkz-mp-packeta' ) . '</button>';
+		echo ' <span id="nkzmp-packeta-verify-out" style="margin-left:8px;font-weight:500;"></span>';
+		echo '<p class="description">' . esc_html__( 'Název odesílatele tak, jak je nakonfigurovaný v Packeta účtu. Použije se, když prodejce nemá vlastní. Prodejce si může nastavit vlastní v profilu. Tlačítkem „Ověřit" si hned zkontroluješ, že ho Zásilkovna zná — nemusíš čekat na první objednávku.', 'nkz-mp-packeta' ) . '</p></td>';
 		echo '</tr><tr>';
 		echo '<th><label for="default_weight">' . esc_html__( 'Výchozí váha balíku (kg)', 'nkz-mp-packeta' ) . '</label></th>';
 		echo '<td><input id="default_weight" type="number" min="0.1" step="0.1" name="' . esc_attr( self::OPTION ) . '[default_weight]" value="' . esc_attr( (string) $s['default_weight'] ) . '" />';
@@ -134,6 +233,40 @@ final class Settings {
 		echo '</tr></table>';
 		submit_button();
 		echo '</form>';
+
+		// Ověření odesílatele proti Zásilkovně (bez ukládání).
+		$nonce = wp_create_nonce( 'nkzmp_packeta_sender' );
+		?>
+		<script>
+		(function(){
+			var btn = document.getElementById('nkzmp-packeta-verify');
+			var out = document.getElementById('nkzmp-packeta-verify-out');
+			var fld = document.getElementById('sender_label');
+			if (!btn || !out || !fld) return;
+			btn.addEventListener('click', function(){
+				out.textContent = '…';
+				out.style.color = '';
+				var body = new FormData();
+				body.append('action', 'nkzmp_packeta_validate_sender');
+				body.append('_ajax_nonce', <?php echo wp_json_encode( $nonce ); ?>);
+				body.append('label', fld.value);
+				fetch(<?php echo wp_json_encode( admin_url( 'admin-ajax.php' ) ); ?>, {
+					method: 'POST', body: body, credentials: 'same-origin'
+				})
+				.then(function(r){ return r.json(); })
+				.then(function(res){
+					var ok = res && res.success;
+					out.style.color = ok ? '#46b450' : '#b00020';
+					out.textContent = (ok ? '✓ ' : '✗ ') + ((res && res.data) ? res.data : '');
+				})
+				.catch(function(e){
+					out.style.color = '#b00020';
+					out.textContent = '✗ ' + e.message;
+				});
+			});
+		})();
+		</script>
+		<?php
 
 		$this->render_sender_overview();
 	}

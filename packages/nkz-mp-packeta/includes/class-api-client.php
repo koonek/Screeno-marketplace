@@ -115,6 +115,36 @@ final class ApiClient {
 	}
 
 	/**
+	 * Ověří, že odesílatel (eshop label) v účtu Zásilkovny existuje.
+	 *
+	 * Používá `senderGetReturnRouting` – vrací data pro existujícího odesílatele
+	 * a fault pro neznámého. Díky tomu poznáme špatný název hned při nastavení,
+	 * ne až když prodejce nemůže odeslat objednávku.
+	 *
+	 * @return true|\WP_Error
+	 */
+	public function validate_sender( string $sender_label ) {
+		$sender_label = trim( $sender_label );
+		if ( $sender_label === '' ) {
+			return new \WP_Error( 'nkzmp_packeta_sender_empty', __( 'Název odesílatele je prázdný.', 'nkz-mp-packeta' ) );
+		}
+		$body = '<?xml version="1.0" encoding="UTF-8"?>'
+			. '<senderGetReturnRouting>'
+			. '<apiPassword>' . htmlspecialchars( $this->password, ENT_XML1 | ENT_QUOTES, 'UTF-8' ) . '</apiPassword>'
+			. '<senderLabel>' . htmlspecialchars( $sender_label, ENT_XML1 | ENT_QUOTES, 'UTF-8' ) . '</senderLabel>'
+			. '</senderGetReturnRouting>';
+
+		$xml = $this->post( $body );
+		if ( is_wp_error( $xml ) ) {
+			return $xml;
+		}
+		if ( (string) $xml->status !== 'ok' ) {
+			return new \WP_Error( 'nkzmp_packeta_sender_invalid', $this->fault_message( $xml ) );
+		}
+		return true;
+	}
+
+	/**
 	 * @return \SimpleXMLElement|\WP_Error
 	 */
 	private function post( string $body ) {
