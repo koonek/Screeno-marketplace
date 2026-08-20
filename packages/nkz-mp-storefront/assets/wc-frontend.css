@@ -2837,10 +2837,8 @@ html body.woocommerce-page nav.woocommerce-pagination {
    měl mezeru. Dáme oběma STEJNÉ vodorovné okraje jedním pravidlem, aby
    se nemohly rozejít. Změna hodnoty: --nkzmp-shop-pad. */
 html body.woocommerce .nkzmp-shop-layout,
-html body.woocommerce .nkzmp-shop-promo,
 html body.woocommerce nav.woocommerce-pagination,
 html body.woocommerce-page .nkzmp-shop-layout,
-html body.woocommerce-page .nkzmp-shop-promo,
 html body.woocommerce-page nav.woocommerce-pagination {
 	padding-left: var(--nkzmp-shop-pad, 0px) !important;
 	padding-right: var(--nkzmp-shop-pad, 0px) !important;
@@ -2860,10 +2858,8 @@ html body .nkzmp-shop-promo > * {
 }
 @media (max-width: 720px) {
 	html body.woocommerce .nkzmp-shop-layout,
-	html body.woocommerce .nkzmp-shop-promo,
 	html body.woocommerce nav.woocommerce-pagination,
 	html body.woocommerce-page .nkzmp-shop-layout,
-	html body.woocommerce-page .nkzmp-shop-promo,
 	html body.woocommerce-page nav.woocommerce-pagination {
 		--nkzmp-shop-pad: 6px;
 	}
