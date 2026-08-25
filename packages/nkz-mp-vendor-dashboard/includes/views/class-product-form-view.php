@@ -179,7 +179,6 @@ final class ProductFormView {
 							<label for="vd_qty"><?php esc_html_e( 'Počet kusů skladem', 'nkz-mp-vendor-dashboard' ); ?> <span class="req">*</span></label>
 							<input id="vd_qty" type="number" name="stock_quantity" min="0" step="1"
 								value="<?php echo esc_attr( (string) $stock_qty ); ?>"
-								<?php echo $made_to_order ? 'disabled' : 'required'; ?>
 								data-nkzmp-qty />
 							<small><?php esc_html_e( 'Kolik kusů máš právě teď. Po vyprodání se produkt sám označí jako vyprodaný a nikdo si ho neobjedná navíc.', 'nkz-mp-vendor-dashboard' ); ?></small>
 						</div>
@@ -213,29 +212,39 @@ final class ProductFormView {
 						<small><?php esc_html_e( 'Uvidí to zákazník ještě před koupí a podle toho se ti počítá čas na odeslání. Vyber raději s rezervou.', 'nkz-mp-vendor-dashboard' ); ?></small>
 					</div>
 					<script>
+					/* Jeden skript pro celý blok „sklad". Prvky hledáme přes
+					   document – dřív to bylo přes sousední element a vložení
+					   dalšího bloku mezi ně to celé rozbilo (pole zůstalo
+					   zamčené a produkt nešel uložit). */
 					(function(){
-						var chk  = document.querySelector('[data-nkzmp-unlimited]');
-						var pre  = document.querySelector('[data-nkzmp-preorder]');
-						if (!chk || !pre) return;
-						function sync(){ pre.style.display = chk.checked ? '' : 'none'; }
-						chk.addEventListener('change', sync);
-						sync();
-					})();
-					</script>
-					<script>
-					(function(){
-						var wrap = document.currentScript.previousElementSibling;
-						if (!wrap) return;
-						var chk = wrap.querySelector('[data-nkzmp-unlimited]');
-						var qty = wrap.querySelector('[data-nkzmp-qty]');
-						if (!chk || !qty) return;
+						var chk = document.querySelector('[data-nkzmp-unlimited]');
+						var qty = document.querySelector('[data-nkzmp-qty]');
+						var pre = document.querySelector('[data-nkzmp-preorder]');
+						if (!chk) return;
+
 						function sync(){
-							qty.disabled = chk.checked;
-							qty.required = !chk.checked;
-							qty.closest('.nkzmp-vd-field').style.opacity = chk.checked ? '.45' : '';
+							var onDemand = chk.checked;
+							if (qty) {
+								qty.disabled = onDemand;
+								qty.required = !onDemand;
+								var field = qty.closest('.nkzmp-vd-field');
+								if (field) { field.style.opacity = onDemand ? '.45' : ''; }
+							}
+							if (pre) { pre.style.display = onDemand ? '' : 'none'; }
 						}
+
 						chk.addEventListener('change', sync);
 						sync();
+
+						/* Pojistka: zamčené pole prohlížeč neodesílá. Kdyby se
+						   stav někdy rozešel, před odesláním ho odemkneme, ať
+						   se hodnota neztratí a formulář nespadne na validaci. */
+						var form = chk.form || chk.closest('form');
+						if (form) {
+							form.addEventListener('submit', function(){
+								if (qty && !chk.checked) { qty.disabled = false; }
+							});
+						}
 					})();
 					</script>
 
