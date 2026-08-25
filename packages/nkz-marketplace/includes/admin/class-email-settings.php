@@ -33,9 +33,65 @@ final class EmailSettings {
 
 	public function init(): void {
 		add_action( 'admin_init', [ $this, 'register' ] );
+
+		// Odesílací adresa. Většina SMTP serverů (vč. českých hostingů) odmítne
+		// odeslat pod jinou adresou, než pod kterou je klient přihlášený –
+		// „use your login email address as mail from". Držíme ji proto na
+		// jednom místě a vnucujeme ji všem e-mailům (naše, WooCommerce, WP).
+		add_filter( 'wp_mail_from', [ self::class, 'filter_from_email' ], 99 );
+		add_filter( 'wp_mail_from_name', [ self::class, 'filter_from_name' ], 99 );
+		add_filter( 'woocommerce_email_from_address', [ self::class, 'filter_from_email' ], 99 );
+		add_filter( 'woocommerce_email_from_name', [ self::class, 'filter_from_name' ], 99 );
+		add_filter( 'wp_mail', [ self::class, 'add_reply_to' ], 99 );
 		add_action( 'admin_init', [ $this, 'maybe_migrate_legacy' ], 11 );
 		add_action( 'admin_init', [ $this, 'maybe_send_test' ], 12 );
 		add_filter( 'nkzmp/v1/admin/settings/tabs', [ $this, 'register_tab' ] );
+	}
+
+	/** Adresa, ze které se reálně odesílá (musí sedět s přihlášením do SMTP). */
+	public static function from_email(): string {
+		$saved = (array) get_option( self::OPTION, [] );
+		return trim( (string) ( $saved['sender_from_email'] ?? '' ) );
+	}
+
+	/** @param string $email */
+	public static function filter_from_email( $email ) {
+		$own = self::from_email();
+		return $own !== '' && is_email( $own ) ? $own : $email;
+	}
+
+	/** @param string $name */
+	public static function filter_from_name( $name ) {
+		$saved = (array) get_option( self::OPTION, [] );
+		$own   = trim( (string) ( $saved['sender_from_name'] ?? '' ) );
+		return $own !== '' ? $own : $name;
+	}
+
+	/**
+	 * Reply-To na „hezkou" adresu. Odesíláme sice z technické SMTP adresy,
+	 * ale odpověď příjemce má chodit tam, kde ji někdo čte.
+	 *
+	 * @param array $args wp_mail argumenty.
+	 */
+	public static function add_reply_to( $args ) {
+		if ( ! is_array( $args ) ) {
+			return $args;
+		}
+		$saved    = (array) get_option( self::OPTION, [] );
+		$reply_to = trim( (string) ( $saved['sender_reply_to'] ?? '' ) );
+		if ( $reply_to === '' || ! is_email( $reply_to ) ) {
+			return $args;
+		}
+		$headers = $args['headers'] ?? '';
+		$headers = is_array( $headers ) ? $headers : ( $headers !== '' ? [ $headers ] : [] );
+		foreach ( $headers as $h ) {
+			if ( stripos( (string) $h, 'reply-to:' ) === 0 ) {
+				return $args; // někdo už Reply-To nastavil, nepřepisujeme
+			}
+		}
+		$headers[]       = 'Reply-To: ' . $reply_to;
+		$args['headers'] = $headers;
+		return $args;
 	}
 
 	public function register(): void {
@@ -136,6 +192,50 @@ final class EmailSettings {
 			}
 		}
 		return $out;
+	}
+
+	/**
+	 * Box „Odesílatel" – adresa, ze které maily reálně odchází.
+	 *
+	 * Musí odpovídat účtu, kterým se přihlašujeme k SMTP. Většina serverů jinak
+	 * odmítne odeslat („use your login email address as mail from") a e-mail
+	 * tiše spadne – typicky reset hesla, který uživatel nikdy nedostane.
+	 */
+	private static function render_sender_box( array $s ): void {
+		$from_email = (string) ( $s['sender_from_email'] ?? '' );
+		$from_name  = (string) ( $s['sender_from_name'] ?? '' );
+		$reply_to   = (string) ( $s['sender_reply_to'] ?? '' );
+		?>
+		<div style="background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:16px 20px;margin:8px 0 16px;max-width:760px;">
+			<h2 style="margin:0 0 6px;font-size:15px;"><?php esc_html_e( 'Odesílatel', 'nkz-marketplace' ); ?></h2>
+			<p style="margin:0 0 12px;color:rgba(0,0,0,0.6);font-size:13px;">
+				<?php esc_html_e( 'Platí pro všechny e-maily z webu (naše i WooCommerce). Adresa se musí shodovat s účtem, kterým se web přihlašuje k SMTP — jinak server odeslání odmítne a e-mail nedorazí. Odpovědi můžeš směrovat jinam přes Reply-To.', 'nkz-marketplace' ); ?>
+			</p>
+			<table class="form-table" style="margin:0;">
+				<tr>
+					<th style="width:220px;"><label for="sender_from_email"><?php esc_html_e( 'Odesílací adresa (SMTP)', 'nkz-marketplace' ); ?></label></th>
+					<td>
+						<input type="email" id="sender_from_email" name="<?php echo esc_attr( self::OPTION ); ?>[sender_from_email]" value="<?php echo esc_attr( $from_email ); ?>" style="width:320px;" placeholder="web@artofzivot.cz" />
+						<p class="description"><?php esc_html_e( 'Stejná jako přihlašovací jméno k SMTP. Prázdné = použije se nastavení WooCommerce / WordPressu.', 'nkz-marketplace' ); ?></p>
+					</td>
+				</tr>
+				<tr>
+					<th><label for="sender_from_name"><?php esc_html_e( 'Jméno odesílatele', 'nkz-marketplace' ); ?></label></th>
+					<td><input type="text" id="sender_from_name" name="<?php echo esc_attr( self::OPTION ); ?>[sender_from_name]" value="<?php echo esc_attr( $from_name ); ?>" style="width:320px;" placeholder="Art of život" /></td>
+				</tr>
+				<tr>
+					<th><label for="sender_reply_to"><?php esc_html_e( 'Odpovědi chodí na (Reply-To)', 'nkz-marketplace' ); ?></label></th>
+					<td>
+						<input type="email" id="sender_reply_to" name="<?php echo esc_attr( self::OPTION ); ?>[sender_reply_to]" value="<?php echo esc_attr( $reply_to ); ?>" style="width:320px;" placeholder="info@artofzivot.cz" />
+						<p class="description"><?php esc_html_e( 'Kam přijde odpověď, když příjemce klikne „Odpovědět". Sem patří adresa, kterou reálně čtete.', 'nkz-marketplace' ); ?></p>
+					</td>
+				</tr>
+			</table>
+			<p class="description" style="margin-top:8px;">
+				<?php esc_html_e( 'Ulož tlačítkem „Uložit změny" dole pod šablonami.', 'nkz-marketplace' ); ?>
+			</p>
+		</div>
+		<?php
 	}
 
 	/** Box „Poslat testovací e-mail" nad formulářem. */
@@ -287,6 +387,7 @@ final class EmailSettings {
 		<?php self::render_test_box(); ?>
 		<form method="post" action="options.php">
 			<?php settings_fields( 'nkzmp_email_templates' ); ?>
+			<?php self::render_sender_box( $s ); ?>
 
 			<p style="max-width:760px;color:rgba(0,0,0,0.65);">
 				<?php esc_html_e( 'Texty všech e-mailů, které platforma rozesílá. Každá šablona má předmět a tělo. Placeholdery v složených závorkách se nahrazují za skutečné hodnoty při odeslání.', 'nkz-marketplace' ); ?>
