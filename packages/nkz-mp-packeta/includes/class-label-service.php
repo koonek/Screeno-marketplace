@@ -201,11 +201,19 @@ final class LabelService {
 	}
 
 	/**
-	 * Když VŠICHNI prodejci s fyzickou položkou v objednávce podali zásilku,
-	 * přepne objednávku na 'completed'. Vypnutí: nkzmp/v1/packeta/auto_complete.
+	 * Automatické dokončení objednávky po vytvoření štítků.
+	 *
+	 * VÝCHOZÍ STAV: VYPNUTO. Vytvoření štítku znamená jen to, že si prodejce
+	 * vytiskl etiketu – balík ještě fyzicky nikam nešel. Označit objednávku
+	 * jako „dokončenou" v tu chvíli je nepravdivé a hlavně nebezpečné: když má
+	 * platforma nastavené uvolnění výplaty na stav „dokončeno", vyplatila by
+	 * prodejce dřív, než zásilku vůbec podal.
+	 *
+	 * Objednávku dokončí admin, až bude zásilka reálně doručená.
+	 * Zapnutí (nedoporučeno): add_filter( 'nkzmp/v1/packeta/auto_complete', '__return_true' );
 	 */
 	private function maybe_complete_order( \WC_Order $order ): void {
-		if ( ! apply_filters( 'nkzmp/v1/packeta/auto_complete', true, $order ) ) {
+		if ( ! apply_filters( 'nkzmp/v1/packeta/auto_complete', false, $order ) ) {
 			return;
 		}
 		if ( $order->has_status( [ 'completed', 'refunded', 'cancelled' ] ) ) {
