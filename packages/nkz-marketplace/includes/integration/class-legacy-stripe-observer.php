@@ -41,12 +41,15 @@ final class LegacyStripeObserver {
 		if ( ! apply_filters( 'nkzmp/v1/integration/legacy_observer_enabled', true ) ) {
 			return;
 		}
-		// Plugin file: nkz-woo-stripe-vendor-split/nkz-woo-stripe-vendor-split.php
-		// (path zůstává původní; přesun do packages/ je jen v repo, ne v WP).
+		// Stripe adapter může být buď samostatný plugin (Screeno) nebo modul
+		// načtený přes AOZ bundle. Klíčové je, že jeho třídy + hooky jsou
+		// dostupné v PHP runtime.
 		if ( ! function_exists( 'is_plugin_active' ) ) {
 			require_once ABSPATH . 'wp-admin/includes/plugin.php';
 		}
-		if ( ! is_plugin_active( 'nkz-woo-stripe-vendor-split/nkz-woo-stripe-vendor-split.php' ) ) {
+		$adapter_loaded = is_plugin_active( 'nkz-woo-stripe-vendor-split/nkz-woo-stripe-vendor-split.php' )
+			|| class_exists( \NKVSVS\Plugin::class );
+		if ( ! $adapter_loaded ) {
 			return;
 		}
 
@@ -207,6 +210,13 @@ final class LegacyStripeObserver {
 		$original_credit     = $ledger->find_by_idempotency_key( $original_credit_key );
 		$reverses_id         = $original_credit ? $original_credit->id : null;
 
+		// Provize (vendor_id=0) se reverzuje proporčně k reverzované části transferu.
+		$transfer_amount    = (int) ( $record['amount_minor'] ?? 0 );
+		$commission         = (int) ( $record['platform_fee_minor'] ?? 0 );
+		$commission_key     = "legacy_observe:commission:order_{$order_id}:vendor_{$vendor_id}";
+		$commission_entry   = $commission > 0 ? $ledger->find_by_idempotency_key( $commission_key ) : null;
+		$commission_rev_id  = $commission_entry ? $commission_entry->id : null;
+
 		$total_reversed = 0;
 		foreach ( $reversals as $r ) {
 			$amount      = (int) ( $r['amount_minor'] ?? 0 );
@@ -230,6 +240,29 @@ final class LegacyStripeObserver {
 					'reverses_entry_id' => $reverses_id,
 				]
 			) );
+
+			// Proporční reverzace platform provize.
+			if ( $commission > 0 && $transfer_amount > 0 ) {
+				$commission_reversal = (int) floor( $commission * $amount / $transfer_amount );
+				if ( $commission_reversal > 0 ) {
+					$ledger->record( $this->entry(
+						0, // platform
+						EntryType::REVERSAL,
+						-$commission_reversal,
+						$currency,
+						$order_id,
+						$reversal_id,
+						"legacy_observe:commission_reversal:order_{$order_id}:vendor_{$vendor_id}:reversal_{$reversal_id}",
+						$created_at,
+						[
+							'reverses_transfer' => $transfer_id,
+							'reverses_entry_id' => $commission_rev_id,
+							'from_vendor_id'    => $vendor_id,
+							'kind'              => 'platform_commission_reversal',
+						]
+					) );
+				}
+			}
 
 			$total_reversed += $amount;
 		}

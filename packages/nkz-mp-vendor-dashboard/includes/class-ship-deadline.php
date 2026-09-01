@@ -1,0 +1,434 @@
+<?php
+/**
+ * ShipDeadline – „čas na odeslání" u objednávek.
+ *
+ * Jedna služba pro tři věci:
+ *  1. E-mail ZÁKAZNÍKOVI při zaplacení: „prodejce zabalí a odešle do <datum>".
+ *  2. CRON připomínky PRODEJCI: den před koncem lhůty + při prošvihnutí.
+ *  3. Admin PŘEHLED prošvihnutých objednávek (kdo nestíhá expedovat).
+ *
+ * Lhůta běží od zaplacení objednávky (fallback vytvoření) a končí vytvořením
+ * Packeta štítku (= odesláno). Vše čistě informativní – žádná automatická akce
+ * s penězi. Detekce odeslání čte jen order meta (žádné API volání v cronu).
+ *
+ * @package NKZMP\Dashboard
+ */
+
+namespace NKZMP\Dashboard;
+
+defined( 'ABSPATH' ) || exit;
+
+final class ShipDeadline {
+
+	public const CRON_HOOK      = 'nkzmp_ship_deadline_scan';
+	private const CUSTOMER_FLAG = '_nkzmp_ship_customer_notified';
+	private const REMIND_FLAG   = '_nkzmp_ship_remind_';   // + vendor_id (den předem)
+	private const OVERDUE_FLAG  = '_nkzmp_ship_overdue_';  // + vendor_id (po termínu)
+
+	private static ?ShipDeadline $instance = null;
+
+	public static function instance(): ShipDeadline {
+		return self::$instance ??= new self();
+	}
+
+	public function init(): void {
+		// 1) E-mail zákazníkovi po zaplacení (za OrderNotifications, prio 25).
+		add_action( 'woocommerce_order_status_processing', [ $this, 'notify_customer' ], 25 );
+
+		// 2) Cron připomínky prodejci.
+		add_action( self::CRON_HOOK, [ $this, 'scan' ] );
+		if ( ! wp_next_scheduled( self::CRON_HOOK ) ) {
+			wp_schedule_event( time() + HOUR_IN_SECONDS, 'twicedaily', self::CRON_HOOK );
+		}
+
+		// 3) Admin přehled prošvihnutých pod hlavním dashboardem.
+		add_action( 'nkzmp/v1/admin/dashboard/after', [ $this, 'render_admin_overview' ] );
+	}
+
+	public static function unschedule(): void {
+		$ts = wp_next_scheduled( self::CRON_HOOK );
+		if ( $ts ) {
+			wp_unschedule_event( $ts, self::CRON_HOOK );
+		}
+	}
+
+	/* ---------------------------------------------------------------------
+	 * Sdílená logika lhůty (používá i OrdersView).
+	 * ------------------------------------------------------------------- */
+
+	public const PREORDER_META = '_nkzmp_preorder_days';
+
+	/**
+	 * Lhůta pro skladové zboží (dny). U „na objednávku" platí lhůta z produktu.
+	 */
+	public static function days( ?\WC_Order $order = null ): int {
+		return max( 0, (int) apply_filters( 'nkzmp/v1/dashboard/ship_deadline_days', 5, $order ) );
+	}
+
+	/**
+	 * Nabídka lhůt pro tvorbu na objednávku.
+	 *
+	 * @return array<int,string> dny => popisek
+	 */
+	public static function preorder_options(): array {
+		return (array) apply_filters( 'nkzmp/v1/dashboard/preorder_options', [
+			14 => __( 'do 14 dnů (2 týdny)', 'nkz-mp-vendor-dashboard' ),
+			21 => __( 'do 21 dnů (3 týdny)', 'nkz-mp-vendor-dashboard' ),
+			30 => __( 'do 30 dnů (měsíc)', 'nkz-mp-vendor-dashboard' ),
+		] );
+	}
+
+	/**
+	 * Lhůta na odeslání konkrétního produktu (dny).
+	 * Skladové = standardních 5; na objednávku = hodnota z produktu.
+	 */
+	public static function product_days( int $product_id ): int {
+		$days = (int) get_post_meta( $product_id, self::PREORDER_META, true );
+		if ( $days > 0 ) {
+			$allowed = array_keys( self::preorder_options() );
+			// Neznámou hodnotu (změna nabídky) zaokrouhlíme na nejbližší vyšší.
+			if ( ! in_array( $days, $allowed, true ) ) {
+				sort( $allowed );
+				foreach ( $allowed as $a ) {
+					if ( $a >= $days ) {
+						return $a;
+					}
+				}
+				return (int) end( $allowed );
+			}
+			return $days;
+		}
+		return self::days();
+	}
+
+	/** Je produkt „na objednávku"? */
+	public static function is_preorder( int $product_id ): bool {
+		return (int) get_post_meta( $product_id, self::PREORDER_META, true ) > 0;
+	}
+
+	/** Čas zaplacení (fallback vytvoření), nebo 0. */
+	public static function paid_ts( \WC_Order $order ): int {
+		$d = $order->get_date_paid() ?: $order->get_date_created();
+		return $d ? (int) $d->getTimestamp() : 0;
+	}
+
+	/**
+	 * Deadline timestamp = zaplaceno + lhůta.
+	 *
+	 * Lhůta se bere z produktů: skladové 5 dní, na objednávku dle nastavení
+	 * produktu. Když je v objednávce oboje, platí ta NEJDELŠÍ – prodejce balí
+	 * dohromady a nemá smysl ho hnát za položku, kterou objektivně nestíhá.
+	 *
+	 * @param int|null $vendor_id Počítat jen z položek daného prodejce.
+	 */
+	public static function deadline_ts( \WC_Order $order, ?int $vendor_id = null ): int {
+		$paid = self::paid_ts( $order );
+		if ( $paid <= 0 ) {
+			return 0;
+		}
+		return $paid + self::order_days( $order, $vendor_id ) * DAY_IN_SECONDS;
+	}
+
+	/** Nejdelší lhůta mezi položkami (volitelně jen jednoho prodejce). */
+	public static function order_days( \WC_Order $order, ?int $vendor_id = null ): int {
+		$days = 0;
+		foreach ( $order->get_items( 'line_item' ) as $item ) {
+			if ( ! $item instanceof \WC_Order_Item_Product ) {
+				continue;
+			}
+			$pid = $item->get_product_id();
+			if ( $vendor_id !== null ) {
+				$vid = (int) get_post_meta( $pid, '_nkzmp_vendor_id', true );
+				if ( $vid <= 0 ) {
+					$vid = (int) get_post_meta( $pid, '_nkv_vendor_id', true );
+				}
+				if ( $vid !== $vendor_id ) {
+					continue;
+				}
+			}
+			$days = max( $days, self::product_days( $pid ) );
+		}
+		return $days > 0 ? $days : self::days( $order );
+	}
+
+	/** Distinct vendor ID v objednávce. */
+	public static function order_vendor_ids( \WC_Order $order ): array {
+		$ids = [];
+		foreach ( $order->get_items( 'line_item' ) as $item ) {
+			if ( ! $item instanceof \WC_Order_Item_Product ) {
+				continue;
+			}
+			$pid = $item->get_product_id();
+			$vid = (int) get_post_meta( $pid, '_nkzmp_vendor_id', true );
+			if ( $vid <= 0 ) {
+				$vid = (int) get_post_meta( $pid, '_nkv_vendor_id', true );
+			}
+			if ( $vid > 0 ) {
+				$ids[ $vid ] = true;
+			}
+		}
+		return array_keys( $ids );
+	}
+
+	/** Má daný prodejce v objednávce fyzické (odesílatelné) zboží? */
+	public static function vendor_needs_shipping( \WC_Order $order, int $vendor_id ): bool {
+		foreach ( $order->get_items( 'line_item' ) as $item ) {
+			if ( ! $item instanceof \WC_Order_Item_Product ) {
+				continue;
+			}
+			$pid = $item->get_product_id();
+			$vid = (int) get_post_meta( $pid, '_nkzmp_vendor_id', true );
+			if ( $vid <= 0 ) {
+				$vid = (int) get_post_meta( $pid, '_nkv_vendor_id', true );
+			}
+			if ( $vid !== $vendor_id ) {
+				continue;
+			}
+			$product = $item->get_product();
+			if ( $product && $product->needs_shipping() ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/** Odeslal už prodejce svou část? (Packeta štítek s barcode.) */
+	public static function is_vendor_dispatched( \WC_Order $order, int $vendor_id ): bool {
+		if ( ! class_exists( \NKZMP\Packeta\LabelService::class ) ) {
+			return false;
+		}
+		$packet = \NKZMP\Packeta\LabelService::instance()->get_packet( $order, $vendor_id );
+		return is_array( $packet ) && ! empty( $packet['barcode'] );
+	}
+
+	/**
+	 * Otevřené, fyzické, ještě neodeslané „prodejce v objednávce".
+	 *
+	 * @return array<int,array{order:\WC_Order,vendor_id:int,deadline:int}>
+	 */
+	public static function collect_pending( int $limit = 200 ): array {
+		if ( ! function_exists( 'wc_get_orders' ) ) {
+			return [];
+		}
+		$orders = wc_get_orders( [
+			'limit'   => $limit,
+			'status'  => [ 'processing', 'on-hold' ],
+			'orderby' => 'date',
+			'order'   => 'DESC',
+		] );
+		$rows = [];
+		foreach ( $orders as $order ) {
+			if ( ! $order instanceof \WC_Order ) {
+				continue;
+			}
+			foreach ( self::order_vendor_ids( $order ) as $vid ) {
+				// Termín počítáme za položky konkrétního prodejce – každý má
+				// v objednávce svoje a lhůty se můžou lišit.
+				$deadline = self::deadline_ts( $order, $vid );
+				if ( $deadline <= 0 ) {
+					continue;
+				}
+				if ( ! self::vendor_needs_shipping( $order, $vid ) ) {
+					continue;
+				}
+				if ( self::is_vendor_dispatched( $order, $vid ) ) {
+					continue;
+				}
+				$rows[] = [ 'order' => $order, 'vendor_id' => $vid, 'deadline' => $deadline ];
+			}
+		}
+		return $rows;
+	}
+
+	/* ---------------------------------------------------------------------
+	 * 1) E-mail zákazníkovi.
+	 * ------------------------------------------------------------------- */
+
+	public function notify_customer( int $order_id ): void {
+		$order = wc_get_order( $order_id );
+		if ( ! $order instanceof \WC_Order ) {
+			return;
+		}
+		if ( $order->get_meta( self::CUSTOMER_FLAG ) ) {
+			return; // už posláno
+		}
+		$email = $order->get_billing_email();
+		if ( ! is_email( $email ) ) {
+			return;
+		}
+		// Jen když má objednávka vůbec nějakého prodejce s fyzickým zbožím.
+		$has_physical = false;
+		foreach ( self::order_vendor_ids( $order ) as $vid ) {
+			if ( self::vendor_needs_shipping( $order, $vid ) ) {
+				$has_physical = true;
+				break;
+			}
+		}
+		if ( ! $has_physical ) {
+			return;
+		}
+
+		$deadline = self::deadline_ts( $order );
+		if ( $deadline <= 0 ) {
+			return;
+		}
+		$site          = (string) get_bloginfo( 'name' );
+		$deadline_str  = wp_date( 'j. n. Y', $deadline );
+		$customer_name = trim( (string) $order->get_billing_first_name() );
+
+		$vars = [
+			'name'          => $customer_name !== '' ? $customer_name : __( 'ahoj', 'nkz-mp-vendor-dashboard' ),
+			'order_number'  => (string) $order->get_order_number(),
+			'ship_deadline' => $deadline_str,
+			'site_name'     => $site,
+		];
+		$subject = '';
+		$body    = '';
+		if ( class_exists( \NKZMP\Admin\EmailSettings::class ) ) {
+			$subject = \NKZMP\Admin\EmailSettings::interpolate( \NKZMP\Admin\EmailSettings::raw( 'email_ship_customer_subject' ), $vars );
+			$body    = \NKZMP\Admin\EmailSettings::interpolate( \NKZMP\Admin\EmailSettings::raw( 'email_ship_customer_body' ), $vars );
+		}
+		if ( $subject === '' || $body === '' ) {
+			$subject = sprintf( __( 'Tvoje objednávka #%1$s je u prodejce — %2$s', 'nkz-mp-vendor-dashboard' ), $vars['order_number'], $site );
+			$body    = sprintf(
+				__( "Ahoj %1\$s,\n\ntvoji objednávku #%2\$s jsme předali prodejci. Odešle ji nejpozději do %3\$s.\n\nDíky, že nakupuješ na %4\$s.", 'nkz-mp-vendor-dashboard' ),
+				$vars['name'], $vars['order_number'], $deadline_str, $site
+			);
+		}
+		$subject = (string) apply_filters( 'nkzmp/v1/ship/customer_subject', $subject, $order );
+		$body    = (string) apply_filters( 'nkzmp/v1/ship/customer_body', $body, $order, $deadline );
+
+		$this->send( $email, $subject, $body );
+		$order->update_meta_data( self::CUSTOMER_FLAG, time() );
+		$order->save();
+	}
+
+	/* ---------------------------------------------------------------------
+	 * 2) Cron připomínky prodejci.
+	 * ------------------------------------------------------------------- */
+
+	public function scan(): void {
+		$now  = time();
+		$rows = self::collect_pending();
+		foreach ( $rows as $row ) {
+			$order    = $row['order'];
+			$vid      = (int) $row['vendor_id'];
+			$deadline = (int) $row['deadline'];
+
+			if ( $now >= $deadline ) {
+				$flag = self::OVERDUE_FLAG . $vid;
+				if ( ! $order->get_meta( $flag ) ) {
+					$this->email_vendor( $order, $vid, 'overdue', $deadline );
+					$order->update_meta_data( $flag, time() );
+					$order->save();
+				}
+			} elseif ( $now >= $deadline - DAY_IN_SECONDS ) {
+				$flag = self::REMIND_FLAG . $vid;
+				if ( ! $order->get_meta( $flag ) ) {
+					$this->email_vendor( $order, $vid, 'soon', $deadline );
+					$order->update_meta_data( $flag, time() );
+					$order->save();
+				}
+			}
+		}
+	}
+
+	private function email_vendor( \WC_Order $order, int $vendor_id, string $mode, int $deadline ): void {
+		$vendor = ( new \NKZMP\Vendor\Repository() )->find( $vendor_id );
+		if ( ! $vendor || empty( $vendor['email'] ) ) {
+			return;
+		}
+		$site         = (string) get_bloginfo( 'name' );
+		$vendor_name  = (string) $vendor['name'];
+		$deadline_str = wp_date( 'j. n. Y H:i', $deadline );
+		$orders_url   = wc_get_account_endpoint_url( 'vendor-orders' );
+		$num          = $order->get_order_number();
+
+		$key  = $mode === 'overdue' ? 'email_ship_overdue' : 'email_ship_remind';
+		$vars = [
+			'name'          => $vendor_name,
+			'name_vocative' => class_exists( \NKZMP\Services\VocativeService::class )
+				? \NKZMP\Services\VocativeService::get( $vendor_name, $vendor_id )
+				: $vendor_name,
+			'order_number'  => (string) $num,
+			'ship_deadline' => $deadline_str,
+			'ship_days'     => (string) self::order_days( $order, $vendor_id ),
+			'orders_url'    => $orders_url,
+			'site_name'     => $site,
+		];
+
+		$subject = '';
+		$body    = '';
+		if ( class_exists( \NKZMP\Admin\EmailSettings::class ) ) {
+			$subject = \NKZMP\Admin\EmailSettings::interpolate( \NKZMP\Admin\EmailSettings::raw( $key . '_subject' ), $vars );
+			$body    = \NKZMP\Admin\EmailSettings::interpolate( \NKZMP\Admin\EmailSettings::raw( $key . '_body' ), $vars );
+		}
+		if ( $subject === '' || $body === '' ) {
+			// Fallback, kdyby core modul nebyl aktivní.
+			$subject = $mode === 'overdue'
+				? sprintf( __( '⚠️ Objednávka #%1$s po termínu odeslání — %2$s', 'nkz-mp-vendor-dashboard' ), $num, $site )
+				: sprintf( __( '⏳ Připomínka: odešli objednávku #%1$s — %2$s', 'nkz-mp-vendor-dashboard' ), $num, $site );
+			$body = $mode === 'overdue'
+				? sprintf( __( "Ahoj %1\$s,\n\nobjednávka #%2\$s měla být odeslána do %3\$s, ale zatím pro ni nemáme štítek Zásilkovny.\n\nObjednávky: %4\$s", 'nkz-mp-vendor-dashboard' ), $vendor_name, $num, $deadline_str, $orders_url )
+				: sprintf( __( "Ahoj %1\$s,\n\npřipomínáme objednávku #%2\$s — lhůta na odeslání končí %3\$s.\n\nObjednávky: %4\$s", 'nkz-mp-vendor-dashboard' ), $vendor_name, $num, $deadline_str, $orders_url );
+		}
+		$subject = (string) apply_filters( 'nkzmp/v1/ship/vendor_subject', $subject, $mode, $order, $vendor_id );
+		$body    = (string) apply_filters( 'nkzmp/v1/ship/vendor_body', $body, $mode, $order, $vendor_id );
+
+		$this->send( (string) $vendor['email'], $subject, $body );
+	}
+
+	/* ---------------------------------------------------------------------
+	 * 3) Admin přehled prošvihnutých.
+	 * ------------------------------------------------------------------- */
+
+	public function render_admin_overview(): void {
+		$now  = time();
+		$rows = array_filter( self::collect_pending(), static fn( $r ) => $now >= (int) $r['deadline'] );
+		usort( $rows, static fn( $a, $b ) => (int) $a['deadline'] <=> (int) $b['deadline'] );
+
+		echo '<div class="nkzmp-admin-card" style="margin-top:24px;padding:20px;background:#fff;border:1px solid #e2e4e7;border-radius:8px;">';
+		echo '<h2 style="margin-top:0;">' . esc_html__( '⚠️ Po termínu odeslání', 'nkz-mp-vendor-dashboard' ) . '</h2>';
+
+		if ( empty( $rows ) ) {
+			echo '<p style="color:#46b450;">' . esc_html__( 'Nic nečeká po termínu. Všichni prodejci stíhají expedovat. 👍', 'nkz-mp-vendor-dashboard' ) . '</p>';
+			echo '</div>';
+			return;
+		}
+
+		echo '<p style="color:rgba(0,0,0,.6);">' . esc_html__( 'Objednávky, které měly být už odeslané (chybí štítek Zásilkovny). Řazeno od nejstaršího termínu.', 'nkz-mp-vendor-dashboard' ) . '</p>';
+		echo '<table class="widefat striped"><thead><tr>';
+		echo '<th>' . esc_html__( 'Objednávka', 'nkz-mp-vendor-dashboard' ) . '</th>';
+		echo '<th>' . esc_html__( 'Prodejce', 'nkz-mp-vendor-dashboard' ) . '</th>';
+		echo '<th>' . esc_html__( 'Termín byl', 'nkz-mp-vendor-dashboard' ) . '</th>';
+		echo '<th>' . esc_html__( 'Po termínu', 'nkz-mp-vendor-dashboard' ) . '</th>';
+		echo '</tr></thead><tbody>';
+		foreach ( $rows as $r ) {
+			$order    = $r['order'];
+			$vid      = (int) $r['vendor_id'];
+			$deadline = (int) $r['deadline'];
+			$vendor   = ( new \NKZMP\Vendor\Repository() )->find( $vid );
+			$vname    = $vendor ? (string) $vendor['name'] : ( '#' . $vid );
+			printf(
+				'<tr><td><a href="%s">#%s</a></td><td>%s</td><td>%s</td><td style="color:#b00020;font-weight:600;">%s</td></tr>',
+				esc_url( $order->get_edit_order_url() ),
+				esc_html( (string) $order->get_order_number() ),
+				esc_html( $vname ),
+				esc_html( wp_date( 'j. n. Y H:i', $deadline ) ),
+				esc_html( human_time_diff( $deadline, $now ) )
+			);
+		}
+		echo '</tbody></table>';
+		echo '</div>';
+	}
+
+	/* ------------------------------------------------------------------- */
+
+	private function send( string $to, string $subject, string $body ): void {
+		if ( class_exists( \NKZMP\Registration\EmailService::class ) ) {
+			\NKZMP\Registration\EmailService::send_raw( $to, $subject, $body );
+			return;
+		}
+		wp_mail( $to, $subject, $body, [ 'Content-Type: text/plain; charset=UTF-8' ] );
+	}
+}

@@ -1,0 +1,278 @@
+/* NKZ Marketplace Storefront — Art of život, sladěno s homepage (nkz.studio).
+ *
+ * Měkký vzdušný styl: teplý krémový podklad, jemné zaoblení karet,
+ * modrá #0060FF jako akcent. Pryč od tvrdých černých linek.
+ * Font: Fabio XM Regular (theme @font-face), fallback Inter / system.
+ *
+ * Theme override: :root { --nkzmp-color-accent: ...; ... }
+ */
+
+:root {
+	/* AOZ paleta */
+	--nkzmp-color-bg: #ffffff;
+	--nkzmp-color-bg-warm: #faf8f4;
+	--nkzmp-color-surface: #ffffff;
+	--nkzmp-color-text: #111111;
+	--nkzmp-color-text-muted: rgba(17, 17, 17, 0.56);
+	--nkzmp-color-border: rgba(17, 17, 17, 0.10);
+	--nkzmp-color-border-soft: rgba(17, 17, 17, 0.07);
+	--nkzmp-color-accent: #0060FF;
+	--nkzmp-color-accent-hover: #0048cc;
+	--nkzmp-color-accent-soft: rgba(0, 96, 255, 0.06);
+
+	/* Typografie */
+	--nkzmp-font-family: 'Fabio XM AOZ', 'Fabio XM', 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+	--nkzmp-font-weight: 400;
+
+	--nkzmp-font-h1: clamp(32px, 5vw, 56px);
+	--nkzmp-font-h2: clamp(24px, 3.5vw, 36px);
+	--nkzmp-font-h3: clamp(18px, 2.4vw, 22px);
+	--nkzmp-font-body: 16px;
+	--nkzmp-font-small: 14px;
+	--nkzmp-line-height: 1.55;
+
+	/* Spacing scale */
+	--nkzmp-gap-xs: 4px;
+	--nkzmp-gap-sm: 8px;
+	--nkzmp-gap-md: 16px;
+	--nkzmp-gap-lg: 32px;
+	--nkzmp-gap-xl: 56px;
+
+	/* Radius + stín – sladěno s kartami homepage */
+	--nkzmp-radius: 12px;
+	--nkzmp-radius-soft: 10px;
+	--nkzmp-shadow: 0 1px 2px rgba(17,17,17,0.04), 0 8px 24px rgba(17,17,17,0.05);
+}
+
+.nkzmp-vendor-page {
+	max-width: 1280px;
+	margin: 0 auto;
+	padding: var(--nkzmp-gap-xl) var(--nkzmp-gap-md);
+	color: var(--nkzmp-color-text);
+	font-family: var(--nkzmp-font-family);
+	font-weight: var(--nkzmp-font-weight);
+	font-size: var(--nkzmp-font-body);
+	line-height: var(--nkzmp-line-height);
+	background: var(--nkzmp-color-bg);
+}
+
+/* Vendor header — cover banner s overlapping avatarem + body pod ním.
+ * Bez coveru: clean layout jen s avatarem vlevo a meta vpravo.
+ *
+ * !important + html body specificita: na AOZ je v theme child stylu
+ * (.aez-vendor-page) vlastní CSS systém pro vendor page, který by
+ * jinak vyhrával díky pořadí načtení. */
+html body .nkzmp-vendor-header {
+	margin-bottom: var(--nkzmp-gap-xl) !important;
+	background: transparent !important;
+	border: 0 !important;
+	border-radius: 0 !important;
+	padding: 0 !important;
+	display: block !important;
+}
+html body .nkzmp-vendor-header__cover {
+	position: relative !important;
+	display: block !important;
+	overflow: hidden !important;
+	width: 100% !important;
+	border-radius: var(--nkzmp-radius) !important;
+	background: var(--nkzmp-color-bg-warm) !important;
+	aspect-ratio: 3 / 1 !important;
+	margin: 0 0 0 !important;
+}
+html body .nkzmp-vendor-header__cover img {
+	display: block !important;
+	width: 100% !important;
+	height: 100% !important;
+	object-fit: cover !important;
+	border-radius: 0 !important;
+	aspect-ratio: auto !important;
+}
+/* Flex + wrap místo pevné mřížky 180px+1fr. Zalomení pak řídí SKUTEČNÉ
+   dostupné místo, ne šířka okna – v úzkém kontejneru (Elementor sloupec,
+   theme s užším obsahem) se jinak text namáčkl do pár znaků na řádek. */
+html body .nkzmp-vendor-header__body {
+	display: flex !important;
+	flex-wrap: wrap !important;
+	gap: var(--nkzmp-gap-lg) !important;
+	align-items: flex-start !important;
+	padding: 0 var(--nkzmp-gap-md) !important;
+}
+html body .nkzmp-vendor-header__meta {
+	flex: 1 1 320px !important; /* pod 320 px se text zalomí pod avatar */
+	min-width: 0 !important;    /* jinak flex nedovolí zúžení a text přeteče */
+}
+/* Bez coveru: stačí menší padding, avatar zarovnaný k textu. */
+html body .nkzmp-vendor-header:not(.has-cover) .nkzmp-vendor-header__body {
+	align-items: center !important;
+	padding: var(--nkzmp-gap-lg) var(--nkzmp-gap-md) !important;
+	background: var(--nkzmp-color-bg-warm) !important;
+	border: 1px solid var(--nkzmp-color-border-soft) !important;
+	border-radius: var(--nkzmp-radius) !important;
+}
+/* Avatar – kruh, fix rozměry. */
+html body .nkzmp-vendor-header__avatar {
+	width: 160px !important;
+	height: 160px !important;
+	border-radius: 50% !important;
+	overflow: hidden !important;
+	background: var(--nkzmp-color-surface) !important;
+	border: 4px solid var(--nkzmp-color-surface) !important;
+	box-shadow: 0 4px 16px rgba(17,17,17,0.08) !important;
+	flex-shrink: 0 !important;
+	display: block !important;
+	box-sizing: content-box !important;
+}
+html body .nkzmp-vendor-header.has-cover .nkzmp-vendor-header__avatar {
+	margin-top: -80px !important;
+	position: relative !important;
+	z-index: 2 !important;
+}
+html body .nkzmp-vendor-header__avatar img {
+	display: block !important;
+	width: 100% !important;
+	height: 100% !important;
+	object-fit: cover !important;
+	border-radius: 50% !important;
+	aspect-ratio: 1 / 1 !important;
+}
+html body .nkzmp-vendor-header__meta {
+	padding-top: 16px !important;
+}
+@media (max-width: 720px) {
+	html body .nkzmp-vendor-header__body { grid-template-columns: 1fr !important; gap: var(--nkzmp-gap-md) !important; }
+	html body .nkzmp-vendor-header__avatar { width: 120px !important; height: 120px !important; }
+	html body .nkzmp-vendor-header.has-cover .nkzmp-vendor-header__avatar { margin-top: -60px !important; }
+}
+.nkzmp-vendor-header__name { margin: 0 0 var(--nkzmp-gap-md); font-size: var(--nkzmp-font-h1); font-weight: 500; letter-spacing: -0.03em; line-height: 1.08; }
+.nkzmp-vendor-header__web {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	margin-right: var(--nkzmp-gap-md);
+	padding: 9px 16px;
+	background: var(--nkzmp-color-surface);
+	border: 1px solid var(--nkzmp-color-border);
+	border-radius: 999px;
+	color: var(--nkzmp-color-accent);
+	text-decoration: none;
+	font-size: var(--nkzmp-font-small);
+	font-weight: 500;
+	transition: border-color 0.15s ease, color 0.15s ease;
+}
+.nkzmp-vendor-header__web:hover { color: var(--nkzmp-color-accent-hover); border-color: var(--nkzmp-color-accent); }
+.nkzmp-vendor-header__bio { margin-top: var(--nkzmp-gap-md); color: rgba(17,17,17,0.74); max-width: 60ch; }
+
+/* Section heading */
+.nkzmp-vendor-products-section > h2 { font-size: var(--nkzmp-font-h2); font-weight: 500; margin: 0 0 var(--nkzmp-gap-lg); letter-spacing: -0.02em; }
+
+/* Product grid — měkké karty se zaoblením + jemný lift na hover */
+.nkzmp-vendor-products { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: var(--nkzmp-gap-lg); }
+.nkzmp-vendor-product {
+	display: flex;
+	flex-direction: column;
+	text-decoration: none;
+	color: var(--nkzmp-color-text);
+	background: var(--nkzmp-color-surface);
+	border: 1px solid var(--nkzmp-color-border-soft);
+	border-radius: var(--nkzmp-radius);
+	overflow: hidden;
+	transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+.nkzmp-vendor-product:hover {
+	transform: translateY(-3px);
+	box-shadow: var(--nkzmp-shadow);
+	border-color: var(--nkzmp-color-border);
+}
+.nkzmp-vendor-product img { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; display: block; background: var(--nkzmp-color-bg-warm); }
+.nkzmp-vendor-product h3 { margin: var(--nkzmp-gap-md) var(--nkzmp-gap-md) var(--nkzmp-gap-xs); font-size: var(--nkzmp-font-h3); font-weight: 500; letter-spacing: -0.01em; }
+.nkzmp-vendor-product .price { margin: 0 var(--nkzmp-gap-md) var(--nkzmp-gap-md); color: var(--nkzmp-color-accent); font-weight: 600; font-size: var(--nkzmp-font-body); }
+.nkzmp-vendor-product .price ins { text-decoration: none; }
+.nkzmp-vendor-product .price del { color: var(--nkzmp-color-text-muted); margin-right: 4px; font-weight: 400; }
+
+/* Archive — vendor karty */
+.nkzmp-vendor-archive { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--nkzmp-gap-lg); }
+.nkzmp-vendor-card {
+	padding: var(--nkzmp-gap-lg);
+	background: var(--nkzmp-color-surface);
+	border: 1px solid var(--nkzmp-color-border-soft);
+	border-radius: var(--nkzmp-radius);
+	transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+.nkzmp-vendor-card:hover { transform: translateY(-3px); box-shadow: var(--nkzmp-shadow); border-color: var(--nkzmp-color-border); }
+.nkzmp-vendor-card h2 { margin: 0 0 var(--nkzmp-gap-sm); font-size: var(--nkzmp-font-h3); font-weight: 500; letter-spacing: -0.01em; }
+.nkzmp-vendor-card h2 a { color: var(--nkzmp-color-text); text-decoration: none; }
+.nkzmp-vendor-card h2 a:hover { color: var(--nkzmp-color-accent); }
+.nkzmp-vendor-card .bio { color: var(--nkzmp-color-text-muted); font-size: var(--nkzmp-font-small); line-height: var(--nkzmp-line-height); }
+
+/* Pagination — pill akcent pro current */
+.nkzmp-pagination { margin-top: var(--nkzmp-gap-xl); text-align: center; }
+.nkzmp-pagination .page-numbers {
+	display: inline-block;
+	padding: var(--nkzmp-gap-sm) var(--nkzmp-gap-md);
+	margin: 0 var(--nkzmp-gap-xs);
+	text-decoration: none;
+	color: var(--nkzmp-color-text);
+	border-radius: var(--nkzmp-radius-soft);
+	transition: background 0.15s ease, color 0.15s ease;
+}
+.nkzmp-pagination .page-numbers:hover { background: var(--nkzmp-color-bg-warm); }
+.nkzmp-pagination .page-numbers.current { color: #fff; background: var(--nkzmp-color-accent); }
+
+/* Product page „Prodejce" link */
+.nkzmp-product-vendor { font-size: var(--nkzmp-font-small); color: var(--nkzmp-color-text-muted); margin: var(--nkzmp-gap-md) 0; }
+.nkzmp-product-vendor a {
+	color: var(--nkzmp-color-accent);
+	text-decoration: none;
+	border-bottom: 1px solid currentColor;
+}
+.nkzmp-product-vendor a:hover { color: var(--nkzmp-color-accent-hover); }
+
+/* ── „Vidět vše" – tlačítko pod gridem / sekcí ─────────────────────────
+   `!important` schválně: šablona i Elementor barví globálně všechny <a>
+   (odkaz se jinak vykreslí jako holý růžový text bez tlačítka). */
+.nkzmp-latest-more {
+	display: flex !important;
+	justify-content: center;
+	margin-top: var(--nkzmp-gap-lg, 32px);
+}
+.nkzmp-latest-more.is-left { justify-content: flex-start; }
+.nkzmp-latest-more.is-right { justify-content: flex-end; }
+
+.nkzmp-latest-more a.nkzmp-latest-more__link,
+.nkzmp-latest-more .nkzmp-latest-more__link:link,
+.nkzmp-latest-more .nkzmp-latest-more__link:visited {
+	display: inline-flex !important;
+	align-items: center;
+	gap: 8px;
+	padding: 14px 30px;
+	background: var(--nkzmp-color-accent, #0060FF) !important;
+	border: 0 !important;
+	border-radius: 999px !important;
+	color: #fff !important;
+	-webkit-text-fill-color: #fff !important;
+	text-decoration: none !important;
+	font-size: var(--nkzmp-font-small, 15px);
+	font-weight: 500;
+	line-height: 1.2;
+	letter-spacing: 0.01em;
+	box-shadow: none;
+	transition: background 0.15s ease, transform 0.15s ease;
+}
+.nkzmp-latest-more a.nkzmp-latest-more__link:hover,
+.nkzmp-latest-more a.nkzmp-latest-more__link:focus-visible {
+	background: var(--nkzmp-color-accent-hover, #0047c2) !important;
+	color: #fff !important;
+	-webkit-text-fill-color: #fff !important;
+}
+.nkzmp-latest-more .nkzmp-latest-more__link svg {
+	flex: 0 0 auto;
+	transition: transform 0.15s ease;
+}
+.nkzmp-latest-more .nkzmp-latest-more__link:hover svg { transform: translateX(3px); }
+
+@media (prefers-reduced-motion: reduce) {
+	.nkzmp-latest-more .nkzmp-latest-more__link,
+	.nkzmp-latest-more .nkzmp-latest-more__link svg { transition: none; }
+	.nkzmp-latest-more .nkzmp-latest-more__link:hover svg { transform: none; }
+}

@@ -17,6 +17,14 @@ final class Transfer_Service {
 	public function init(): void {
 		$settings = Plugin::settings();
 		$primary  = $settings['transfer_hook'] ?? 'payment_complete';
+
+		// Escrow: transfery se NEvytvářejí automaticky při platbě/stavu. Peníze
+		// drží platforma. Uvolní je Escrow až po podání zásilky + ochranné
+		// lhůtě (nebo admin ručně). Žádné auto hooky.
+		if ( 'escrow' === $primary ) {
+			return;
+		}
+
 		switch ( $primary ) {
 			case 'completed':
 				add_action( 'woocommerce_order_status_completed', [ $this, 'maybe_create_transfers' ], 20 );
@@ -39,7 +47,12 @@ final class Transfer_Service {
 	 * @param int  $order_id
 	 * @param bool $force_dry_run If true, override settings and just calculate/log.
 	 */
-	public function maybe_create_transfers( int $order_id, bool $force_dry_run = false ): void {
+	/**
+	 * @param int      $order_id
+	 * @param bool     $force_dry_run
+	 * @param int|null $only_vendor_id Escrow: uvolni transfer jen pro tohoto vendora.
+	 */
+	public function maybe_create_transfers( int $order_id, bool $force_dry_run = false, ?int $only_vendor_id = null ): void {
 		if ( ! Plugin::is_enabled() ) {
 			return;
 		}
@@ -48,8 +61,9 @@ final class Transfer_Service {
 			return;
 		}
 
-		// Already processed?
-		if ( 'completed' === $order->get_meta( '_nkv_split_status' ) ) {
+		// Already processed? (Escrow per-vendor uvolnění tento guard přeskočí –
+		// vendory se uvolňují postupně, idempotence je řešena per-vendor níž.)
+		if ( null === $only_vendor_id && 'completed' === $order->get_meta( '_nkv_split_status' ) ) {
 			return;
 		}
 
@@ -124,6 +138,10 @@ final class Transfer_Service {
 			$skipped   = 0;
 
 			foreach ( $calc['vendors'] as $vendor_split ) {
+				// Escrow: uvolnit jen konkrétního vendora (ostatní stále drženi).
+				if ( null !== $only_vendor_id && (int) $vendor_split['vendor_id'] !== $only_vendor_id ) {
+					continue;
+				}
 				// Inject Stripe fee deduction into the split before any further checks.
 				$vid                                = (int) $vendor_split['vendor_id'];
 				$vendor_split['stripe_fee_share_minor'] = $fee_per_vendor_minor[ $vid ] ?? 0;
@@ -188,15 +206,31 @@ final class Transfer_Service {
 			}
 
 			// Final status.
-			$status = 'none';
-			if ( $failed > 0 && $completed > 0 ) {
-				$status = 'partial';
-			} elseif ( $failed > 0 ) {
-				$status = 'failed';
-			} elseif ( $completed > 0 ) {
-				$status = 'completed';
-			} elseif ( $skipped > 0 ) {
-				$status = 'calculated';
+			if ( null !== $only_vendor_id ) {
+				// Escrow per-vendor: 'completed' jen když každý ne-skipnutý vendor
+				// už má dokončený transfer, jinak 'partial' (další čekají na uvolnění).
+				$all_done = true;
+				foreach ( $calc['vendors'] as $vs ) {
+					if ( ! empty( $vs['reason_skipped'] ) ) {
+						continue;
+					}
+					if ( ! $this->has_completed_transfer( $existing, (int) $vs['vendor_id'] ) ) {
+						$all_done = false;
+						break;
+					}
+				}
+				$status = $all_done ? 'completed' : 'partial';
+			} else {
+				$status = 'none';
+				if ( $failed > 0 && $completed > 0 ) {
+					$status = 'partial';
+				} elseif ( $failed > 0 ) {
+					$status = 'failed';
+				} elseif ( $completed > 0 ) {
+					$status = 'completed';
+				} elseif ( $skipped > 0 ) {
+					$status = 'calculated';
+				}
 			}
 			$order->update_meta_data( '_nkv_split_status', $status );
 			$order->save();
@@ -278,7 +312,26 @@ final class Transfer_Service {
 	}
 
 	private function idempotency_key( \WC_Order $order, int $vendor_id ): string {
-		return sprintf( 'wc_order_%d_vendor_%d_transfer_v1', $order->get_id(), $vendor_id );
+		// Per-vendor attempt counter na objednávce. Bumpne se z retry handleru
+		// (bump_retry_attempt). Bez bumpu by Stripe na retry vracelo cached
+		// failure ze starého pokusu (idempotency cache 24h) – retry by tak byl
+		// fakticky no-op pro chyby co se mezitím napravily (KYC capability,
+		// klíče atd.).
+		$attempt = (int) $order->get_meta( '_nkv_idem_attempt_' . $vendor_id );
+		if ( $attempt < 1 ) {
+			$attempt = 1;
+		}
+		return sprintf( 'wc_order_%d_vendor_%d_transfer_v%d', $order->get_id(), $vendor_id, $attempt );
+	}
+
+	/**
+	 * Zvedne idempotency attempt counter, aby další create_transfer šel
+	 * na Stripe jako nový request (a nedostal cached odpověď).
+	 */
+	public function bump_retry_attempt( \WC_Order $order, int $vendor_id ): void {
+		$current = (int) $order->get_meta( '_nkv_idem_attempt_' . $vendor_id );
+		$order->update_meta_data( '_nkv_idem_attempt_' . $vendor_id, max( 1, $current ) + 1 );
+		$order->save();
 	}
 
 	private function create_transfer( \WC_Order $order, array $vendor_split, array $stripe_ids ): array {

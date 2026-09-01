@@ -1,0 +1,1329 @@
+/* NKZ Marketplace Vendor Dashboard – AOZ tokens.
+ *
+ * Vendor sekce v WC My Account + branding nad celou /muj-ucet stránku.
+ * Vysoká specifita + !important kde potřeba, theme občas přebíjí.
+ */
+
+/* ── WC My Account chrome override (jen na account stránce) ─── */
+
+body.nkzmp-account .woocommerce-account,
+body.nkzmp-account .woocommerce {
+	font-family: 'Fabio XM AOZ', 'Fabio XM', 'Inter', system-ui, -apple-system, sans-serif !important;
+	color: #000;
+}
+
+body.nkzmp-account .woocommerce-account .entry-title,
+body.nkzmp-account .woocommerce-account h1.page-title,
+body.nkzmp-account .woocommerce-account h1 {
+	font-size: clamp(36px, 5vw, 56px) !important;
+	font-weight: 400 !important;
+	letter-spacing: -0.025em !important;
+	line-height: 1.05 !important;
+	color: #000 !important;
+	margin-bottom: 32px !important;
+}
+
+body.nkzmp-account .woocommerce-MyAccount-navigation {
+	font-family: inherit;
+}
+body.nkzmp-account .woocommerce-MyAccount-navigation ul {
+	list-style: none !important;
+	margin: 0 !important;
+	padding: 0 !important;
+	border-top: 1px solid rgba(0,0,0,0.12);
+}
+body.nkzmp-account .woocommerce-MyAccount-navigation ul li {
+	margin: 0 !important;
+	padding: 0 !important;
+	border-bottom: 1px solid rgba(0,0,0,0.08);
+	list-style: none !important;
+}
+body.nkzmp-account .woocommerce-MyAccount-navigation ul li a {
+	display: block;
+	padding: 14px 0 !important;
+	font-size: 15px !important;
+	font-weight: 500 !important;
+	letter-spacing: -0.005em;
+	color: #000 !important;
+	text-decoration: none !important;
+	border-bottom: none !important;
+	transition: color 0.15s ease, padding-left 0.15s ease;
+	position: relative;
+}
+body.nkzmp-account .woocommerce-MyAccount-navigation ul li a:hover {
+	color: #0060FF !important;
+	padding-left: 8px !important;
+}
+body.nkzmp-account .woocommerce-MyAccount-navigation ul li.is-active a,
+body.nkzmp-account .woocommerce-MyAccount-navigation ul li.woocommerce-MyAccount-navigation-link--is-active a {
+	color: #0060FF !important;
+}
+body.nkzmp-account .woocommerce-MyAccount-navigation ul li.is-active a::before,
+body.nkzmp-account .woocommerce-MyAccount-navigation ul li.woocommerce-MyAccount-navigation-link--is-active a::before {
+	content: '→ ';
+	color: #0060FF;
+	font-weight: 400;
+}
+
+/* Vendor section header — divider před první vendor položkou */
+body.nkzmp-account .woocommerce-MyAccount-navigation ul li.nkzmp-acc-nav-vendor-first {
+	border-top: 1px solid rgba(17,17,17,0.10);
+	margin-top: 16px !important;
+	position: relative;
+}
+body.nkzmp-account .woocommerce-MyAccount-navigation ul li.nkzmp-acc-nav-vendor-first::before {
+	content: 'Prodejce';
+	display: block;
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: #0060FF;
+	padding-top: 16px;
+}
+body.nkzmp-account .woocommerce-MyAccount-navigation ul li.nkzmp-acc-nav-vendor a {
+	font-weight: 500 !important;
+}
+
+/* Account section header — divider před první zákaznickou položkou */
+body.nkzmp-account .woocommerce-MyAccount-navigation ul li.nkzmp-acc-nav-account-first {
+	border-top: 1px solid rgba(17,17,17,0.10);
+	margin-top: 16px !important;
+	position: relative;
+}
+body.nkzmp-account .woocommerce-MyAccount-navigation ul li.nkzmp-acc-nav-account-first::before {
+	content: 'Účet';
+	display: block;
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: rgba(0, 0, 0, 0.45);
+	padding-top: 16px;
+}
+
+/* Brand header (vendor name above navigation) */
+.nkzmp-acc-brand {
+	padding-bottom: 24px;
+	margin-bottom: 24px;
+	border-bottom: 1px solid rgba(17,17,17,0.10);
+}
+.nkzmp-acc-brand-kicker {
+	display: block;
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: #0060FF;
+	margin-bottom: 6px;
+}
+.nkzmp-acc-brand-name {
+	font-size: 20px;
+	font-weight: 500;
+	letter-spacing: -0.01em;
+	color: #000;
+	line-height: 1.2;
+}
+
+/* Content area (the right column with default dashboard text or our views) */
+body.nkzmp-account .woocommerce-MyAccount-content {
+	font-family: inherit !important;
+	color: #000;
+}
+body.nkzmp-account .woocommerce-MyAccount-content p {
+	font-size: 16px;
+	line-height: 1.6;
+	color: #000;
+}
+body.nkzmp-account .woocommerce-MyAccount-content a {
+	color: #0060FF !important;
+	text-decoration: none !important;
+	border-bottom: 1px solid currentColor !important;
+}
+body.nkzmp-account .woocommerce-MyAccount-content a:hover {
+	color: #000 !important;
+}
+body.nkzmp-account .woocommerce-MyAccount-content strong {
+	font-weight: 600;
+}
+
+/* Globální WC notice override pro account page */
+body.nkzmp-account .woocommerce-Message,
+body.nkzmp-account .woocommerce-message {
+	background: rgba(0, 96, 255, 0.06) !important;
+	border: 1px solid rgba(0,96,255,0.16) !important;
+	color: #111 !important;
+	font-family: inherit !important;
+	padding: 16px 24px !important;
+	border-radius: 8px !important;
+}
+
+/* Vlastní dashboard content (uvnitř .woocommerce-MyAccount-content) */
+
+
+
+:root {
+	--nkzmp-vd-bg: #ffffff;
+	--nkzmp-vd-bg-warm: #faf8f4;
+	--nkzmp-vd-text: #111111;
+	--nkzmp-vd-muted: rgba(17, 17, 17, 0.56);
+	--nkzmp-vd-line: rgba(17, 17, 17, 0.08);
+	--nkzmp-vd-line-bold: rgba(17, 17, 17, 0.10);
+	--nkzmp-vd-accent: #0060FF;
+	--nkzmp-vd-accent-hover: #0048cc;
+	--nkzmp-vd-accent-soft: rgba(0, 96, 255, 0.06);
+	--nkzmp-vd-success: #007a30;
+	--nkzmp-vd-error: #b00020;
+	--nkzmp-vd-warn: #c97300;
+	--nkzmp-vd-font: 'Fabio XM AOZ', 'Fabio XM', 'Inter', system-ui, -apple-system, sans-serif;
+	--nkzmp-vd-radius: 12px;
+	--nkzmp-vd-radius-sm: 8px;
+	--nkzmp-vd-shadow: 0 1px 2px rgba(17,17,17,0.04), 0 8px 24px rgba(17,17,17,0.05);
+}
+
+.nkzmp-vd {
+	font-family: var(--nkzmp-vd-font);
+	color: var(--nkzmp-vd-text);
+	font-size: 16px;
+	line-height: 1.5;
+	-webkit-font-smoothing: antialiased;
+}
+
+/* ── Hero / section heads ─────────────────────────────────────── */
+
+.nkzmp-vd-hero {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-end;
+	padding-bottom: 24px;
+	margin-bottom: 32px;
+	border-bottom: 1px solid var(--nkzmp-vd-line-bold);
+	gap: 24px;
+}
+.nkzmp-vd-kicker {
+	display: block;
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: var(--nkzmp-vd-accent);
+	margin-bottom: 8px;
+}
+.nkzmp-vd-hero h1 {
+	margin: 0;
+	font-size: clamp(28px, 4vw, 44px);
+	font-weight: 400;
+	line-height: 1.05;
+	letter-spacing: -0.02em;
+}
+
+.nkzmp-vd-section-head {
+	padding-bottom: 16px;
+	margin-bottom: 32px;
+	border-bottom: 1px solid var(--nkzmp-vd-line-bold);
+}
+.nkzmp-vd-section-head h1 {
+	margin: 0 0 4px;
+	font-size: clamp(24px, 3vw, 36px);
+	font-weight: 400;
+	letter-spacing: -0.015em;
+}
+.nkzmp-vd-meta { margin: 0; color: var(--nkzmp-vd-muted); font-size: 14px; }
+
+/* ── Status badge ─────────────────────────────────────────────── */
+
+.nkzmp-vd-status {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	padding: 7px 16px;
+	font-size: 12px;
+	font-weight: 600;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	border-radius: 999px;
+	background: var(--nkzmp-vd-accent-soft);
+	color: var(--nkzmp-vd-accent);
+	white-space: nowrap;
+}
+.nkzmp-vd-status--success { background: rgba(0,122,48,0.10); color: var(--nkzmp-vd-success); }
+.nkzmp-vd-status--accent  { background: var(--nkzmp-vd-accent); color: #fff; }
+.nkzmp-vd-status--error   { background: rgba(176,0,32,0.10); color: var(--nkzmp-vd-error); }
+.nkzmp-vd-status--muted   { background: rgba(17,17,17,0.06); color: var(--nkzmp-vd-muted); }
+
+/* ── Stats grid ───────────────────────────────────────────────── */
+
+.nkzmp-vd-stats {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+	gap: 1px;
+	background: var(--nkzmp-vd-line);
+	border: 1px solid var(--nkzmp-vd-line);
+	border-radius: var(--nkzmp-vd-radius);
+	overflow: hidden;
+	margin-bottom: 32px;
+}
+.nkzmp-vd-stat {
+	background: var(--nkzmp-vd-bg);
+	padding: 22px 24px;
+}
+.nkzmp-vd-stat-label {
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var(--nkzmp-vd-muted);
+	margin-bottom: 10px;
+}
+.nkzmp-vd-stat-value {
+	font-size: 32px;
+	font-weight: 400;
+	line-height: 1;
+	letter-spacing: -0.02em;
+	font-variant-numeric: tabular-nums;
+}
+.nkzmp-vd-stat-hint {
+	font-size: 12px;
+	color: var(--nkzmp-vd-muted);
+	margin-top: 6px;
+}
+
+/* ── Quick actions ────────────────────────────────────────────── */
+
+.nkzmp-vd-actions {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+	gap: 1px;
+	background: var(--nkzmp-vd-line);
+	border: 1px solid var(--nkzmp-vd-line);
+	border-radius: var(--nkzmp-vd-radius);
+	overflow: hidden;
+	margin-bottom: 32px;
+}
+.nkzmp-vd-action {
+	background: var(--nkzmp-vd-bg);
+	padding: 22px 24px;
+	text-decoration: none !important;
+	color: var(--nkzmp-vd-text) !important;
+	transition: background 0.15s ease, color 0.15s ease;
+}
+.nkzmp-vd-action:hover {
+	background: var(--nkzmp-vd-accent) !important;
+	color: #fff !important;
+}
+.nkzmp-vd-action:hover strong,
+.nkzmp-vd-action:hover span { color: #fff !important; }
+.nkzmp-vd-action:hover span { color: rgba(255, 255, 255, 0.8) !important; }
+.nkzmp-vd-action strong { display: block; font-size: 16px; font-weight: 500; }
+.nkzmp-vd-action span { display: block; font-size: 12px; color: var(--nkzmp-vd-muted); margin-top: 4px; letter-spacing: 0.02em; }
+
+/* ── Callout (KYC waiting etc.) ───────────────────────────────── */
+
+.nkzmp-vd-callout {
+	background: var(--nkzmp-vd-accent-soft);
+	border: 1px solid rgba(0,96,255,0.14);
+	border-radius: var(--nkzmp-vd-radius);
+	padding: 24px 26px;
+	margin-bottom: 32px;
+}
+.nkzmp-vd-callout h3 { margin: 0 0 8px; font-size: 18px; font-weight: 500; }
+.nkzmp-vd-callout p { margin: 0 0 16px; color: var(--nkzmp-vd-text); }
+.nkzmp-vd-cta,
+body.nkzmp-account .woocommerce-MyAccount-content a.nkzmp-vd-cta {
+	display: inline-flex;
+	gap: 8px;
+	padding: 13px 26px;
+	background: var(--nkzmp-vd-accent);
+	color: #fff !important;
+	border: 0 !important;
+	font-size: 14px;
+	font-weight: 600;
+	border-radius: var(--nkzmp-vd-radius-sm);
+	box-shadow: 0 6px 18px rgba(0,96,255,0.22);
+	text-decoration: none !important;
+	transition: background 0.15s ease, transform 0.15s ease;
+}
+.nkzmp-vd-cta:hover,
+body.nkzmp-account .woocommerce-MyAccount-content a.nkzmp-vd-cta:hover { background: var(--nkzmp-vd-accent-hover) !important; color: #fff !important; transform: translateY(-1px); }
+
+/* ── Table ────────────────────────────────────────────────────── */
+
+.nkzmp-vd-table {
+	width: 100%;
+	border-collapse: collapse;
+	margin-bottom: 16px;
+}
+.nkzmp-vd-table thead th {
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--nkzmp-vd-muted);
+	text-align: left;
+	padding: 12px 12px 12px 0;
+	border-bottom: 1px solid var(--nkzmp-vd-line-bold);
+}
+.nkzmp-vd-table tbody td {
+	padding: 16px 12px 16px 0;
+	border-bottom: 1px solid var(--nkzmp-vd-line);
+	font-size: 14px;
+	vertical-align: middle;
+}
+.nkzmp-vd-table .col-img { width: 64px; }
+.nkzmp-vd-table .col-img img { display: block; }
+.nkzmp-vd-table .col-num { text-align: right; font-variant-numeric: tabular-nums; }
+.nkzmp-vd-table .col-num.is-credit { color: var(--nkzmp-vd-success); font-weight: 500; }
+.nkzmp-vd-table .col-num.is-debit { color: var(--nkzmp-vd-text); }
+.nkzmp-vd-table .col-action { text-align: right; }
+.nkzmp-vd-product-name { color: var(--nkzmp-vd-text); font-weight: 500; text-decoration: none; }
+.nkzmp-vd-product-name:hover { color: var(--nkzmp-vd-accent); }
+.nkzmp-vd-edit-link {
+	color: var(--nkzmp-vd-accent);
+	text-decoration: none;
+	border-bottom: 1px solid currentColor;
+	font-size: 13px;
+}
+.nkzmp-vd-muted { color: var(--nkzmp-vd-muted); font-size: 13px; }
+
+.nkzmp-vd-pill {
+	display: inline-block;
+	padding: 3px 11px;
+	font-size: 11px;
+	font-weight: 500;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	border-radius: 999px;
+	background: rgba(17, 17, 17, 0.06);
+	color: var(--nkzmp-vd-text);
+}
+.nkzmp-vd-pill--publish { background: var(--nkzmp-vd-success); color: #fff; }
+.nkzmp-vd-pill--draft   { background: rgba(0, 0, 0, 0.08); }
+.nkzmp-vd-pill--pending { background: var(--nkzmp-vd-warn); color: #fff; }
+.nkzmp-vd-pill--type-payout              { background: var(--nkzmp-vd-text); color: #fff; }
+.nkzmp-vd-pill--type-order_credit        { background: var(--nkzmp-vd-accent); color: #fff; }
+.nkzmp-vd-pill--type-platform_commission { background: rgba(0, 0, 0, 0.08); }
+.nkzmp-vd-pill--type-reversal,
+.nkzmp-vd-pill--type-refund_debit        { background: var(--nkzmp-vd-error); color: #fff; }
+
+.nkzmp-vd-note {
+	color: var(--nkzmp-vd-muted);
+	font-size: 13px;
+	font-style: italic;
+}
+.nkzmp-vd-empty-msg {
+	padding: 32px 0;
+	text-align: center;
+	color: var(--nkzmp-vd-muted);
+	font-style: italic;
+}
+
+/* ── Product card grid ───────────────────────────────────────── */
+
+.nkzmp-vd-product-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+	gap: 24px;
+	margin-bottom: 16px;
+}
+
+.nkzmp-vd-card {
+	display: flex;
+	flex-direction: column;
+	background: var(--nkzmp-vd-bg);
+	border: 1px solid var(--nkzmp-vd-line);
+	border-radius: var(--nkzmp-vd-radius);
+	overflow: hidden;
+	transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+.nkzmp-vd-card:hover {
+	transform: translateY(-3px);
+	box-shadow: var(--nkzmp-vd-shadow);
+	border-color: var(--nkzmp-vd-line-bold);
+}
+.nkzmp-vd-card--pending { border-color: rgba(201,115,0,0.4); }
+.nkzmp-vd-card--draft   { border-style: dashed; }
+
+.nkzmp-vd-card-media {
+	position: relative;
+	aspect-ratio: 1 / 1;
+	overflow: hidden;
+	background: var(--nkzmp-vd-bg-warm);
+	border-bottom: 1px solid var(--nkzmp-vd-line);
+}
+.nkzmp-vd-card-media img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	display: block;
+}
+.nkzmp-vd-card-status {
+	position: absolute;
+	top: 10px;
+	left: 10px;
+	padding: 4px 11px;
+	font-size: 10px;
+	font-weight: 600;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	border-radius: 999px;
+}
+
+.nkzmp-vd-card-body {
+	padding: 16px;
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+.nkzmp-vd-card-title {
+	margin: 0;
+	font-size: 16px;
+	font-weight: 500;
+	letter-spacing: -0.005em;
+	line-height: 1.25;
+	color: var(--nkzmp-vd-text);
+}
+.nkzmp-vd-card-price {
+	font-size: 15px;
+	font-weight: 500;
+	color: var(--nkzmp-vd-text);
+}
+.nkzmp-vd-card-price del { color: var(--nkzmp-vd-muted); margin-right: 4px; font-weight: 400; }
+.nkzmp-vd-card-price ins { text-decoration: none; }
+.nkzmp-vd-card-stock {
+	font-size: 12px;
+	color: var(--nkzmp-vd-muted);
+	margin-top: auto;
+	padding-top: 4px;
+}
+
+.nkzmp-vd-card-actions {
+	display: flex;
+	gap: 1px;
+	background: var(--nkzmp-vd-line-bold);
+	border-top: 1px solid var(--nkzmp-vd-line-bold);
+}
+body.nkzmp-account a.nkzmp-vd-card-edit,
+body.nkzmp-account a.nkzmp-vd-card-view,
+.nkzmp-vd a.nkzmp-vd-card-edit,
+.nkzmp-vd a.nkzmp-vd-card-view {
+	flex: 1 !important;
+	text-align: center !important;
+	padding: 12px 8px !important;
+	font-size: 13px !important;
+	font-weight: 500 !important;
+	text-decoration: none !important;
+	background: #fff !important;
+	background-color: #fff !important;
+	color: #000 !important;
+	border-radius: 0 !important;
+	box-shadow: none !important;
+	transition: background 0.15s ease, color 0.15s ease !important;
+}
+body.nkzmp-account a.nkzmp-vd-card-edit:hover,
+.nkzmp-vd a.nkzmp-vd-card-edit:hover { background: #111 !important; background-color: #111 !important; color: #fff !important; }
+body.nkzmp-account a.nkzmp-vd-card-view:hover,
+.nkzmp-vd a.nkzmp-vd-card-view:hover { background: #0060FF !important; background-color: #0060FF !important; color: #fff !important; }
+
+.nkzmp-vd-card-subactions {
+	display: flex;
+	gap: 16px;
+	padding: 10px 16px;
+	border-top: 1px solid rgba(0,0,0,0.08);
+}
+.nkzmp-vd-card-subactions form { margin: 0; }
+body.nkzmp-account button.nkzmp-vd-link-btn,
+.nkzmp-vd button.nkzmp-vd-link-btn,
+.nkzmp-vd-card-subactions button.nkzmp-vd-link-btn {
+	background: none !important;
+	background-color: transparent !important;
+	border: none !important;
+	border-radius: 0 !important;
+	box-shadow: none !important;
+	padding: 0 !important;
+	margin: 0 !important;
+	width: auto !important;
+	min-height: 0 !important;
+	line-height: 1.4 !important;
+	font-family: inherit !important;
+	font-size: 12px !important;
+	font-weight: 500 !important;
+	text-transform: none !important;
+	letter-spacing: 0 !important;
+	text-decoration: underline !important;
+	color: var(--nkzmp-vd-muted) !important;
+	cursor: pointer !important;
+	transition: color 0.15s ease !important;
+}
+body.nkzmp-account button.nkzmp-vd-link-btn:hover,
+.nkzmp-vd button.nkzmp-vd-link-btn:hover { color: var(--nkzmp-vd-text) !important; }
+body.nkzmp-account button.nkzmp-vd-link-btn--danger:hover,
+.nkzmp-vd button.nkzmp-vd-link-btn--danger:hover { color: var(--nkzmp-vd-error) !important; }
+
+/* Onboarding checklist */
+.nkzmp-vd-onboarding {
+	border: 1px solid var(--nkzmp-vd-line);
+	border-radius: var(--nkzmp-vd-radius);
+	background: var(--nkzmp-vd-bg-warm);
+	padding: 26px 28px;
+	margin-bottom: 32px;
+}
+.nkzmp-vd-onboarding h2 { margin: 0 0 16px; font-size: 18px; font-weight: 500; }
+.nkzmp-vd-steps { list-style: none; margin: 0; padding: 0; }
+.nkzmp-vd-steps li {
+	display: flex; align-items: center; gap: 12px;
+	padding: 10px 0; border-bottom: 1px solid rgba(0,0,0,0.06); font-size: 15px;
+}
+.nkzmp-vd-steps li:last-child { border-bottom: none; }
+.nkzmp-vd-step-mark {
+	width: 26px; height: 26px; flex-shrink: 0; border-radius: 50%;
+	display: flex; align-items: center; justify-content: center;
+	border: 1px solid var(--nkzmp-vd-line-bold); font-size: 13px; font-weight: 600;
+	background: var(--nkzmp-vd-bg);
+}
+.nkzmp-vd-steps li.done .nkzmp-vd-step-mark { background: var(--nkzmp-vd-success); color: #fff; border-color: var(--nkzmp-vd-success); }
+.nkzmp-vd-steps li.done .nkzmp-vd-step-label { color: var(--nkzmp-vd-muted); text-decoration: line-through; }
+.nkzmp-vd-steps li.current .nkzmp-vd-step-mark { border-color: var(--nkzmp-vd-accent); color: var(--nkzmp-vd-accent); }
+.nkzmp-vd-step-label { flex: 1; }
+.nkzmp-vd-step-cta { font-size: 13px; color: var(--nkzmp-vd-accent); text-decoration: none; border-bottom: 1px solid currentColor; }
+
+/* Commission note */
+.nkzmp-vd-commission { font-size: 13px; color: var(--nkzmp-vd-muted); margin-top: 8px; }
+.nkzmp-vd-commission strong { color: var(--nkzmp-vd-text); }
+
+/* Empty state */
+.nkzmp-vd-products-empty {
+	text-align: center;
+	padding: 64px 24px;
+	border: 1px dashed var(--nkzmp-vd-line-bold);
+	border-radius: var(--nkzmp-vd-radius);
+	background: var(--nkzmp-vd-bg-warm);
+}
+.nkzmp-vd-products-empty-art {
+	font-size: 48px;
+	font-weight: 300;
+	color: var(--nkzmp-vd-accent);
+	line-height: 1;
+	margin-bottom: 16px;
+}
+.nkzmp-vd-products-empty h2 {
+	font-size: 24px;
+	font-weight: 400;
+	letter-spacing: -0.01em;
+	margin: 0 0 8px;
+}
+.nkzmp-vd-products-empty p {
+	color: var(--nkzmp-vd-muted);
+	margin: 0 0 24px;
+}
+
+/* ── New product CTA + flash ─────────────────────────────────── */
+
+body.nkzmp-account a.nkzmp-vd-cta-new,
+body.woocommerce-account a.nkzmp-vd-cta-new,
+.nkzmp-vd a.nkzmp-vd-cta-new {
+	display: inline-flex !important;
+	align-items: center !important;
+	gap: 8px !important;
+	padding: 13px 24px !important;
+	background: #0060FF !important;
+	background-color: #0060FF !important;
+	color: #fff !important;
+	font-size: 14px !important;
+	font-weight: 600 !important;
+	text-decoration: none !important;
+	border: 1px solid #0060FF !important;
+	border-radius: 8px !important;
+	box-shadow: 0 6px 18px rgba(0,96,255,0.22) !important;
+	transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease !important;
+}
+body.nkzmp-account a.nkzmp-vd-cta-new *,
+body.woocommerce-account a.nkzmp-vd-cta-new *,
+.nkzmp-vd a.nkzmp-vd-cta-new * { color: #fff !important; }
+body.nkzmp-account a.nkzmp-vd-cta-new:hover,
+body.woocommerce-account a.nkzmp-vd-cta-new:hover { background: #0050d6 !important; background-color: #0050d6 !important; border-color: #0050d6 !important; color: #fff !important; }
+body.nkzmp-account a.nkzmp-vd-cta-new .plus { font-size: 18px !important; line-height: 1 !important; }
+
+.nkzmp-vd-flash {
+	display: flex;
+	gap: 16px;
+	align-items: flex-start;
+	background: var(--nkzmp-vd-accent-soft);
+	border: 1px solid rgba(0,96,255,0.14);
+	border-radius: var(--nkzmp-vd-radius-sm);
+	padding: 18px 22px;
+	margin-bottom: 32px;
+	font-size: 15px;
+}
+.nkzmp-vd-flash .icon {
+	flex-shrink: 0;
+	width: 28px;
+	height: 28px;
+	border-radius: 50%;
+	background: var(--nkzmp-vd-accent);
+	color: #fff;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-weight: 600;
+}
+.nkzmp-vd-flash strong { font-weight: 500; }
+.nkzmp-vd-flash p { margin: 4px 0 0; color: var(--nkzmp-vd-muted); font-size: 14px; line-height: 1.5; }
+
+.nkzmp-vd-flash--success { background: rgba(0, 122, 48, 0.06); border-color: rgba(0,122,48,0.18); }
+.nkzmp-vd-flash--success .icon { background: var(--nkzmp-vd-success); }
+
+.nkzmp-vd-form-error {
+	background: rgba(176, 0, 32, 0.05);
+	border: 1px solid rgba(176,0,32,0.2);
+	border-radius: var(--nkzmp-vd-radius-sm);
+	padding: 16px 20px;
+	margin-bottom: 24px;
+	font-size: 15px;
+	color: var(--nkzmp-vd-text);
+}
+.nkzmp-vd-form-error strong { color: var(--nkzmp-vd-error); margin-right: 6px; }
+
+/* ── Product form ─────────────────────────────────────────────── */
+
+.nkzmp-vd-form {
+	display: flex;
+	flex-direction: column;
+	gap: 48px;
+	max-width: 760px;
+	padding-bottom: 80px;
+}
+
+.nkzmp-vd-product-form { padding-bottom: 64px; }
+
+.nkzmp-vd-form-section {
+	display: flex;
+	flex-direction: column;
+	gap: 20px;
+}
+
+.nkzmp-vd-form-shead {
+	display: flex;
+	align-items: baseline;
+	gap: 14px;
+	padding-bottom: 12px;
+	border-bottom: 1px solid rgba(0,0,0,0.12);
+}
+.nkzmp-vd-form-shead .num {
+	font-size: 12px;
+	font-weight: 500;
+	letter-spacing: 0.08em;
+	color: var(--nkzmp-vd-muted);
+	font-variant-numeric: tabular-nums;
+}
+.nkzmp-vd-form-shead h2 {
+	margin: 0;
+	font-size: 20px;
+	font-weight: 400;
+	letter-spacing: -0.01em;
+}
+
+.nkzmp-vd-grid-2 {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 24px;
+}
+@media (max-width: 600px) {
+	.nkzmp-vd-grid-2 { grid-template-columns: 1fr; }
+}
+
+.nkzmp-vd-field { display: flex; flex-direction: column; gap: 6px; }
+.nkzmp-vd-field label { font-size: 14px; font-weight: 500; }
+.nkzmp-vd-field .req { color: var(--nkzmp-vd-accent); }
+.nkzmp-vd-field small { color: var(--nkzmp-vd-muted); font-size: 13px; }
+
+.nkzmp-vd-field input[type="text"],
+.nkzmp-vd-field input[type="number"],
+.nkzmp-vd-field textarea {
+	background: var(--nkzmp-vd-bg-warm);
+	border: 1px solid var(--nkzmp-vd-line-bold);
+	border-radius: var(--nkzmp-vd-radius-sm);
+	padding: 13px 15px;
+	font-family: inherit;
+	font-size: 16px;
+	color: var(--nkzmp-vd-text);
+	outline: none;
+	transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+	width: 100%;
+	box-sizing: border-box;
+	-webkit-appearance: none;
+	appearance: none;
+}
+.nkzmp-vd-field input:hover,
+.nkzmp-vd-field textarea:hover { border-color: rgba(17,17,17,0.22); }
+.nkzmp-vd-field input:focus,
+.nkzmp-vd-field textarea:focus { border-color: var(--nkzmp-vd-accent); background: var(--nkzmp-vd-bg); box-shadow: 0 0 0 3px var(--nkzmp-vd-accent-soft); }
+.nkzmp-vd-field textarea { min-height: 110px; line-height: 1.55; resize: vertical; }
+
+.nkzmp-vd-check {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+	font-size: 14px;
+	cursor: pointer;
+}
+.nkzmp-vd-check input { accent-color: var(--nkzmp-vd-accent); width: 18px; height: 18px; }
+
+.nkzmp-vd-image-featured-wrap {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	padding: 16px;
+	border: 1px solid var(--nkzmp-vd-line-bold);
+	border-radius: var(--nkzmp-vd-radius-sm);
+	background: var(--nkzmp-vd-bg-warm);
+	max-width: 100%;
+	box-sizing: border-box;
+}
+.nkzmp-vd-gallery-grid {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 12px;
+	max-width: 100%;
+}
+@media (max-width: 640px) {
+	.nkzmp-vd-gallery-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.nkzmp-vd-gallery-slot {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	padding: 12px;
+	border: 1px dashed var(--nkzmp-vd-line-bold);
+	border-radius: var(--nkzmp-vd-radius-sm);
+	box-sizing: border-box;
+	min-width: 0;
+}
+.nkzmp-vd-img-label {
+	font-size: 12px;
+	font-weight: 500;
+	color: var(--nkzmp-vd-text);
+}
+.nkzmp-vd-img-thumb { padding: 4px 0; }
+.nkzmp-vd-img-thumb img { max-width: 100%; height: auto; display: block; }
+.nkzmp-vd-gallery-slot input[type="file"],
+.nkzmp-vd-image-featured-wrap input[type="file"] {
+	font-size: 12px;
+	max-width: 100%;
+	box-sizing: border-box;
+}
+
+.nkzmp-vd-cats {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+.nkzmp-vd-cat {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 9px 16px;
+	border: 1px solid var(--nkzmp-vd-line-bold);
+	border-radius: 999px;
+	background: var(--nkzmp-vd-bg-warm);
+	cursor: pointer;
+	font-size: 14px;
+	transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+	user-select: none;
+}
+.nkzmp-vd-cat:hover { border-color: var(--nkzmp-vd-accent); }
+.nkzmp-vd-cat input { display: none; }
+.nkzmp-vd-cat:has(input:checked) {
+	background: var(--nkzmp-vd-accent);
+	color: #fff;
+	border-color: var(--nkzmp-vd-accent);
+}
+
+.nkzmp-vd-form-foot {
+	display: flex;
+	gap: 16px;
+	align-items: center;
+	padding-top: 24px;
+	border-top: 1px solid var(--nkzmp-vd-line-bold);
+}
+
+body.nkzmp-account .nkzmp-vd button.nkzmp-vd-submit,
+body.woocommerce-account .nkzmp-vd button.nkzmp-vd-submit,
+.nkzmp-vd .nkzmp-vd-form button.nkzmp-vd-submit,
+button.nkzmp-vd-submit[type="submit"] {
+	display: inline-flex !important;
+	align-items: center !important;
+	gap: 12px !important;
+	padding: 16px 32px !important;
+	background: #0060FF !important;
+	background-color: #0060FF !important;
+	background-image: none !important;
+	color: #fff !important;
+	font-family: inherit !important;
+	font-size: 15px !important;
+	font-weight: 600 !important;
+	border: 0 !important;
+	border-radius: 8px !important;
+	box-shadow: 0 6px 18px rgba(0,96,255,0.22) !important;
+	text-transform: none !important;
+	letter-spacing: normal !important;
+	line-height: 1 !important;
+	text-decoration: none !important;
+	width: auto !important;
+	cursor: pointer !important;
+	transition: gap 0.2s ease, background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease !important;
+	text-shadow: none !important;
+	min-height: 0 !important;
+}
+body.nkzmp-account .nkzmp-vd button.nkzmp-vd-submit svg { width: 18px !important; height: 18px !important; transition: transform 0.2s ease !important; flex-shrink: 0 !important; color: #fff !important; }
+body.nkzmp-account .nkzmp-vd button.nkzmp-vd-submit span,
+.nkzmp-vd button.nkzmp-vd-submit span { color: #fff !important; }
+body.nkzmp-account .nkzmp-vd button.nkzmp-vd-submit:hover,
+.nkzmp-vd .nkzmp-vd-form button.nkzmp-vd-submit:hover {
+	gap: 16px !important;
+	background: #0048cc !important;
+	background-color: #0048cc !important;
+	color: #fff !important;
+	transform: translateY(-1px) !important;
+	box-shadow: 0 10px 26px rgba(0,96,255,0.3) !important;
+}
+body.nkzmp-account .nkzmp-vd button.nkzmp-vd-submit:hover svg { transform: translateX(4px) !important; }
+
+.nkzmp-vd-cancel {
+	color: var(--nkzmp-vd-muted) !important;
+	font-size: 14px;
+	text-decoration: none !important;
+	border-bottom: 1px solid currentColor !important;
+}
+.nkzmp-vd-cancel:hover { color: var(--nkzmp-vd-text) !important; }
+
+/* ── Orders ──────────────────────────────────────────────────── */
+
+.nkzmp-vd-order-list { display: flex; flex-direction: column; gap: 16px; }
+.nkzmp-vd-order {
+	border: 1px solid var(--nkzmp-vd-line);
+	border-radius: var(--nkzmp-vd-radius);
+	overflow: hidden;
+	background: var(--nkzmp-vd-bg);
+}
+.nkzmp-vd-order-head {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 14px 18px;
+	border-bottom: 1px solid var(--nkzmp-vd-line);
+}
+.nkzmp-vd-order-num { font-weight: 600; font-size: 15px; font-variant-numeric: tabular-nums; }
+.nkzmp-vd-order-date { color: var(--nkzmp-vd-muted); font-size: 13px; margin-left: 10px; }
+.nkzmp-vd-order-status {
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	padding: 4px 11px;
+	border-radius: 999px;
+	background: rgba(17,17,17,0.06);
+	color: var(--nkzmp-vd-text);
+}
+.nkzmp-vd-ostatus--completed  { background: var(--nkzmp-vd-success); color: #fff; }
+.nkzmp-vd-ostatus--processing { background: var(--nkzmp-vd-accent); color: #fff; }
+.nkzmp-vd-ostatus--on-hold    { background: var(--nkzmp-vd-warn); color: #fff; }
+.nkzmp-vd-ostatus--refunded,
+.nkzmp-vd-ostatus--cancelled  { background: var(--nkzmp-vd-error); color: #fff; }
+
+.nkzmp-vd-order-items { list-style: none; margin: 0; padding: 8px 18px; }
+.nkzmp-vd-order-items li {
+	display: grid;
+	grid-template-columns: 36px 1fr auto;
+	gap: 12px;
+	padding: 8px 0;
+	font-size: 14px;
+	align-items: baseline;
+	border-bottom: 1px solid rgba(0,0,0,0.04);
+}
+.nkzmp-vd-order-items li:last-child { border-bottom: none; }
+.nkzmp-vd-oi-qty { color: var(--nkzmp-vd-muted); font-variant-numeric: tabular-nums; }
+.nkzmp-vd-oi-total { font-weight: 500; font-variant-numeric: tabular-nums; }
+.nkzmp-vd-order-foot {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+	padding: 14px 18px;
+	border-top: 1px solid var(--nkzmp-vd-line);
+	background: var(--nkzmp-vd-bg-warm);
+}
+.nkzmp-vd-order-foot span { font-size: 13px; color: var(--nkzmp-vd-muted); }
+.nkzmp-vd-order-foot strong { font-size: 16px; font-variant-numeric: tabular-nums; }
+
+/* ── Empty / not-vendor state ─────────────────────────────────── */
+
+.nkzmp-vd-empty {
+	max-width: 480px;
+	margin: 0 auto;
+	text-align: center;
+	padding: 48px 16px;
+	font-family: var(--nkzmp-vd-font);
+}
+.nkzmp-vd-empty h2 {
+	font-size: 24px;
+	font-weight: 400;
+	letter-spacing: -0.01em;
+	margin: 0 0 12px;
+}
+.nkzmp-vd-empty p {
+	color: var(--nkzmp-vd-muted);
+	margin: 0;
+}
+
+/* ─────────────────────────────────────────────────────────────
+ * ÚČET sekce – default WooCommerce stránky v AOZ stylu.
+ * Cíleno jen na WC-specifické třídy, aby to nesáhlo na .nkzmp-vd
+ * vlastní vendor stránky (ty mají vlastní styl výš).
+ * ───────────────────────────────────────────────────────────── */
+
+/* Tabulky (Mé objednávky, detail objednávky) */
+body.nkzmp-account .woocommerce-MyAccount-content table.woocommerce-orders-table,
+body.nkzmp-account .woocommerce-MyAccount-content table.woocommerce-table,
+body.nkzmp-account .woocommerce-MyAccount-content table.shop_table {
+	border: 1px solid var(--nkzmp-vd-line) !important;
+	border-collapse: separate !important;
+	border-spacing: 0 !important;
+	border-radius: var(--nkzmp-vd-radius) !important;
+	overflow: hidden !important;
+	width: 100% !important;
+	font-size: 14px !important;
+	margin: 0 0 24px !important;
+}
+body.nkzmp-account .woocommerce-MyAccount-content table.woocommerce-orders-table th,
+body.nkzmp-account .woocommerce-MyAccount-content table.woocommerce-table th,
+body.nkzmp-account .woocommerce-MyAccount-content table.shop_table th {
+	background: var(--nkzmp-vd-bg-warm) !important;
+	color: var(--nkzmp-vd-muted) !important;
+	font-weight: 600 !important;
+	text-transform: uppercase !important;
+	letter-spacing: 0.08em !important;
+	font-size: 11px !important;
+	text-align: left !important;
+	padding: 14px !important;
+	border: none !important;
+	border-bottom: 1px solid var(--nkzmp-vd-line) !important;
+}
+body.nkzmp-account .woocommerce-MyAccount-content table.woocommerce-orders-table td,
+body.nkzmp-account .woocommerce-MyAccount-content table.woocommerce-table td,
+body.nkzmp-account .woocommerce-MyAccount-content table.shop_table td {
+	padding: 14px !important;
+	border: none !important;
+	border-top: 1px solid var(--nkzmp-vd-line) !important;
+	vertical-align: middle !important;
+	color: #000 !important;
+}
+body.nkzmp-account .woocommerce-MyAccount-content table.shop_table tfoot th,
+body.nkzmp-account .woocommerce-MyAccount-content table.shop_table tfoot td {
+	background: #fff !important;
+	color: #000 !important;
+	text-transform: none !important;
+	font-size: 14px !important;
+	border-top: 1px solid var(--nkzmp-vd-line) !important;
+}
+
+/* WC tlačítka → AOZ (černá, hover modrá, bez radiusu) */
+body.nkzmp-account .woocommerce-MyAccount-content a.woocommerce-button,
+body.nkzmp-account .woocommerce-MyAccount-content a.button.woocommerce-button,
+body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-orders-table a.button,
+body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-EditAccountForm button[type="submit"],
+body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-address-fields button[type="submit"],
+body.nkzmp-account .woocommerce-MyAccount-content button.woocommerce-Button {
+	display: inline-block !important;
+	background: #0060FF !important;
+	background-color: #0060FF !important;
+	color: #fff !important;
+	border: none !important;
+	border-radius: 8px !important;
+	box-shadow: 0 6px 18px rgba(0,96,255,0.22) !important;
+	padding: 12px 24px !important;
+	font-family: inherit !important;
+	font-weight: 600 !important;
+	font-size: 14px !important;
+	text-transform: none !important;
+	letter-spacing: 0 !important;
+	text-decoration: none !important;
+	cursor: pointer !important;
+	transition: background 0.15s ease, transform 0.15s ease !important;
+}
+body.nkzmp-account .woocommerce-MyAccount-content a.woocommerce-button:hover,
+body.nkzmp-account .woocommerce-MyAccount-content a.button.woocommerce-button:hover,
+body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-orders-table a.button:hover,
+body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-EditAccountForm button[type="submit"]:hover,
+body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-address-fields button[type="submit"]:hover,
+body.nkzmp-account .woocommerce-MyAccount-content button.woocommerce-Button:hover {
+	background: #0048cc !important;
+	background-color: #0048cc !important;
+	color: #fff !important;
+	transform: translateY(-1px) !important;
+}
+
+/* Adresy – dvousloupcové karty */
+body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-Addresses {
+	display: grid !important;
+	grid-template-columns: 1fr 1fr !important;
+	gap: 24px !important;
+	margin: 0 !important;
+}
+body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-Addresses .woocommerce-Address {
+	width: auto !important;
+	float: none !important;
+	border: 1px solid var(--nkzmp-vd-line) !important;
+	border-radius: var(--nkzmp-vd-radius) !important;
+	background: var(--nkzmp-vd-bg-warm) !important;
+	padding: 24px !important;
+}
+body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-Address-title {
+	display: flex !important;
+	justify-content: space-between !important;
+	align-items: baseline !important;
+	gap: 16px !important;
+	margin-bottom: 12px !important;
+}
+body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-Address-title h2,
+body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-Address-title h3 {
+	font-size: 18px !important;
+	font-weight: 500 !important;
+	margin: 0 !important;
+}
+body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-Address address {
+	font-style: normal !important;
+	line-height: 1.7 !important;
+	color: #000 !important;
+}
+@media (max-width: 640px) {
+	body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-Addresses {
+		grid-template-columns: 1fr !important;
+	}
+}
+
+/* Formuláře (Detaily účtu, editace adresy) */
+body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-form-row label,
+body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-address-fields label,
+body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-EditAccountForm label {
+	display: block !important;
+	font-size: 13px !important;
+	font-weight: 500 !important;
+	margin-bottom: 6px !important;
+	color: #000 !important;
+}
+body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-form-row input.input-text,
+body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-address-fields input.input-text,
+body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-EditAccountForm input.input-text,
+body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-EditAccountForm input[type="password"],
+body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-address-fields select,
+body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-form-row select {
+	width: 100% !important;
+	max-width: 480px !important;
+	padding: 13px 15px !important;
+	border: 1px solid var(--nkzmp-vd-line-bold) !important;
+	border-radius: 8px !important;
+	background: var(--nkzmp-vd-bg-warm) !important;
+	color: #111 !important;
+	font-family: inherit !important;
+	font-size: 15px !important;
+	box-shadow: none !important;
+	transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease !important;
+}
+body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-form-row input.input-text:focus,
+body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-address-fields input.input-text:focus,
+body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-EditAccountForm input.input-text:focus,
+body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-EditAccountForm input[type="password"]:focus {
+	border-color: var(--nkzmp-vd-accent) !important;
+	background: #fff !important;
+	box-shadow: 0 0 0 3px var(--nkzmp-vd-accent-soft) !important;
+	outline: none !important;
+}
+body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-EditAccountForm fieldset {
+	border: 1px solid var(--nkzmp-vd-line) !important;
+	border-radius: var(--nkzmp-vd-radius) !important;
+	padding: 20px !important;
+	margin: 24px 0 !important;
+}
+body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-EditAccountForm legend {
+	font-weight: 500 !important;
+	padding: 0 8px !important;
+}
+
+/* Pagination */
+body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-pagination ul {
+	display: flex !important;
+	gap: 1px !important;
+	list-style: none !important;
+	border: 1px solid var(--nkzmp-vd-line) !important;
+	background: var(--nkzmp-vd-line) !important;
+	border-radius: var(--nkzmp-vd-radius-sm) !important;
+	overflow: hidden !important;
+	width: fit-content !important;
+	margin: 24px 0 0 !important;
+	padding: 0 !important;
+}
+body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-pagination ul li {
+	margin: 0 !important;
+	border: none !important;
+}
+body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-pagination ul li a,
+body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-pagination ul li span {
+	display: block !important;
+	padding: 10px 16px !important;
+	background: #fff !important;
+	color: #000 !important;
+	border: none !important;
+	border-bottom: none !important;
+	text-decoration: none !important;
+}
+body.nkzmp-account .woocommerce-MyAccount-content .woocommerce-pagination ul li span.current {
+	background: #0060FF !important;
+	color: #fff !important;
+}
+
+/* ─────────────────────────────────────────────────────────────
+ * Login (/muj-ucet/ – odhlášený stav). AOZ minimalismus:
+ * žádné šedé rámečky, žádné růžové linky, accent #0060FF.
+ * Register sloupec je vypnutý ve filteru (AccountChrome).
+ * ───────────────────────────────────────────────────────────── */
+
+body.nkzmp-account .woocommerce-form-login {
+	max-width: 460px;
+	margin: 0;
+	padding: 0;
+	border: none !important;
+	background: none !important;
+}
+
+/* WC občas renderuje login uvnitř .u-columns gridu (i bez register sloupce).
+ * Sjednotíme na jeden sloupec zarovnaný vlevo. */
+body.nkzmp-account #customer_login.u-columns,
+body.nkzmp-account .u-columns.col2-set {
+	display: block !important;
+}
+body.nkzmp-account #customer_login .u-column2,
+body.nkzmp-account #customer_login .col-2 {
+	display: none !important;
+}
+body.nkzmp-account #customer_login .u-column1,
+body.nkzmp-account #customer_login .col-1 {
+	width: 100% !important;
+	max-width: 460px !important;
+	float: none !important;
+	margin: 0 !important;
+}
+
+body.nkzmp-account #customer_login > h2,
+body.nkzmp-account .woocommerce-account .col-1 > h2 {
+	font-size: clamp(22px, 3vw, 28px) !important;
+	font-weight: 500 !important;
+	letter-spacing: -0.015em !important;
+	color: #000 !important;
+	margin: 0 0 24px !important;
+}
+
+/* Pole */
+body.nkzmp-account .woocommerce-form-login .woocommerce-form-row,
+body.nkzmp-account .woocommerce-form-login .form-row {
+	margin: 0 0 20px !important;
+	padding: 0 !important;
+}
+body.nkzmp-account .woocommerce-form-login label {
+	display: block !important;
+	font-size: 14px !important;
+	font-weight: 500 !important;
+	color: #000 !important;
+	margin: 0 0 8px !important;
+}
+body.nkzmp-account .woocommerce-form-login .woocommerce-Input,
+body.nkzmp-account .woocommerce-form-login input[type="text"],
+body.nkzmp-account .woocommerce-form-login input[type="email"],
+body.nkzmp-account .woocommerce-form-login input[type="password"] {
+	width: 100% !important;
+	box-sizing: border-box !important;
+	padding: 14px 16px !important;
+	font-size: 15px !important;
+	color: #111 !important;
+	background: var(--nkzmp-vd-bg-warm) !important;
+	border: 1px solid var(--nkzmp-vd-line-bold) !important;
+	border-radius: 8px !important;
+	transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease !important;
+	-webkit-appearance: none !important;
+	appearance: none !important;
+}
+body.nkzmp-account .woocommerce-form-login .woocommerce-Input:focus,
+body.nkzmp-account .woocommerce-form-login input:focus {
+	outline: none !important;
+	border-color: #0060FF !important;
+	background: #fff !important;
+	box-shadow: 0 0 0 3px var(--nkzmp-vd-accent-soft) !important;
+}
+
+/* Show/hide password ikonka WC – necháme, jen zarovnání */
+body.nkzmp-account .woocommerce-form-login .password-input {
+	display: block !important;
+	position: relative !important;
+}
+body.nkzmp-account .woocommerce-form-login .show-password-input {
+	top: 16px !important;
+}
+
+/* Akční řádek: zaškrtávátko + submit */
+body.nkzmp-account .woocommerce-form-login__submit {
+	display: inline-flex !important;
+	align-items: center !important;
+	gap: 10px !important;
+	background: #0060FF !important;
+	color: #fff !important;
+	border: 0 !important;
+	border-radius: 8px !important;
+	box-shadow: 0 6px 18px rgba(0,96,255,0.22) !important;
+	padding: 15px 30px !important;
+	font-size: 15px !important;
+	font-weight: 600 !important;
+	letter-spacing: -0.005em !important;
+	cursor: pointer !important;
+	transition: background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease !important;
+	margin: 4px 0 0 !important;
+}
+body.nkzmp-account .woocommerce-form-login__submit:hover {
+	background: #0048cc !important;
+	transform: translateY(-1px) !important;
+	box-shadow: 0 10px 26px rgba(0,96,255,0.3) !important;
+}
+body.nkzmp-account .woocommerce-form-login__submit svg {
+	flex-shrink: 0 !important;
+}
+
+body.nkzmp-account .woocommerce-form-login__rememberme {
+	display: inline-flex !important;
+	align-items: center !important;
+	gap: 8px !important;
+	font-size: 14px !important;
+	color: rgba(0,0,0,0.65) !important;
+	margin: 0 0 20px !important;
+	font-weight: 400 !important;
+}
+body.nkzmp-account .woocommerce-form-login__rememberme input {
+	width: auto !important;
+	margin: 0 !important;
+}
+
+/* Zapomenuté heslo – černý decentní link, žádná růžová */
+body.nkzmp-account .woocommerce-LostPassword,
+body.nkzmp-account .lost_password {
+	margin: 18px 0 0 !important;
+	font-size: 14px !important;
+}
+body.nkzmp-account .woocommerce-LostPassword a,
+body.nkzmp-account .lost_password a {
+	color: rgba(0,0,0,0.6) !important;
+	text-decoration: none !important;
+	border-bottom: 1px solid rgba(0,0,0,0.2) !important;
+	transition: color 0.15s ease, border-color 0.15s ease !important;
+}
+body.nkzmp-account .woocommerce-LostPassword a:hover,
+body.nkzmp-account .lost_password a:hover {
+	color: #0060FF !important;
+	border-color: #0060FF !important;
+}

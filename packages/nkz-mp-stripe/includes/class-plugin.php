@@ -24,6 +24,7 @@ final class Plugin {
 		Vendors::instance()->init();
 		Product_Fields::instance()->init();
 		Admin_Settings::instance()->init();
+		Health::instance()->init();
 		Order_Meta_Box::instance()->init();
 		Onboarding_Controller::instance()->init();
 		Webhook_Controller::instance()->init();
@@ -34,6 +35,8 @@ final class Plugin {
 		// Domain / service layer hooks.
 		Transfer_Service::instance()->init();
 		Refund_Service::instance()->init();
+		Escrow::instance()->init();
+		Failed_Transfers::instance()->init();
 
 		load_plugin_textdomain( 'nkz-woo-stripe-vendor-split', false, dirname( plugin_basename( NKVSVS_PLUGIN_FILE ) ) . '/languages' );
 
@@ -67,6 +70,7 @@ final class Plugin {
 			'minimum_transfer_amount'          => 1.0,
 			'debug_logging'                    => 'no',
 			'transfer_hook'                    => 'payment_complete',
+			'escrow_hold_days'                 => 3, // escrow: ochranná lhůta po podání zásilky
 			'require_currency_match'           => 'yes',
 			'auto_reversal_on_full_refund'     => 'no',
 		];

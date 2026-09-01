@@ -35,6 +35,15 @@ final class Plugin {
 			update_option( 'nkzmp_reconcile_baseline_ts', time(), false );
 		}
 
+		// Idempotentní sync rolí + caps. Při upgrade se přidají nové caps
+		// (např. upload_files / edit_products přidané v 0.10.3-dev pro
+		// frontend product editor) i pro existující role.
+		$caps_version_key = 'nkzmp_caps_version';
+		if ( get_option( $caps_version_key ) !== NKZMP_VERSION ) {
+			\NKZMP\Vendor\Registry::install_role();
+			update_option( $caps_version_key, NKZMP_VERSION, false );
+		}
+
 		// Vendor CPT + role aktivace je opt-in během Fáze 0, aby Screeno
 		// produkce (která jede na `nkv_vendor` v Stripe adapteru) nedostala
 		// dvě CPT registrace najednou. Po `wp nkzmp migrate-vendors` se
@@ -47,8 +56,14 @@ final class Plugin {
 			if ( ! function_exists( 'is_plugin_active' ) ) {
 				require_once ABSPATH . 'wp-admin/includes/plugin.php';
 			}
+			\NKZMP\Admin\Menu::instance()->init();
+			\NKZMP\Admin\DashboardPage::instance()->init();
+			\NKZMP\Admin\SettingsHub::instance()->init();
+			\NKZMP\Admin\EmailSettings::instance()->init();
+			\NKZMP\Admin\VendorDetailPage::instance()->init();
 			\NKZMP\Admin\StatusPage::instance()->init();
 			\NKZMP\Admin\ToolsPage::instance()->init();
+			\NKZMP\Admin\AdminBulk::instance()->init();
 		}
 
 		if ( defined( 'WP_CLI' ) && WP_CLI ) {
@@ -75,6 +90,11 @@ final class Plugin {
 
 		// Reconciliation cron (denně).
 		\NKZMP\Reconciliation\Cron::instance()->init();
+		\NKZMP\Reconciliation\DriftNotifier::instance()->init();
+
+		// AOZ styling pro defaultní WooCommerce transakční e-maily
+		// (new order / processing / completed / refunded / customer note).
+		\NKZMP\Emails\WCEmailStyle::instance()->init();
 
 		// TODO Phase 0:
 		// - Product\Ownership admin UI panel + capability guard

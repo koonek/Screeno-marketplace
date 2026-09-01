@@ -36,8 +36,23 @@ final class Registry {
 			self::POST_TYPE,
 			[
 				'label'              => __( 'Vendoři', 'nkz-marketplace' ),
+				'labels'             => [
+					'name'          => __( 'Vendoři', 'nkz-marketplace' ),
+					'singular_name' => __( 'Vendor', 'nkz-marketplace' ),
+					'menu_name'     => __( 'Vendoři', 'nkz-marketplace' ),
+					'all_items'     => __( 'Všichni vendoři', 'nkz-marketplace' ),
+					'add_new'       => __( 'Přidat vendora', 'nkz-marketplace' ),
+					'add_new_item'  => __( 'Nový vendor', 'nkz-marketplace' ),
+					'edit_item'     => __( 'Upravit vendora', 'nkz-marketplace' ),
+				],
 				'public'             => true,
-				'publicly_queryable' => false,
+				// publicly_queryable=true je nutné, aby Elementor Pro Loop Grid
+				// vendory ukázal v Source dropdownu. Vlastní permalink /vendor/<slug>
+				// řeší storefront rewrite – default ?nkzmp_vendor=slug query padne
+				// na náš single template přes template_redirect.
+				'publicly_queryable' => true,
+				'exclude_from_search' => true,
+				'show_in_nav_menus'  => true,
 				'show_ui'            => true,
 				'show_in_menu'       => true,
 				'show_in_rest'       => true,
@@ -86,12 +101,21 @@ final class Registry {
 	}
 
 	/**
-	 * Instalace role a admin caps. Volá se z aktivace pluginu.
+	 * Instalace + sync caps. Bezpečně volatelné opakovaně.
+	 *
+	 * Pokud role existuje (např. z dřívější verze pluginu), všechny caps
+	 * z aktuální vendor_caps() definice se na ni add_cap-nou (idempotentní).
+	 * Tím se zachová zpětná kompatibilita při upgradu, který přidá nový cap.
 	 */
 	public static function install_role(): void {
-		if ( ! get_role( Capabilities::ROLE_VENDOR ) ) {
+		$role = get_role( Capabilities::ROLE_VENDOR );
+		if ( ! $role ) {
 			$caps = array_fill_keys( Capabilities::vendor_caps(), true );
 			add_role( Capabilities::ROLE_VENDOR, __( 'Vendor (NKZ)', 'nkz-marketplace' ), $caps );
+		} else {
+			foreach ( Capabilities::vendor_caps() as $cap ) {
+				$role->add_cap( $cap );
+			}
 		}
 
 		$admin = get_role( 'administrator' );

@@ -1,0 +1,2919 @@
+/* NKZ Marketplace – WooCommerce frontend (single product, košík, pokladna,
+ * thank you). Sladěné s homepage: teplý podklad, zaoblení, modré CTA,
+ * žádné tvrdé černé linky. Tokeny dědí z storefront.css :root, takže
+ * Screeno přebije přes filter `nkzmp/v1/storefront/tokens`.
+ *
+ * Cíleno na WC stable třídy – ne na konkrétní theme. Theme může
+ * jednotlivá pravidla přebít vyšší specificitou (záměrně bez !important
+ * tam kde to jde).
+ */
+
+/* ─────────────────────────────────────────────────────────────
+ * Společné: WC tlačítka, notice, formuláře
+ *
+ * Pozn.: théma/Elementor často WC button přepisuje vlastním stylem
+ * (typicky černé .button, .elementor-button). Cílíme s vyšší specificitou
+ * a !important na klíčových místech, abychom theme overridy přebili.
+ * ───────────────────────────────────────────────────────────── */
+
+body.woocommerce a.button,
+body.woocommerce-page a.button,
+body.woocommerce button.button,
+body.woocommerce-page button.button,
+body.woocommerce input.button,
+body.woocommerce-page input.button,
+body.woocommerce a.button.alt,
+body.woocommerce button.button.alt,
+body.woocommerce input.button.alt,
+body.woocommerce a.checkout-button,
+body.woocommerce #place_order,
+body.woocommerce-checkout #place_order,
+body.woocommerce-page #place_order,
+body.woocommerce-account #place_order,
+body.woocommerce-page button.button.alt,
+body.woocommerce-account button.button.alt,
+body.woocommerce-page button[name="woocommerce_add_payment_method"],
+body.woocommerce-cart a.checkout-button,
+body.woocommerce #respond input#submit {
+	display: inline-flex !important;
+	align-items: center !important;
+	justify-content: center !important;
+	gap: 10px !important;
+	background: var(--nkzmp-color-accent) !important;
+	background-color: var(--nkzmp-color-accent) !important;
+	background-image: none !important;
+	color: #fff !important;
+	border: 0 !important;
+	border-radius: var(--nkzmp-radius-soft) !important;
+	box-shadow: 0 6px 18px rgba(0,96,255,0.22) !important;
+	padding: 13px 26px !important;
+	font-family: inherit !important;
+	font-weight: 600 !important;
+	font-size: 15px !important;
+	letter-spacing: 0 !important;
+	text-transform: none !important;
+	text-decoration: none !important;
+	cursor: pointer !important;
+	transition: background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease !important;
+	line-height: 1.2 !important;
+	text-shadow: none !important;
+	min-height: 46px !important;
+	width: auto;
+}
+/* Safety: bílý viditelný text na modrých akčních tlačítkách i pokud theme
+   nastavuje -webkit-text-fill-color (jinak text „zmizí" na stejné barvě). */
+body.woocommerce #place_order,
+body.woocommerce-checkout #place_order,
+body.woocommerce-page #place_order,
+body.woocommerce-account #place_order,
+body.woocommerce-page button.button.alt,
+body.woocommerce-account button.button.alt,
+body.woocommerce-page button[name="woocommerce_add_payment_method"] {
+	-webkit-text-fill-color: #fff !important;
+	color: #fff !important;
+}
+
+body.woocommerce a.button:hover,
+body.woocommerce button.button:hover,
+body.woocommerce input.button:hover,
+body.woocommerce a.button.alt:hover,
+body.woocommerce a.checkout-button:hover,
+body.woocommerce #place_order:hover,
+body.woocommerce #respond input#submit:hover {
+	background: var(--nkzmp-color-accent-hover) !important;
+	background-color: var(--nkzmp-color-accent-hover) !important;
+	color: #fff !important;
+	transform: translateY(-1px) !important;
+	box-shadow: 0 10px 26px rgba(0,96,255,0.3) !important;
+}
+
+/* Sekundární akce – Update Cart, wc-backward, Apply coupon: outline */
+body.woocommerce a.button.wc-backward,
+body.woocommerce button[name="update_cart"],
+body.woocommerce input[name="update_cart"],
+body.woocommerce button[name="apply_coupon"],
+body.woocommerce input[name="apply_coupon"],
+body.woocommerce-message a.button,
+body.woocommerce-info a.button {
+	background: var(--nkzmp-color-surface) !important;
+	background-color: var(--nkzmp-color-surface) !important;
+	color: var(--nkzmp-color-text) !important;
+	border: 1px solid var(--nkzmp-color-border) !important;
+	box-shadow: none !important;
+}
+body.woocommerce a.button.wc-backward:hover,
+body.woocommerce button[name="update_cart"]:hover,
+body.woocommerce button[name="apply_coupon"]:hover,
+body.woocommerce-message a.button:hover,
+body.woocommerce-info a.button:hover {
+	background: var(--nkzmp-color-bg-warm) !important;
+	color: var(--nkzmp-color-text) !important;
+	border-color: var(--nkzmp-color-accent) !important;
+	box-shadow: none !important;
+	transform: none !important;
+}
+
+/* Notice / message bloky – místo pro ikonu vlevo, jemný rámeček, bez
+ * tlustého barevného pruhu. Ikona (::before) zarovnaná, nepřekrývá text. */
+html body.woocommerce .woocommerce-message,
+html body.woocommerce .woocommerce-info,
+html body.woocommerce .woocommerce-error,
+html body.woocommerce-cart .woocommerce-message,
+html body.woocommerce-checkout .woocommerce-message,
+html body .woocommerce-message,
+html body .woocommerce-info,
+html body .woocommerce-error {
+	position: relative !important;
+	border-radius: var(--nkzmp-radius-soft) !important;
+	background: var(--nkzmp-color-accent-soft) !important;
+	border: 1px solid rgba(0,96,255,0.16) !important;
+	border-top-width: 1px !important;
+	color: var(--nkzmp-color-text) !important;
+	padding: 16px 18px 16px 52px !important;
+	font-family: inherit !important;
+	line-height: 1.5 !important;
+	max-width: var(--nkzmp-content-max, 1200px) !important;
+	margin-left: auto !important;
+	margin-right: auto !important;
+	box-sizing: border-box !important;
+}
+html body .woocommerce-error {
+	background: rgba(176,0,32,0.05) !important;
+	border-color: rgba(176,0,32,0.22) !important;
+}
+html body .woocommerce-message::before,
+html body .woocommerce-info::before,
+html body .woocommerce-error::before {
+	left: 18px !important;
+	top: 16px !important;
+	margin: 0 !important;
+	color: var(--nkzmp-color-accent) !important;
+}
+html body .woocommerce-error::before { color: #b00020 !important; }
+/* skryj default WC tlačítko „Zobrazit košík" uvnitř message ať se nepere */
+html body .woocommerce-message .button { vertical-align: middle; }
+
+/* Formulářová pole – warm box, modrý focus ring. Théma typicky dělá
+ * underline-only styling – vynutíme box + barvy přes !important. */
+/* DŮLEŽITÉ: scopováno do .woocommerce / form, NIKDY ne globální
+ * input[type=text] – jinak chytí i vyhledávání v admin liště (#wpadminbar). */
+body.woocommerce form .form-row input.input-text,
+body.woocommerce form .form-row textarea,
+body.woocommerce form .form-row select,
+body.woocommerce-page form .form-row input.input-text,
+body.woocommerce-page form .form-row textarea,
+body.woocommerce-page form .form-row select,
+body.woocommerce-checkout form.checkout input[type="text"],
+body.woocommerce-checkout form.checkout input[type="email"],
+body.woocommerce-checkout form.checkout input[type="tel"],
+body.woocommerce-checkout form.checkout input[type="number"],
+body.woocommerce-checkout form.checkout input[type="password"],
+body.woocommerce-checkout form.checkout textarea,
+body.woocommerce-checkout form.checkout select,
+body.woocommerce-cart .woocommerce input.input-text {
+	width: 100% !important;
+	box-sizing: border-box !important;
+	padding: 12px 14px !important;
+	font-size: 15px !important;
+	font-family: inherit !important;
+	color: var(--nkzmp-color-text) !important;
+	background: var(--nkzmp-color-bg-warm) !important;
+	background-color: var(--nkzmp-color-bg-warm) !important;
+	border: 1px solid var(--nkzmp-color-border) !important;
+	border-radius: var(--nkzmp-radius-soft) !important;
+	box-shadow: none !important;
+	transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+	min-height: 46px;
+}
+body.woocommerce form .form-row input.input-text:focus,
+body.woocommerce form .form-row textarea:focus,
+body.woocommerce form .form-row select:focus,
+body.woocommerce-checkout form.checkout input:focus,
+body.woocommerce-checkout form.checkout textarea:focus,
+body.woocommerce-checkout form.checkout select:focus {
+	border-color: var(--nkzmp-color-accent) !important;
+	background: var(--nkzmp-color-surface) !important;
+	background-color: var(--nkzmp-color-surface) !important;
+	box-shadow: 0 0 0 3px var(--nkzmp-color-accent-soft) !important;
+	outline: none !important;
+}
+/* Pojistka: admin bar vyhledávání se NESMÍ stylovat. */
+#wpadminbar input,
+#wpadminbar input[type="text"] {
+	all: revert !important;
+}
+/* Labely – théma často trakttuje label jako link (modré). Vynutit text. */
+body.woocommerce form .form-row label,
+body.woocommerce-page form .form-row label,
+body.woocommerce-checkout label,
+body.woocommerce-checkout .woocommerce-form-row label,
+body.woocommerce-cart form label {
+	font-size: 14px !important;
+	font-weight: 600 !important;
+	color: var(--nkzmp-color-text) !important;
+	margin-bottom: 8px !important;
+	display: block !important;
+	text-transform: none !important;
+	letter-spacing: 0 !important;
+}
+body.woocommerce form .form-row .required,
+body.woocommerce-checkout .required {
+	color: var(--nkzmp-color-accent) !important;
+	text-decoration: none !important;
+}
+
+/* ─────────────────────────────────────────────────────────────
+ * Single product page
+ * ───────────────────────────────────────────────────────────── */
+
+.woocommerce div.product {
+	font-family: var(--nkzmp-font-family);
+	color: var(--nkzmp-color-text);
+}
+.woocommerce div.product .product_title {
+	font-size: clamp(28px, 4vw, 44px);
+	font-weight: 500;
+	letter-spacing: -0.025em;
+	line-height: 1.1;
+	margin: 0 0 16px;
+}
+.woocommerce div.product p.price,
+.woocommerce div.product span.price {
+	color: var(--nkzmp-color-accent);
+	font-size: 26px;
+	font-weight: 600;
+	letter-spacing: -0.01em;
+	margin: 0 0 20px;
+}
+.woocommerce div.product p.price del,
+.woocommerce div.product span.price del {
+	color: var(--nkzmp-color-text-muted);
+	font-weight: 400;
+	margin-right: 8px;
+}
+.woocommerce div.product p.price ins,
+.woocommerce div.product span.price ins { text-decoration: none; }
+
+.woocommerce div.product .woocommerce-product-rating {
+	margin-bottom: 16px;
+}
+.woocommerce div.product .stock {
+	display: inline-block;
+	padding: 4px 12px;
+	border-radius: 999px;
+	font-size: 12px;
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	background: rgba(0,122,48,0.10);
+	color: #007a30;
+	margin: 0 0 16px;
+}
+.woocommerce div.product .stock.out-of-stock {
+	background: rgba(176,0,32,0.10);
+	color: #b00020;
+}
+
+.woocommerce div.product .woocommerce-product-details__short-description {
+	color: rgba(17,17,17,0.74);
+	line-height: 1.6;
+	margin: 0 0 24px;
+}
+
+/* Quantity + Add to cart row */
+.woocommerce div.product form.cart {
+	display: flex;
+	gap: 12px;
+	align-items: stretch;
+	flex-wrap: wrap;
+	margin: 0 0 32px;
+}
+.woocommerce div.product form.cart .quantity {
+	margin: 0;
+}
+.woocommerce .quantity .qty {
+	width: 80px;
+	padding: 12px 14px;
+	background: var(--nkzmp-color-bg-warm);
+	border: 1px solid var(--nkzmp-color-border);
+	border-radius: var(--nkzmp-radius-soft);
+	font-size: 15px;
+	font-family: inherit;
+	color: var(--nkzmp-color-text);
+	box-shadow: none;
+	text-align: center;
+}
+.woocommerce .quantity .qty:focus {
+	border-color: var(--nkzmp-color-accent);
+	background: var(--nkzmp-color-surface);
+	box-shadow: 0 0 0 3px var(--nkzmp-color-accent-soft);
+	outline: none;
+}
+.woocommerce div.product form.cart .single_add_to_cart_button {
+	flex: 1;
+	min-width: 200px;
+	justify-content: center;
+}
+
+/* Product gallery */
+.woocommerce div.product div.images {
+	border-radius: var(--nkzmp-radius);
+	overflow: hidden;
+}
+.woocommerce div.product div.images img {
+	border-radius: var(--nkzmp-radius);
+}
+.woocommerce div.product div.images .flex-control-thumbs li {
+	margin-top: 12px;
+	padding: 0 6px 0 0;
+}
+.woocommerce div.product div.images .flex-control-thumbs img {
+	border-radius: var(--nkzmp-radius-soft);
+	opacity: 0.7;
+	transition: opacity 0.15s ease;
+}
+.woocommerce div.product div.images .flex-control-thumbs img:hover,
+.woocommerce div.product div.images .flex-control-thumbs .flex-active { opacity: 1; }
+
+/* Tabs */
+.woocommerce div.product .woocommerce-tabs ul.tabs {
+	border: 0;
+	padding: 0;
+	margin: 32px 0 24px;
+	display: flex;
+	gap: 4px;
+	flex-wrap: wrap;
+}
+.woocommerce div.product .woocommerce-tabs ul.tabs::before,
+.woocommerce div.product .woocommerce-tabs ul.tabs li::before,
+.woocommerce div.product .woocommerce-tabs ul.tabs li::after {
+	display: none;
+}
+.woocommerce div.product .woocommerce-tabs ul.tabs li {
+	margin: 0;
+	padding: 0;
+	background: transparent;
+	border: 0;
+	border-radius: 999px;
+}
+.woocommerce div.product .woocommerce-tabs ul.tabs li a {
+	display: inline-block;
+	padding: 9px 18px;
+	border: 1px solid var(--nkzmp-color-border);
+	border-radius: 999px;
+	color: var(--nkzmp-color-text);
+	font-weight: 500;
+	font-size: 14px;
+	text-decoration: none;
+	background: var(--nkzmp-color-surface);
+	transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.woocommerce div.product .woocommerce-tabs ul.tabs li a:hover {
+	border-color: var(--nkzmp-color-accent);
+	color: var(--nkzmp-color-accent);
+}
+.woocommerce div.product .woocommerce-tabs ul.tabs li.active a {
+	background: var(--nkzmp-color-accent);
+	color: #fff;
+	border-color: var(--nkzmp-color-accent);
+}
+.woocommerce div.product .woocommerce-tabs .panel {
+	padding: 24px 0 0;
+}
+.woocommerce div.product .woocommerce-tabs .panel h2 {
+	font-size: 22px;
+	font-weight: 500;
+	letter-spacing: -0.01em;
+	margin: 0 0 16px;
+}
+
+/* Meta (categories, tags, sku) */
+.woocommerce div.product .product_meta {
+	border-top: 1px solid var(--nkzmp-color-border-soft);
+	padding-top: 20px;
+	margin-top: 24px;
+	font-size: 14px;
+	color: var(--nkzmp-color-text-muted);
+}
+.woocommerce div.product .product_meta a {
+	color: var(--nkzmp-color-accent);
+	text-decoration: none;
+}
+.woocommerce div.product .product_meta a:hover { color: var(--nkzmp-color-accent-hover); }
+
+/* Related products */
+html body.woocommerce .related,
+html body.woocommerce .upsells,
+html body .woocommerce .related,
+html body .woocommerce .upsells {
+	clear: both !important;
+	width: 100% !important;
+	max-width: 100% !important;
+	margin-left: 0 !important;
+	margin-right: 0 !important;
+	text-align: left !important;
+	float: none !important;
+	display: block !important;
+}
+html body.woocommerce .related ul.products,
+html body.woocommerce .upsells ul.products,
+html body .woocommerce .related ul.products,
+html body .woocommerce .upsells ul.products {
+	width: 100% !important;
+	max-width: 100% !important;
+	margin-left: 0 !important;
+	margin-right: 0 !important;
+	float: none !important;
+}
+.woocommerce .related h2,
+.woocommerce .upsells h2 {
+	font-size: clamp(22px, 3vw, 32px);
+	font-weight: 500;
+	letter-spacing: -0.02em;
+	margin: 48px 0 24px;
+}
+/* Shop / category archive – clean kurátorský grid (Flér/Etsy estetika).
+ * Karta bez ohraničení v default state, jemný lift na hoveru. Vendor badge,
+ * cena druhotná. „Add to cart" button schovaný (vede přes single page). */
+html body .woocommerce ul.products,
+html body.woocommerce ul.products,
+html body .woocommerce-page ul.products,
+html body.woocommerce-page ul.products {
+	gap: 32px 24px !important;
+	display: grid !important;
+	/* Explicitni pocet sloupcu pres breakpointy - auto-fill nechaval
+	 * v gridu prazdne sloty kdyz nektery <li> mel zero-content / clearfix. */
+	grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+	grid-auto-flow: row dense !important;
+	justify-items: stretch !important;
+	justify-content: start !important;
+	text-align: left !important;
+	float: none !important;
+	margin: 0 0 40px !important;
+	padding: 0 !important;
+	list-style: none !important;
+}
+/* WC default ma na ul.products::before/::after content:" "; display:table
+ * jako clearfix pro float layout. V gridu je to ale plnohodnotny grid item,
+ * ktery zabira prvni bunku → odsud cela ta mezera u 'prvniho produktu'.
+ * Pozn: body sam ma class .woocommerce, proto selektor bez mezery
+ * (body.woocommerce) + univerzalni fallback bez tridy. */
+html body ul.products::before,
+html body ul.products::after,
+html body.woocommerce ul.products::before,
+html body.woocommerce ul.products::after,
+html body.woocommerce-page ul.products::before,
+html body.woocommerce-page ul.products::after,
+html body .woocommerce ul.products::before,
+html body .woocommerce ul.products::after,
+html body .woocommerce-page ul.products::before,
+html body .woocommerce-page ul.products::after {
+	display: none !important;
+	content: none !important;
+}
+
+/* Prazdne / non-product deti v ul.products – schovat, at neberou grid slot.
+ * Nektery theme / WC hook vklada <li class="clear"> nebo divider <div>
+ * jako prvni dite a v gridu to bere bunku → mezera u 'prvniho produktu'. */
+html body ul.products > :not(li.product),
+html body ul.products > *:empty,
+html body ul.products > .clear {
+	display: none !important;
+}
+/* Pojistka: vsechny .product maji auto column placement (negrid zadny
+ * theme/WC nastaveny grid-column-start na .first/.last). */
+html body .woocommerce ul.products li.product,
+html body .woocommerce-page ul.products li.product {
+	grid-column: auto !important;
+	grid-row: auto !important;
+	justify-self: stretch !important;
+}
+/* Default WC `li.product.first/.last` ma float + clear + inline-block
+ * centrovani od tematu, ktere v gridu delaji mezery. Tvrde vynulovat. */
+html body .woocommerce ul.products li.product,
+html body.woocommerce ul.products li.product,
+html body .woocommerce ul.products li.product.first,
+html body .woocommerce ul.products li.product.last,
+html body .woocommerce-page ul.products li.product.first,
+html body .woocommerce-page ul.products li.product.last {
+	float: none !important;
+	clear: none !important;
+	display: block !important;
+	margin: 0 !important;
+	width: auto !important;
+	grid-column: auto !important;
+}
+@media (max-width: 1100px) {
+	html body .woocommerce ul.products,
+	html body.woocommerce ul.products,
+	html body .woocommerce-page ul.products,
+	html body.woocommerce-page ul.products {
+		grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+	}
+}
+/* Mobile: vzdy 2 sloupce vedle sebe (auto-fill by spadlo na 1 pri <480px). */
+@media (max-width: 720px) {
+	html body .woocommerce ul.products,
+	html body.woocommerce ul.products,
+	html body .woocommerce-page ul.products,
+	html body.woocommerce-page ul.products {
+		grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+		gap: 24px 12px !important;
+	}
+}
+.woocommerce ul.products li.product,
+.woocommerce-page ul.products li.product {
+	background: transparent;
+	border: 0;
+	border-radius: 0;
+	overflow: visible;
+	padding: 0 !important;
+	margin: 0 !important;
+	width: auto !important;
+	float: none !important;
+	transition: none;
+}
+.woocommerce ul.products li.product a.woocommerce-LoopProduct-link {
+	display: block;
+	text-decoration: none;
+	color: inherit;
+}
+.woocommerce ul.products li.product .wp-post-image,
+.woocommerce ul.products li.product img {
+	border-radius: var(--nkzmp-radius);
+	margin: 0 0 14px;
+	background: var(--nkzmp-color-bg-warm);
+	aspect-ratio: 1 / 1;
+	object-fit: cover;
+	width: 100%;
+	height: auto;
+	transition: transform 0.4s ease, box-shadow 0.25s ease;
+	will-change: transform;
+}
+.woocommerce ul.products li.product:hover .wp-post-image,
+.woocommerce ul.products li.product:hover img {
+	transform: scale(1.025);
+	box-shadow: 0 12px 30px rgba(17,17,17,0.08);
+}
+.woocommerce ul.products li.product .woocommerce-loop-product__title {
+	padding: 0;
+	margin: 4px 0 2px;
+	font-size: 16px;
+	font-weight: 500;
+	letter-spacing: -0.005em;
+	color: var(--nkzmp-color-text);
+	line-height: 1.35;
+}
+/* Titulek produktu i jako link uvnitř .woocommerce-LoopProduct-link – preferujeme
+ * neutrální barvu textu (thema obvykle obarvuje všechny <a> svým link color). */
+body.woocommerce ul.products li.product a,
+body.woocommerce ul.products li.product a:hover,
+body.woocommerce ul.products li.product a:visited,
+body.woocommerce ul.products li.product a:focus,
+body.woocommerce-page ul.products li.product a,
+body.woocommerce-page ul.products li.product a:hover,
+body.woocommerce-page ul.products li.product a:visited,
+body.woocommerce-page ul.products li.product a:focus,
+body.woocommerce ul.products li.product .woocommerce-loop-product__title,
+body.woocommerce-page ul.products li.product .woocommerce-loop-product__title {
+	color: var(--nkzmp-color-text) !important;
+	text-decoration: none !important;
+}
+.woocommerce ul.products li.product .price {
+	padding: 0;
+	margin: 6px 0 0;
+	color: var(--nkzmp-color-text);
+	font-weight: 600;
+	font-size: 15px;
+	font-variant-numeric: tabular-nums;
+	letter-spacing: -0.005em;
+}
+body.woocommerce ul.products li.product .price,
+body.woocommerce ul.products li.product .price *,
+body.woocommerce-page ul.products li.product .price,
+body.woocommerce-page ul.products li.product .price * {
+	color: var(--nkzmp-color-text) !important;
+}
+.woocommerce ul.products li.product .price del {
+	color: var(--nkzmp-color-text-muted);
+	opacity: 0.7;
+	margin-right: 6px;
+	font-weight: 400;
+}
+.woocommerce ul.products li.product .price ins {
+	background: transparent;
+	color: var(--nkzmp-color-accent);
+	text-decoration: none;
+}
+/* Add-to-cart pod kartou – schovat na default a v archive contextu (cesta
+ * vede přes detail produktu). Sale badge taky decentnější. */
+body.woocommerce ul.products li.product .button,
+body.woocommerce ul.products li.product a.button,
+body.woocommerce ul.products li.product .add_to_cart_button,
+body.woocommerce ul.products li.product .ajax_add_to_cart,
+body.woocommerce ul.products li.product .added_to_cart,
+body.woocommerce ul.products li.product .product_type_simple,
+body.woocommerce ul.products li.product .product_type_variable,
+body.woocommerce ul.products li.product .product_type_grouped,
+body.woocommerce ul.products li.product .product_type_external,
+body.woocommerce-page ul.products li.product .button,
+body.woocommerce-page ul.products li.product a.button,
+body.woocommerce-page ul.products li.product .add_to_cart_button,
+body.woocommerce-page ul.products li.product .added_to_cart {
+	display: none !important;
+}
+/* Defaultní WC result-count schovat – náš intro řádek říká totéž lépe. */
+body.woocommerce .woocommerce-result-count,
+body.woocommerce-page .woocommerce-result-count {
+	display: none !important;
+}
+/* Sale badge. `!important` + širší selektory schválně: některé šablony
+   (a Elementor) přebíjejí barvu textu na tmavou → v obchodě z badge zbyla
+   jen černá pilulka bez textu. Text musí být za všech okolností vidět. */
+.woocommerce ul.products li.product .onsale,
+.woocommerce ul.products li.product span.onsale,
+.woocommerce span.onsale,
+.woocommerce-page span.onsale,
+span.onsale.nkzmp-onsale {
+	position: absolute;
+	top: 12px;
+	left: 12px;
+	right: auto;
+	min-height: 0;
+	min-width: 0;
+	padding: 4px 10px;
+	background: var(--nkzmp-color-accent) !important;
+	color: #fff !important;
+	-webkit-text-fill-color: #fff !important;
+	border-radius: 999px;
+	font-size: 11px !important;
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	line-height: 1.4;
+	margin: 0;
+	border: 0;
+	text-indent: 0 !important;
+	opacity: 1 !important;
+	visibility: visible !important;
+	overflow: visible !important;
+	white-space: nowrap;
+	z-index: 2;
+}
+.woocommerce ul.products li.product { position: relative; }
+
+/* Vendor badge pod titulem (vkládá NKZMP\Storefront\ShopLoop). */
+.nkzmp-shop-vendor {
+	display: inline-block;
+	margin: 2px 0 0;
+	font-size: 12px;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	color: var(--nkzmp-color-text-muted);
+	text-decoration: none;
+	transition: color 0.15s;
+}
+.nkzmp-shop-vendor:hover { color: var(--nkzmp-color-accent); }
+.nkzmp-shop-vendor__by { opacity: 0.7; }
+.nkzmp-shop-vendor__name { font-weight: 600; color: var(--nkzmp-color-text); }
+.nkzmp-shop-vendor:hover .nkzmp-shop-vendor__name { color: var(--nkzmp-color-accent); }
+
+/* Intro řádek nad gridem. */
+.nkzmp-shop-intro {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 16px;
+	margin: 0 0 28px;
+	padding: 0 0 16px;
+	border-bottom: 1px solid var(--nkzmp-color-border-soft);
+}
+.nkzmp-shop-intro__lead {
+	font-size: 13px;
+	font-weight: 600;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var(--nkzmp-color-text-muted);
+	font-variant-numeric: tabular-nums;
+}
+
+/* Result count + orderby – decentní, do řady. */
+.woocommerce .woocommerce-result-count {
+	font-size: 12px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--nkzmp-color-text-muted);
+	margin: 0 0 20px;
+}
+.woocommerce .woocommerce-ordering {
+	margin: 0 0 20px;
+}
+.woocommerce .woocommerce-ordering select {
+	border: 1px solid var(--nkzmp-color-border-soft);
+	background: var(--nkzmp-color-surface);
+	border-radius: var(--nkzmp-radius-soft);
+	padding: 8px 14px;
+	font-size: 13px;
+	color: var(--nkzmp-color-text);
+	font-family: var(--nkzmp-font-family);
+	cursor: pointer;
+}
+
+/* CTA „Tvoříš taky?" pod gridem. */
+.nkzmp-shop-promo {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 24px;
+	flex-wrap: wrap;
+	background: var(--nkzmp-color-bg-warm);
+	border-radius: var(--nkzmp-radius);
+	padding: 28px 32px;
+	margin: 32px 0 48px;
+}
+.nkzmp-shop-promo__body { max-width: 580px; }
+.nkzmp-shop-promo__h {
+	margin: 0 0 6px;
+	font-size: 20px;
+	font-weight: 500;
+	letter-spacing: -0.015em;
+	color: var(--nkzmp-color-text);
+}
+.nkzmp-shop-promo__d {
+	margin: 0;
+	font-size: 14px;
+	line-height: 1.55;
+	color: var(--nkzmp-color-text-muted);
+}
+.nkzmp-shop-promo__cta {
+	display: inline-block;
+	padding: 12px 24px;
+	background: var(--nkzmp-color-accent);
+	color: #fff !important;
+	border-radius: 8px;
+	font-size: 14px;
+	font-weight: 600;
+	text-decoration: none;
+	letter-spacing: -0.005em;
+	transition: background 0.15s;
+	white-space: nowrap;
+}
+.nkzmp-shop-promo__cta:hover { background: var(--nkzmp-color-accent-hover); }
+
+/* Page title („Obchod") jako velký kurátorský headline. */
+.woocommerce .woocommerce-products-header__title,
+.woocommerce-page .woocommerce-products-header__title,
+.woocommerce-page.archive .page-title,
+.woocommerce.archive .page-title {
+	font-size: clamp(36px, 5vw, 56px) !important;
+	font-weight: 400 !important;
+	letter-spacing: -0.03em !important;
+	line-height: 1.05 !important;
+	margin: 0 0 20px !important;
+	color: var(--nkzmp-color-text) !important;
+}
+
+/* ─────────────────────────────────────────────────────────────
+ * Headings na WC stránkách (Cart Totals / Your Order / Billing Details /
+ * Mezisoučet / Cena celkem) – théma je často udělá v accent barvě, my
+ * je vrátíme na text color.
+ * ───────────────────────────────────────────────────────────── */
+
+body.woocommerce h1, body.woocommerce-page h1,
+body.woocommerce h2, body.woocommerce-page h2,
+body.woocommerce h3, body.woocommerce-page h3,
+body.woocommerce h4, body.woocommerce-page h4 {
+	color: var(--nkzmp-color-text) !important;
+	font-weight: 500 !important;
+}
+body.woocommerce-cart h1, body.woocommerce-cart h2,
+body.woocommerce-checkout h1, body.woocommerce-checkout h2, body.woocommerce-checkout h3,
+body.woocommerce-order-received h1, body.woocommerce-order-received h2 {
+	color: var(--nkzmp-color-text) !important;
+}
+
+/* Packeta „Vybrat výdejní místo" tlačítko (z packeta plugin checkout widgetu) */
+body.woocommerce-checkout .packeta-selector-open,
+body.woocommerce-checkout .packetery-widget-button,
+body.woocommerce-checkout a.nkzmp-packeta-open,
+body.woocommerce-checkout button.nkzmp-packeta-open {
+	display: inline-flex !important;
+	align-items: center !important;
+	gap: 8px !important;
+	background: var(--nkzmp-color-accent) !important;
+	color: #fff !important;
+	border: 0 !important;
+	border-radius: var(--nkzmp-radius-soft) !important;
+	box-shadow: 0 4px 14px rgba(0,96,255,0.20) !important;
+	padding: 11px 22px !important;
+	font-weight: 600 !important;
+	font-size: 14px !important;
+	cursor: pointer !important;
+	text-decoration: none !important;
+}
+body.woocommerce-checkout .packeta-selector-open:hover,
+body.woocommerce-checkout .packetery-widget-button:hover {
+	background: var(--nkzmp-color-accent-hover) !important;
+}
+
+/* ─────────────────────────────────────────────────────────────
+ * Cart (Košík)
+ * ───────────────────────────────────────────────────────────── */
+
+.woocommerce-cart .woocommerce {
+	font-family: var(--nkzmp-font-family);
+	color: var(--nkzmp-color-text);
+}
+
+.woocommerce-cart table.shop_table,
+.woocommerce table.cart {
+	border: 1px solid var(--nkzmp-color-border-soft);
+	border-radius: var(--nkzmp-radius);
+	border-collapse: separate;
+	border-spacing: 0;
+	overflow: hidden;
+	width: 100%;
+	background: var(--nkzmp-color-surface);
+}
+.woocommerce-cart table.shop_table th {
+	background: var(--nkzmp-color-bg-warm);
+	color: var(--nkzmp-color-text-muted);
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	font-size: 11px;
+	text-align: left;
+	padding: 14px 16px;
+	border: 0;
+	border-bottom: 1px solid var(--nkzmp-color-border-soft);
+}
+.woocommerce-cart table.shop_table td {
+	padding: 16px;
+	border: 0;
+	border-bottom: 1px solid var(--nkzmp-color-border-soft);
+	vertical-align: middle;
+}
+.woocommerce-cart table.shop_table tbody tr:last-child td { border-bottom: 0; }
+.woocommerce-cart table.cart img {
+	width: 64px;
+	height: 64px;
+	object-fit: cover;
+	border-radius: var(--nkzmp-radius-soft);
+	background: var(--nkzmp-color-bg-warm);
+}
+.woocommerce-cart table.cart a.remove {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 28px;
+	height: 28px;
+	border-radius: 999px;
+	background: var(--nkzmp-color-bg-warm);
+	color: var(--nkzmp-color-text-muted) !important;
+	font-size: 18px;
+	line-height: 1;
+	text-decoration: none;
+	transition: background 0.15s ease, color 0.15s ease;
+}
+.woocommerce-cart table.cart a.remove:hover {
+	background: rgba(176,0,32,0.10);
+	color: #b00020 !important;
+}
+.woocommerce-cart table.cart td.product-name a {
+	color: var(--nkzmp-color-text);
+	font-weight: 500;
+	text-decoration: none;
+}
+.woocommerce-cart table.cart td.product-name a:hover { color: var(--nkzmp-color-accent); }
+.woocommerce-cart table.cart td.product-price,
+.woocommerce-cart table.cart td.product-subtotal {
+	font-variant-numeric: tabular-nums;
+	color: var(--nkzmp-color-text);
+}
+.woocommerce-cart table.cart td.product-subtotal { font-weight: 600; }
+
+/* Quantity v košíku – stejný boxed look jako single product */
+body.woocommerce-cart table.cart .quantity .qty,
+body.woocommerce-cart .product-quantity .qty {
+	width: 80px !important;
+	padding: 10px 12px !important;
+	background: var(--nkzmp-color-bg-warm) !important;
+	border: 1px solid var(--nkzmp-color-border) !important;
+	border-radius: var(--nkzmp-radius-soft) !important;
+	text-align: center !important;
+	min-height: auto !important;
+}
+
+/* Coupon + actions row */
+body.woocommerce-cart .actions {
+	padding: 16px !important;
+	background: var(--nkzmp-color-bg-warm);
+	border-radius: var(--nkzmp-radius);
+	margin-top: 16px;
+}
+body.woocommerce-cart .actions .coupon {
+	display: inline-flex !important;
+	gap: 8px !important;
+	align-items: stretch !important;
+}
+body.woocommerce-cart .actions .coupon input.input-text {
+	width: 240px !important;
+	background: #fff !important;
+}
+
+/* Cart totals box */
+.cart_totals {
+	background: var(--nkzmp-color-surface);
+	border: 1px solid var(--nkzmp-color-border-soft);
+	border-radius: var(--nkzmp-radius);
+	padding: 24px;
+}
+.cart_totals h2 {
+	font-size: 20px;
+	font-weight: 500;
+	letter-spacing: -0.01em;
+	margin: 0 0 16px;
+}
+.cart_totals table.shop_table {
+	border: 0;
+	border-radius: 0;
+}
+.cart_totals table.shop_table th,
+.cart_totals table.shop_table td {
+	background: transparent;
+	padding: 10px 0;
+	border-bottom: 1px solid var(--nkzmp-color-border-soft);
+	text-transform: none;
+	letter-spacing: 0;
+	font-size: 14px;
+	color: var(--nkzmp-color-text);
+}
+.cart_totals .order-total th,
+.cart_totals .order-total td {
+	font-weight: 600;
+	font-size: 16px;
+	border-bottom: 0;
+}
+body.woocommerce-cart .cart_totals .wc-proceed-to-checkout,
+.cart_totals .wc-proceed-to-checkout {
+	margin-top: 20px !important;
+	padding: 0 !important;
+}
+body.woocommerce-cart .cart_totals .wc-proceed-to-checkout a.checkout-button,
+body.woocommerce-cart .cart_totals .checkout-button,
+.cart_totals .wc-proceed-to-checkout .checkout-button {
+	display: flex !important;
+	justify-content: center !important;
+	width: 100% !important;
+	background: var(--nkzmp-color-accent) !important;
+	background-color: var(--nkzmp-color-accent) !important;
+	background-image: none !important;
+	color: #fff !important;
+	border: 0 !important;
+	border-radius: var(--nkzmp-radius-soft) !important;
+	box-shadow: 0 6px 18px rgba(0,96,255,0.22) !important;
+	padding: 16px 26px !important;
+	font-size: 16px !important;
+	font-weight: 600 !important;
+	min-height: 52px !important;
+}
+
+/* Empty cart */
+.cart-empty {
+	background: var(--nkzmp-color-bg-warm);
+	border: 1px solid var(--nkzmp-color-border-soft);
+	border-radius: var(--nkzmp-radius);
+	padding: 48px 24px;
+	text-align: center;
+	font-size: 18px;
+	color: var(--nkzmp-color-text-muted);
+}
+.return-to-shop { text-align: center; margin-top: 16px; }
+
+/* ─────────────────────────────────────────────────────────────
+ * Checkout (Pokladna)
+ * ───────────────────────────────────────────────────────────── */
+
+.woocommerce-checkout .woocommerce {
+	font-family: var(--nkzmp-font-family);
+	color: var(--nkzmp-color-text);
+}
+.woocommerce-checkout h3 {
+	font-size: 22px;
+	font-weight: 500;
+	letter-spacing: -0.015em;
+	margin: 0 0 16px;
+}
+#customer_details {
+	background: var(--nkzmp-color-surface);
+	border: 1px solid var(--nkzmp-color-border-soft);
+	border-radius: var(--nkzmp-radius);
+	padding: 28px;
+	margin-bottom: 24px;
+}
+
+/* Order review table */
+.woocommerce-checkout #order_review {
+	background: var(--nkzmp-color-surface);
+	border: 1px solid var(--nkzmp-color-border-soft);
+	border-radius: var(--nkzmp-radius);
+	padding: 24px;
+}
+.woocommerce-checkout #order_review_heading {
+	font-size: 20px;
+	font-weight: 500;
+	margin: 24px 0 12px;
+}
+.woocommerce-checkout table.shop_table {
+	border: 0;
+	border-radius: 0;
+}
+.woocommerce-checkout table.shop_table th,
+.woocommerce-checkout table.shop_table td {
+	padding: 10px 0;
+	background: transparent;
+	border-bottom: 1px solid var(--nkzmp-color-border-soft);
+	font-size: 14px;
+}
+.woocommerce-checkout table.shop_table thead th {
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	font-size: 11px;
+	color: var(--nkzmp-color-text-muted);
+	font-weight: 600;
+}
+.woocommerce-checkout table.shop_table tfoot th,
+.woocommerce-checkout table.shop_table tfoot td {
+	font-weight: 600;
+}
+.woocommerce-checkout table.shop_table .order-total th,
+.woocommerce-checkout table.shop_table .order-total td {
+	font-size: 16px;
+	border-bottom: 0;
+}
+
+/* Payment methods */
+.woocommerce-checkout #payment {
+	background: var(--nkzmp-color-bg-warm);
+	border-radius: var(--nkzmp-radius-soft);
+	padding: 16px;
+	margin-top: 16px;
+}
+.woocommerce-checkout #payment ul.payment_methods {
+	border-bottom: 1px solid var(--nkzmp-color-border-soft);
+	padding: 0 0 12px;
+	margin: 0 0 16px;
+}
+.woocommerce-checkout #payment ul.payment_methods li {
+	background: var(--nkzmp-color-surface);
+	border: 1px solid var(--nkzmp-color-border);
+	border-radius: var(--nkzmp-radius-soft);
+	padding: 12px 14px;
+	margin-bottom: 8px;
+	list-style: none;
+}
+.woocommerce-checkout #payment ul.payment_methods li input[type="radio"] {
+	accent-color: var(--nkzmp-color-accent);
+	margin-right: 8px;
+}
+.woocommerce-checkout #payment ul.payment_methods li label { font-weight: 600; cursor: pointer; }
+.woocommerce-checkout #payment div.payment_box {
+	background: transparent;
+	border: 0;
+	padding: 12px 0 0;
+	margin: 0;
+	color: var(--nkzmp-color-text-muted);
+	font-size: 14px;
+	line-height: 1.5;
+}
+.woocommerce-checkout #payment div.payment_box::before { display: none; }
+
+.woocommerce-checkout #payment .place-order {
+	padding: 0;
+	margin-top: 16px;
+}
+.woocommerce-checkout #place_order {
+	width: 100%;
+	justify-content: center;
+	padding: 16px 26px;
+	font-size: 16px;
+}
+
+/* Login / coupon collapsible info bloky nad formulářem */
+.woocommerce-form-login-toggle,
+.woocommerce-form-coupon-toggle {
+	margin-bottom: 16px;
+}
+.woocommerce form.checkout_coupon,
+.woocommerce form.login {
+	background: var(--nkzmp-color-bg-warm);
+	border: 1px solid var(--nkzmp-color-border-soft);
+	border-radius: var(--nkzmp-radius-soft);
+	padding: 20px;
+	margin-bottom: 16px;
+}
+
+/* ─────────────────────────────────────────────────────────────
+ * Thank you / Order received
+ * ───────────────────────────────────────────────────────────── */
+
+.woocommerce-order {
+	font-family: var(--nkzmp-font-family);
+	color: var(--nkzmp-color-text);
+}
+.woocommerce-order .woocommerce-thankyou-order-received {
+	font-size: clamp(28px, 4vw, 40px);
+	font-weight: 500;
+	letter-spacing: -0.025em;
+	line-height: 1.15;
+	margin: 0 0 20px;
+	padding: 24px;
+	background: var(--nkzmp-color-accent-soft);
+	border: 1px solid rgba(0,96,255,0.14);
+	border-radius: var(--nkzmp-radius);
+	color: var(--nkzmp-color-text);
+}
+.woocommerce-order ul.order_details {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+	gap: 1px;
+	list-style: none;
+	background: var(--nkzmp-color-border-soft);
+	border: 1px solid var(--nkzmp-color-border-soft);
+	border-radius: var(--nkzmp-radius);
+	overflow: hidden;
+	padding: 0;
+	margin: 0 0 32px;
+}
+.woocommerce-order ul.order_details li {
+	background: var(--nkzmp-color-surface);
+	padding: 18px 20px;
+	border: 0;
+	font-size: 14px;
+	color: var(--nkzmp-color-text-muted);
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	margin: 0;
+}
+.woocommerce-order ul.order_details li strong {
+	display: block;
+	margin-top: 6px;
+	font-size: 17px;
+	font-weight: 600;
+	letter-spacing: -0.005em;
+	text-transform: none;
+	color: var(--nkzmp-color-text);
+	font-variant-numeric: tabular-nums;
+}
+
+.woocommerce-order .woocommerce-order-details,
+.woocommerce-order .woocommerce-customer-details {
+	background: var(--nkzmp-color-surface);
+	border: 1px solid var(--nkzmp-color-border-soft);
+	border-radius: var(--nkzmp-radius);
+	padding: 24px;
+	margin-bottom: 24px;
+}
+.woocommerce-order h2 {
+	font-size: 22px;
+	font-weight: 500;
+	letter-spacing: -0.015em;
+	margin: 0 0 16px;
+}
+.woocommerce-order table.woocommerce-table--order-details {
+	border: 0;
+}
+.woocommerce-order table.woocommerce-table--order-details th,
+.woocommerce-order table.woocommerce-table--order-details td {
+	padding: 10px 0;
+	background: transparent;
+	border-bottom: 1px solid var(--nkzmp-color-border-soft);
+	font-size: 14px;
+}
+.woocommerce-order table.woocommerce-table--order-details tfoot .order-total th,
+.woocommerce-order table.woocommerce-table--order-details tfoot .order-total td {
+	font-size: 16px;
+	font-weight: 600;
+	border-bottom: 0;
+}
+.woocommerce-order address {
+	font-style: normal;
+	line-height: 1.7;
+	color: var(--nkzmp-color-text);
+}
+
+/* ─────────────────────────────────────────────────────────────
+ * Responsive
+ * ───────────────────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+	.woocommerce-cart table.shop_table thead { display: none; }
+	.woocommerce-cart table.shop_table tr {
+		display: block;
+		border-bottom: 1px solid var(--nkzmp-color-border-soft);
+		padding: 12px 0;
+	}
+	.woocommerce-cart table.shop_table td {
+		display: block;
+		border: 0;
+		padding: 6px 12px;
+	}
+	#customer_details,
+	.woocommerce-checkout #order_review,
+	.woocommerce-order .woocommerce-order-details,
+	.woocommerce-order .woocommerce-customer-details {
+		padding: 20px;
+	}
+}
+
+/* ─────────────────────────────────────────────────────────────
+ * Override hammer – théma/Elementor přebíjí hlavní CTA černou s vysokou
+ * specificitou. Prefix `html body` + plný řetězec WC tříd to přebije.
+ * ───────────────────────────────────────────────────────────── */
+
+html body.woocommerce .wc-proceed-to-checkout a.checkout-button,
+html body.woocommerce-cart .wc-proceed-to-checkout a.checkout-button.button,
+html body.woocommerce-cart .wc-proceed-to-checkout a.checkout-button.button.alt,
+html body.woocommerce-checkout #place_order,
+html body.woocommerce #place_order.button.alt {
+	background: var(--nkzmp-color-accent) !important;
+	background-color: var(--nkzmp-color-accent) !important;
+	background-image: none !important;
+	color: #fff !important;
+	border: 0 !important;
+	border-radius: var(--nkzmp-radius-soft) !important;
+}
+html body.woocommerce .wc-proceed-to-checkout a.checkout-button:hover,
+html body.woocommerce-checkout #place_order:hover {
+	background: var(--nkzmp-color-accent-hover) !important;
+	background-color: var(--nkzmp-color-accent-hover) !important;
+}
+
+/* Update Cart disabled (WC ho disabluje než změníš množství) – ať vypadá
+ * jako sekundární, ne jako vybledlé primary. */
+html body.woocommerce button[name="update_cart"],
+html body.woocommerce button[name="update_cart"][disabled],
+html body.woocommerce button[name="update_cart"]:disabled {
+	background: var(--nkzmp-color-surface) !important;
+	background-color: var(--nkzmp-color-surface) !important;
+	color: var(--nkzmp-color-text) !important;
+	border: 1px solid var(--nkzmp-color-border) !important;
+	box-shadow: none !important;
+	opacity: 1 !important;
+}
+html body.woocommerce button[name="update_cart"]:disabled {
+	color: var(--nkzmp-color-text-muted) !important;
+	cursor: default !important;
+}
+
+/* ─────────────────────────────────────────────────────────────
+ * Čáry pryč – théma kreslí černé vodorovné linky na shop_table /
+ * order_review / cart_totals. Přebijeme na jemné (border-soft) nebo nula.
+ * ───────────────────────────────────────────────────────────── */
+
+html body.woocommerce table.shop_table,
+html body.woocommerce table.shop_table th,
+html body.woocommerce table.shop_table td,
+html body.woocommerce table.shop_table tr,
+html body.woocommerce table.shop_table thead th,
+html body.woocommerce table.shop_table tbody th,
+html body.woocommerce table.shop_table tbody td,
+html body.woocommerce table.shop_table tfoot th,
+html body.woocommerce table.shop_table tfoot td,
+html body.woocommerce table.cart th,
+html body.woocommerce table.cart td,
+html body.woocommerce #order_review th,
+html body.woocommerce #order_review td {
+	border-color: var(--nkzmp-color-border-soft) !important;
+}
+/* horní/dolní silné linky (často black) sekce Your Order / Cart Totals */
+html body.woocommerce .cart_totals,
+html body.woocommerce #order_review,
+html body.woocommerce .cart-collaterals {
+	border-color: var(--nkzmp-color-border-soft) !important;
+}
+html body.woocommerce .cart_totals h2,
+html body.woocommerce #order_review_heading,
+html body.woocommerce .woocommerce-checkout #order_review {
+	border-top: 0 !important;
+	border-bottom: 0 !important;
+}
+/* WC občas dává black border-top na .shop_table přes inline theme styl */
+html body.woocommerce table.shop_table {
+	border-top-color: var(--nkzmp-color-border-soft) !important;
+	border: 1px solid var(--nkzmp-color-border-soft) !important;
+}
+
+/* ─────────────────────────────────────────────────────────────
+ * Flér-style seskupení po prodejcích (vkládá JS cart-grouping.js)
+ * ───────────────────────────────────────────────────────────── */
+
+html body.woocommerce tr.nkzmp-group-head > td {
+	background: var(--nkzmp-color-bg-warm) !important;
+	border: 0 !important;
+	border-top: 1px solid var(--nkzmp-color-border-soft) !important;
+	padding: 14px 16px !important;
+}
+.nkzmp-group-head__label {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 13px;
+	font-weight: 700;
+	letter-spacing: 0.02em;
+	color: var(--nkzmp-color-text);
+}
+.nkzmp-group-head__label::before {
+	content: '';
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: var(--nkzmp-color-accent);
+	display: inline-block;
+}
+html body.woocommerce tr.nkzmp-group-sub > td {
+	background: var(--nkzmp-color-bg-warm) !important;
+	border: 0 !important;
+	border-bottom: 1px solid var(--nkzmp-color-border-soft) !important;
+	padding: 10px 16px 14px !important;
+}
+.nkzmp-group-sub__row {
+	display: flex;
+	justify-content: flex-end;
+	align-items: baseline;
+	gap: 12px;
+	padding: 3px 0;
+}
+.nkzmp-group-sub__label {
+	font-size: 12px;
+	color: var(--nkzmp-color-text-muted);
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+}
+.nkzmp-group-sub__amount {
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
+	color: var(--nkzmp-color-text);
+	min-width: 90px;
+	text-align: right;
+}
+.nkzmp-group-sub__ship .nkzmp-group-sub__amount { color: var(--nkzmp-color-accent); }
+
+/* ─────────────────────────────────────────────────────────────
+ * Černé čáry – HARD reset. Téma kreslí border shorthandem (vč. width/style),
+ * takže pouhé border-color nestačí. Vynulujeme všechny bordery na WC
+ * tabulkách a vrátíme jen jemné spodní linky řádků.
+ * ───────────────────────────────────────────────────────────── */
+
+html body.woocommerce table.shop_table,
+html body.woocommerce table.cart,
+html body.woocommerce-cart table.shop_table,
+html body.woocommerce-checkout table.shop_table,
+html body.woocommerce #order_review table.shop_table {
+	border: 0 !important;
+	border-radius: 0 !important;
+	box-shadow: none !important;
+}
+/* hlavička sloupců – tenká jemná spodní linka místo černé */
+html body.woocommerce table.shop_table thead th,
+html body.woocommerce table.cart thead th {
+	border: 0 !important;
+	border-bottom: 1px solid var(--nkzmp-color-border-soft) !important;
+	background: transparent !important;
+}
+/* řádky položek – jen jemná spodní linka */
+html body.woocommerce table.shop_table tbody td,
+html body.woocommerce table.cart tbody td,
+html body.woocommerce table.shop_table tbody th {
+	border: 0 !important;
+	border-bottom: 1px solid var(--nkzmp-color-border-soft) !important;
+}
+/* tfoot (souhrny v review/cart totals) – jemné linky */
+html body.woocommerce table.shop_table tfoot th,
+html body.woocommerce table.shop_table tfoot td {
+	border: 0 !important;
+	border-top: 1px solid var(--nkzmp-color-border-soft) !important;
+}
+/* Cart Totals / V košíku celkem panel – nadpis bez černé linky */
+html body.woocommerce .cart_totals h2,
+html body.woocommerce .cart-collaterals h2,
+html body.woocommerce #order_review_heading {
+	border: 0 !important;
+	padding-bottom: 8px !important;
+}
+/* Pravý panel (V košíku celkem) – odeber black top/under linky, dej kartu */
+html body.woocommerce-cart .cart_totals {
+	border: 1px solid var(--nkzmp-color-border-soft) !important;
+	border-radius: var(--nkzmp-radius) !important;
+	background: var(--nkzmp-color-surface) !important;
+	padding: 24px !important;
+}
+/* odeber WC/théma <hr> a horní rámeček tabulky košíku */
+html body.woocommerce .woocommerce-cart-form table.cart,
+html body.woocommerce .woocommerce-cart-form {
+	border-top: 0 !important;
+}
+html body.woocommerce hr,
+html body.woocommerce-checkout hr,
+html body.woocommerce-cart hr { border-color: var(--nkzmp-color-border-soft) !important; }
+
+/* ── Grouping – čistší vzhled hlavičky + mezisoučtu ── */
+html body.woocommerce tr.nkzmp-group-head > td {
+	background: transparent !important;
+	border: 0 !important;
+	border-bottom: 1px solid var(--nkzmp-color-border-soft) !important;
+	padding: 22px 16px 10px !important;
+}
+.nkzmp-group-head__label {
+	font-size: 12px !important;
+	font-weight: 700 !important;
+	letter-spacing: 0.08em !important;
+	text-transform: uppercase !important;
+}
+html body.woocommerce tr.nkzmp-group-sub > td {
+	background: transparent !important;
+	border: 0 !important;
+	border-bottom: 1px solid var(--nkzmp-color-border-soft) !important;
+	padding: 4px 16px 18px !important;
+}
+.nkzmp-group-sub__label { font-size: 11px !important; }
+
+/* ─────────────────────────────────────────────────────────────
+ * Doladění: body na pokladně mívá jen .woocommerce-checkout (ne .woocommerce),
+ * proto button pravidla rozšiřujeme. + Packeta tlačítko + čáry u nadpisu.
+ * ───────────────────────────────────────────────────────────── */
+
+html body.woocommerce-checkout button.button,
+html body.woocommerce-checkout a.button,
+html body.woocommerce-cart button.button,
+html body.woocommerce-cart a.button {
+	background: var(--nkzmp-color-accent) !important;
+	background-color: var(--nkzmp-color-accent) !important;
+	color: #fff !important;
+	border: 0 !important;
+	border-radius: var(--nkzmp-radius-soft) !important;
+	box-shadow: 0 6px 18px rgba(0,96,255,0.22) !important;
+}
+/* sekundární (update/coupon) zpět na outline i v checkout-only body */
+html body.woocommerce-cart button[name="update_cart"],
+html body.woocommerce-cart button[name="apply_coupon"] {
+	background: var(--nkzmp-color-surface) !important;
+	color: var(--nkzmp-color-text) !important;
+	border: 1px solid var(--nkzmp-color-border) !important;
+	box-shadow: none !important;
+}
+
+/* Packeta „Vybrat výdejní místo" – accent outline (sekundární akce) */
+html body .nkzmp-packeta-btn,
+html body button.nkzmp-packeta-btn,
+html body #nkzmp-packeta-pick {
+	display: inline-flex !important;
+	align-items: center !important;
+	gap: 8px !important;
+	background: var(--nkzmp-color-surface) !important;
+	color: var(--nkzmp-color-accent) !important;
+	border: 1px solid var(--nkzmp-color-accent) !important;
+	border-radius: var(--nkzmp-radius-soft) !important;
+	box-shadow: none !important;
+	padding: 11px 20px !important;
+	font-weight: 600 !important;
+	font-size: 14px !important;
+	cursor: pointer !important;
+	min-height: 44px !important;
+}
+html body .nkzmp-packeta-btn:hover,
+html body #nkzmp-packeta-pick:hover {
+	background: var(--nkzmp-color-accent) !important;
+	color: #fff !important;
+}
+
+/* „Tvá objednávka" / order review nadpis – černé linky pryč */
+html body.woocommerce-checkout #order_review_heading,
+html body.woocommerce #order_review_heading {
+	border: 0 !important;
+	border-bottom: 0 !important;
+	margin: 0 0 8px !important;
+	padding: 0 !important;
+}
+html body.woocommerce-checkout #order_review,
+html body.woocommerce-checkout #order_review table.shop_table,
+html body.woocommerce-checkout #order_review table.shop_table thead,
+html body.woocommerce-checkout #order_review table.shop_table thead th,
+html body.woocommerce-checkout #order_review table.shop_table tr:first-child th,
+html body.woocommerce-checkout #order_review table.shop_table tr:first-child td {
+	border-top: 0 !important;
+}
+html body.woocommerce-checkout #order_review table.shop_table thead th {
+	border-bottom: 1px solid var(--nkzmp-color-border-soft) !important;
+}
+
+/* ─────────────────────────────────────────────────────────────
+ * Grouping jako KARTY – orámování okolo balíčku prodejce.
+ * head = horní zaoblení, item řádky = boční linky, sub = spodní zaoblení.
+ * ───────────────────────────────────────────────────────────── */
+
+/* mezera mezi balíčky */
+html body.woocommerce tr.nkzmp-group-gap > td {
+	border: 0 !important;
+	padding: 0 !important;
+	height: 18px !important;
+	background: transparent !important;
+}
+
+/* hlavička balíčku – horní část karty */
+html body.woocommerce tr.nkzmp-group-head > td {
+	background: var(--nkzmp-color-bg-warm) !important;
+	border: 1px solid var(--nkzmp-color-border-soft) !important;
+	border-bottom: 0 !important;
+	border-radius: var(--nkzmp-radius) var(--nkzmp-radius) 0 0 !important;
+	padding: 16px 18px 12px !important;
+}
+
+/* položky uvnitř karty – boční linky */
+html body.woocommerce tr.nkzmp-grp-item > td {
+	background: var(--nkzmp-color-surface) !important;
+	border-bottom: 1px solid var(--nkzmp-color-border-soft) !important;
+}
+html body.woocommerce tr.nkzmp-grp-item > td:first-child {
+	border-left: 1px solid var(--nkzmp-color-border-soft) !important;
+	padding-left: 18px !important;
+}
+html body.woocommerce tr.nkzmp-grp-item > td:last-child {
+	border-right: 1px solid var(--nkzmp-color-border-soft) !important;
+	padding-right: 18px !important;
+}
+
+/* mezisoučet/poštovné – spodní část karty */
+html body.woocommerce tr.nkzmp-group-sub > td {
+	background: var(--nkzmp-color-bg-warm) !important;
+	border: 1px solid var(--nkzmp-color-border-soft) !important;
+	border-top: 0 !important;
+	border-radius: 0 0 var(--nkzmp-radius) var(--nkzmp-radius) !important;
+	padding: 12px 18px 16px !important;
+}
+
+/* ─────────────────────────────────────────────────────────────
+ * Karty balíčků – OVERRIDE s vyšší specificitou než hard-reset čar výš
+ * (table.shop_table tbody …). Vykreslí čistý obrys karty místo změti linek.
+ * ───────────────────────────────────────────────────────────── */
+
+/* mezera mezi balíčky */
+html body.woocommerce table.shop_table tbody tr.nkzmp-group-gap > td,
+html body.woocommerce table.cart tbody tr.nkzmp-group-gap > td {
+	border: 0 !important;
+	padding: 0 !important;
+	height: 20px !important;
+	background: transparent !important;
+}
+
+/* hlavička balíčku = horní okraj karty */
+html body.woocommerce table.shop_table tbody tr.nkzmp-group-head > td,
+html body.woocommerce table.cart tbody tr.nkzmp-group-head > td {
+	background: var(--nkzmp-color-bg-warm) !important;
+	border: 1px solid var(--nkzmp-color-border-soft) !important;
+	border-bottom: 0 !important;
+	border-radius: var(--nkzmp-radius) var(--nkzmp-radius) 0 0 !important;
+	padding: 16px 18px 12px !important;
+}
+
+/* položky uvnitř karty = jen boční linky, žádné vnitřní vodorovné */
+html body.woocommerce table.shop_table tbody tr.nkzmp-grp-item > td,
+html body.woocommerce table.cart tbody tr.nkzmp-grp-item > td {
+	background: var(--nkzmp-color-surface) !important;
+	border-top: 0 !important;
+	border-bottom: 0 !important;
+}
+html body.woocommerce table.shop_table tbody tr.nkzmp-grp-item > td:first-child,
+html body.woocommerce table.cart tbody tr.nkzmp-grp-item > td:first-child {
+	border-left: 1px solid var(--nkzmp-color-border-soft) !important;
+	border-right: 0 !important;
+	padding-left: 18px !important;
+}
+html body.woocommerce table.shop_table tbody tr.nkzmp-grp-item > td:last-child,
+html body.woocommerce table.cart tbody tr.nkzmp-grp-item > td:last-child {
+	border-right: 1px solid var(--nkzmp-color-border-soft) !important;
+	border-left: 0 !important;
+	padding-right: 18px !important;
+}
+/* vnitřní buňky (mezi prvním a posledním) bez bočních linek */
+html body.woocommerce table.shop_table tbody tr.nkzmp-grp-item > td:not(:first-child):not(:last-child),
+html body.woocommerce table.cart tbody tr.nkzmp-grp-item > td:not(:first-child):not(:last-child) {
+	border-left: 0 !important;
+	border-right: 0 !important;
+}
+
+/* mezisoučet + poštovné = spodní okraj karty */
+html body.woocommerce table.shop_table tbody tr.nkzmp-group-sub > td,
+html body.woocommerce table.cart tbody tr.nkzmp-group-sub > td {
+	background: var(--nkzmp-color-bg-warm) !important;
+	border: 1px solid var(--nkzmp-color-border-soft) !important;
+	border-top: 1px solid var(--nkzmp-color-border-soft) !important;
+	border-radius: 0 0 var(--nkzmp-radius) var(--nkzmp-radius) !important;
+	padding: 12px 18px 16px !important;
+}
+
+/* ─────────────────────────────────────────────────────────────
+ * KARTY balíčků – FINÁLNÍ verze. Karta = teplý podklad (kontrast vůči bílé)
+ * + obrys. Nulujeme linky na tr I td (téma je kreslí různě). Max specificita
+ * (body.woocommerce-cart/checkout + table.shop_table tbody + tr.class).
+ * ───────────────────────────────────────────────────────────── */
+
+/* zruš VŠECHNY linky uvnitř skupinových řádků (tr i td) */
+html body.woocommerce-cart table.shop_table tbody tr.nkzmp-grp-item,
+html body.woocommerce-cart table.shop_table tbody tr.nkzmp-group-head,
+html body.woocommerce-cart table.shop_table tbody tr.nkzmp-group-sub,
+html body.woocommerce-checkout table.shop_table tbody tr.nkzmp-grp-item,
+html body.woocommerce-checkout table.shop_table tbody tr.nkzmp-group-head,
+html body.woocommerce-checkout table.shop_table tbody tr.nkzmp-group-sub {
+	border: 0 !important;
+	box-shadow: none !important;
+}
+html body.woocommerce-cart table.shop_table tbody tr.nkzmp-grp-item > td,
+html body.woocommerce-checkout table.shop_table tbody tr.nkzmp-grp-item > td {
+	border-top: 0 !important;
+	border-bottom: 0 !important;
+	background: var(--nkzmp-color-bg-warm) !important;
+}
+
+/* hlavička balíčku – horní okraj karty */
+html body.woocommerce-cart table.shop_table tbody tr.nkzmp-group-head > td,
+html body.woocommerce-checkout table.shop_table tbody tr.nkzmp-group-head > td {
+	background: var(--nkzmp-color-bg-warm) !important;
+	border: 1px solid var(--nkzmp-color-border) !important;
+	border-bottom: 0 !important;
+	border-radius: var(--nkzmp-radius) var(--nkzmp-radius) 0 0 !important;
+	padding: 16px 20px 12px !important;
+}
+/* boční linky položek */
+html body.woocommerce-cart table.shop_table tbody tr.nkzmp-grp-item > td:first-child,
+html body.woocommerce-checkout table.shop_table tbody tr.nkzmp-grp-item > td:first-child {
+	border-left: 1px solid var(--nkzmp-color-border) !important;
+	padding-left: 20px !important;
+}
+html body.woocommerce-cart table.shop_table tbody tr.nkzmp-grp-item > td:last-child,
+html body.woocommerce-checkout table.shop_table tbody tr.nkzmp-grp-item > td:last-child {
+	border-right: 1px solid var(--nkzmp-color-border) !important;
+	padding-right: 20px !important;
+}
+/* spodní okraj karty (mezisoučet + poštovné) */
+html body.woocommerce-cart table.shop_table tbody tr.nkzmp-group-sub > td,
+html body.woocommerce-checkout table.shop_table tbody tr.nkzmp-group-sub > td {
+	background: var(--nkzmp-color-bg-warm) !important;
+	border: 1px solid var(--nkzmp-color-border) !important;
+	border-top: 1px solid var(--nkzmp-color-border-soft) !important;
+	border-radius: 0 0 var(--nkzmp-radius) var(--nkzmp-radius) !important;
+	padding: 14px 20px 18px !important;
+}
+/* mezera mezi balíčky – průhledná, vrací bílou stránku */
+html body.woocommerce-cart table.shop_table tbody tr.nkzmp-group-gap > td,
+html body.woocommerce-checkout table.shop_table tbody tr.nkzmp-group-gap > td {
+	border: 0 !important;
+	background: transparent !important;
+	padding: 0 !important;
+	height: 22px !important;
+}
+
+/* ─────────────────────────────────────────────────────────────
+ * Platební metody – radio + label na jeden řádek (obecné label{display:block}
+ * je shazovalo pod sebe → překryv). Popis (payment_box) zůstává pod.
+ * ───────────────────────────────────────────────────────────── */
+
+html body.woocommerce-checkout #payment ul.payment_methods li {
+	display: block !important;
+	position: relative !important;
+	padding-left: 44px !important;
+}
+html body.woocommerce-checkout #payment ul.payment_methods li input[type="radio"] {
+	position: absolute !important;
+	left: 14px !important;
+	top: 16px !important;
+	width: 18px !important;
+	height: 18px !important;
+	margin: 0 !important;
+	accent-color: var(--nkzmp-color-accent) !important;
+}
+html body.woocommerce-checkout #payment ul.payment_methods li label {
+	display: inline !important;
+	margin: 0 !important;
+	font-weight: 600 !important;
+	line-height: 1.4 !important;
+	cursor: pointer !important;
+	vertical-align: middle !important;
+}
+html body.woocommerce-checkout #payment ul.payment_methods li label img {
+	vertical-align: middle !important;
+	margin-left: 8px !important;
+}
+html body.woocommerce-checkout #payment ul.payment_methods li .payment_box {
+	margin-top: 10px !important;
+}
+
+/* ─────────────────────────────────────────────────────────────
+ * Thank you – marketplace tuning (next steps + vendor cards + CTA)
+ * Sekce vkládá NKZMP\Storefront\ThankYou přes woocommerce_thankyou.
+ * ───────────────────────────────────────────────────────────── */
+
+.nkzmp-thx-steps,
+.nkzmp-thx-vendors {
+	margin: 0 0 28px;
+	font-family: var(--nkzmp-font-family);
+	color: var(--nkzmp-color-text);
+}
+.nkzmp-thx-steps__title,
+.nkzmp-thx-vendors__title {
+	font-size: 13px;
+	font-weight: 600;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: var(--nkzmp-color-text-muted);
+	margin: 0 0 14px;
+}
+.nkzmp-thx-steps__list {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 1px;
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	background: var(--nkzmp-color-border-soft);
+	border: 1px solid var(--nkzmp-color-border-soft);
+	border-radius: var(--nkzmp-radius);
+	overflow: hidden;
+}
+@media (max-width: 720px) {
+	.nkzmp-thx-steps__list { grid-template-columns: 1fr; }
+}
+.nkzmp-thx-step {
+	display: flex;
+	gap: 14px;
+	background: var(--nkzmp-color-surface);
+	padding: 20px 22px;
+	margin: 0;
+}
+.nkzmp-thx-step__num {
+	flex: 0 0 28px;
+	height: 28px;
+	border-radius: 50%;
+	background: var(--nkzmp-color-accent-soft);
+	color: var(--nkzmp-color-accent);
+	font-weight: 600;
+	font-size: 14px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	font-variant-numeric: tabular-nums;
+}
+.nkzmp-thx-step__body { min-width: 0; }
+.nkzmp-thx-step__h {
+	font-size: 15px;
+	font-weight: 600;
+	margin: 2px 0 6px;
+	letter-spacing: -0.005em;
+	color: var(--nkzmp-color-text);
+}
+.nkzmp-thx-step__d {
+	font-size: 13px;
+	line-height: 1.55;
+	margin: 0;
+	color: var(--nkzmp-color-text-muted);
+	word-break: break-word;
+}
+
+.nkzmp-thx-vendors__grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+	gap: 14px;
+}
+.nkzmp-thx-vendor {
+	display: flex;
+	gap: 16px;
+	background: var(--nkzmp-color-surface);
+	border: 1px solid var(--nkzmp-color-border-soft);
+	border-radius: var(--nkzmp-radius);
+	padding: 18px 20px;
+	align-items: flex-start;
+}
+.nkzmp-thx-vendor__img {
+	flex: 0 0 64px;
+	height: 64px;
+	border-radius: 50%;
+	background-size: cover;
+	background-position: center;
+	background-color: var(--nkzmp-color-bg-warm);
+}
+.nkzmp-thx-vendor__img--placeholder {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 26px;
+	font-weight: 500;
+	color: var(--nkzmp-color-text-muted);
+	letter-spacing: -0.02em;
+}
+.nkzmp-thx-vendor__body { min-width: 0; flex: 1 1 auto; }
+.nkzmp-thx-vendor__name {
+	font-size: 16px;
+	font-weight: 600;
+	margin: 0 0 4px;
+	letter-spacing: -0.005em;
+	color: var(--nkzmp-color-text);
+}
+.nkzmp-thx-vendor__bio {
+	font-size: 13px;
+	line-height: 1.55;
+	margin: 0 0 10px;
+	color: var(--nkzmp-color-text-muted);
+}
+.nkzmp-thx-vendor__link {
+	font-size: 13px;
+	font-weight: 600;
+	color: var(--nkzmp-color-accent);
+	text-decoration: none;
+	border-bottom: 1px solid transparent;
+	transition: border-color .15s;
+}
+.nkzmp-thx-vendor__link:hover {
+	border-bottom-color: var(--nkzmp-color-accent);
+}
+
+.nkzmp-thx-cta {
+	margin: 32px 0 8px;
+	text-align: center;
+}
+.nkzmp-thx-cta__btn {
+	display: inline-block;
+	padding: 14px 28px;
+	background: var(--nkzmp-color-accent);
+	color: #fff !important;
+	border-radius: 8px;
+	font-size: 15px;
+	font-weight: 600;
+	text-decoration: none;
+	letter-spacing: -0.005em;
+	transition: background .15s;
+}
+.nkzmp-thx-cta__btn:hover {
+	background: var(--nkzmp-color-accent-hover);
+}
+
+/* ─────────────────────────────────────────────────────────────
+ * /obchod – redesign vrstva (AOZ kurátorský look)
+ *
+ * Cíl: čistá galerie, žádné theme accent linky uvnitř karet,
+ * decentní typografie. Tokeny var(--nkzmp-*) přebije Screeno
+ * v cílovém deployi přes filter `nkzmp/v1/storefront/tokens`,
+ * takže tato vrstva slouží jako AOZ default + bezpečný fallback.
+ *
+ * Selektory mají záměrně vysokou specificitu (html body...),
+ * aby přebily theme link/heading barvy na shopu.
+ * ───────────────────────────────────────────────────────────── */
+
+/* Breadcrumb decentně. */
+html body.woocommerce .woocommerce-breadcrumb,
+html body.woocommerce-page .woocommerce-breadcrumb {
+	font-size: 12px !important;
+	letter-spacing: 0.06em !important;
+	text-transform: uppercase !important;
+	color: var(--nkzmp-color-text-muted) !important;
+	margin: 0 0 28px !important;
+	padding: 0 !important;
+	border: 0 !important;
+}
+html body.woocommerce .woocommerce-breadcrumb a,
+html body.woocommerce-page .woocommerce-breadcrumb a {
+	color: var(--nkzmp-color-text-muted) !important;
+	text-decoration: none !important;
+	transition: color .15s;
+}
+html body.woocommerce .woocommerce-breadcrumb a:hover,
+html body.woocommerce-page .woocommerce-breadcrumb a:hover {
+	color: var(--nkzmp-color-text) !important;
+}
+
+/* Hero / page header – „Obchod" headline + intro counter. */
+html body.woocommerce.archive .woocommerce-products-header,
+html body.woocommerce-page.archive .woocommerce-products-header {
+	margin: 0 0 32px !important;
+	padding: 0 !important;
+	border: 0 !important;
+	text-align: left !important;
+}
+html body.woocommerce.archive .woocommerce-products-header__title,
+html body.woocommerce-page.archive .woocommerce-products-header__title,
+html body.woocommerce.archive .page-title,
+html body.woocommerce-page.archive .page-title {
+	font-size: clamp(40px, 6vw, 72px) !important;
+	font-weight: 400 !important;
+	letter-spacing: -0.035em !important;
+	line-height: 1 !important;
+	margin: 0 0 12px !important;
+	color: var(--nkzmp-color-text) !important;
+}
+
+/* Intro toolbar: counter vlevo, sort vpravo, jeden border zespoda. */
+html body.woocommerce .nkzmp-shop-intro,
+html body.woocommerce-page .nkzmp-shop-intro {
+	display: flex !important;
+	flex-wrap: wrap;
+	align-items: center !important;
+	justify-content: space-between !important;
+	gap: 16px !important;
+	margin: 0 0 32px !important;
+	padding: 0 0 20px !important;
+	border-bottom: 1px solid var(--nkzmp-color-border-soft) !important;
+}
+html body .nkzmp-shop-intro__lead {
+	font-size: 12px !important;
+	font-weight: 600 !important;
+	letter-spacing: 0.14em !important;
+	text-transform: uppercase !important;
+	color: var(--nkzmp-color-text-muted) !important;
+	font-variant-numeric: tabular-nums !important;
+}
+
+/* Sort dropdown přemístit do toolbaru (vpravo, na úrovni counteru). */
+html body.woocommerce .woocommerce-ordering,
+html body.woocommerce-page .woocommerce-ordering {
+	float: none !important;
+	margin: 0 !important;
+}
+html body.woocommerce .woocommerce-ordering select,
+html body.woocommerce-page .woocommerce-ordering select {
+	border: 1px solid var(--nkzmp-color-border-soft) !important;
+	background: var(--nkzmp-color-surface) !important;
+	border-radius: 999px !important;
+	padding: 10px 36px 10px 16px !important;
+	font-size: 13px !important;
+	color: var(--nkzmp-color-text) !important;
+	font-family: var(--nkzmp-font-family) !important;
+	cursor: pointer;
+	min-width: 200px;
+	appearance: none;
+	-webkit-appearance: none;
+	background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'><path d='M1 1.5L6 6.5L11 1.5' stroke='%23111' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/></svg>") !important;
+	background-repeat: no-repeat !important;
+	background-position: right 14px center !important;
+	background-size: 12px 8px !important;
+	transition: border-color .15s, box-shadow .15s;
+}
+html body.woocommerce .woocommerce-ordering select:hover,
+html body.woocommerce .woocommerce-ordering select:focus {
+	border-color: var(--nkzmp-color-text) !important;
+	outline: 0 !important;
+	box-shadow: 0 0 0 3px rgba(0,96,255,0.10) !important;
+}
+
+/* Karta – tvrdé override barev titulu / ceny / vendor badge,
+ * aby téma (Storefront / TwentyTwentyOne) nemělo šanci. */
+html body.woocommerce ul.products li.product .woocommerce-loop-product__title,
+html body.woocommerce ul.products li.product .woocommerce-loop-product__title a,
+html body.woocommerce-page ul.products li.product .woocommerce-loop-product__title,
+html body.woocommerce-page ul.products li.product .woocommerce-loop-product__title a,
+html body.woocommerce ul.products li.product a.woocommerce-LoopProduct-link .woocommerce-loop-product__title,
+html body.woocommerce-page ul.products li.product a.woocommerce-LoopProduct-link .woocommerce-loop-product__title {
+	font-size: 16px !important;
+	font-weight: 500 !important;
+	letter-spacing: -0.005em !important;
+	line-height: 1.35 !important;
+	color: var(--nkzmp-color-text) !important;
+	margin: 4px 0 2px !important;
+}
+html body.woocommerce ul.products li.product .price,
+html body.woocommerce ul.products li.product .price *,
+html body.woocommerce ul.products li.product bdi,
+html body.woocommerce ul.products li.product .price bdi,
+html body.woocommerce-page ul.products li.product .price,
+html body.woocommerce-page ul.products li.product .price *,
+html body.woocommerce-page ul.products li.product bdi,
+html body.woocommerce-page ul.products li.product .price bdi {
+	color: var(--nkzmp-color-text) !important;
+	font-weight: 600 !important;
+	font-size: 15px !important;
+	font-variant-numeric: tabular-nums !important;
+}
+
+/* Hover karty: drobný lift, jemný stín. Image už má scale (řešeno výše). */
+html body.woocommerce ul.products li.product,
+html body.woocommerce-page ul.products li.product {
+	transition: transform .25s ease !important;
+}
+html body.woocommerce ul.products li.product:hover,
+html body.woocommerce-page ul.products li.product:hover {
+	transform: translateY(-2px) !important;
+}
+
+/* Vendor badge – malé caps, vlevo pod titulkem, hover accent. */
+html body .nkzmp-shop-vendor {
+	display: inline-flex !important;
+	align-items: center !important;
+	gap: 8px !important;
+	margin-top: 4px !important;
+	font-size: 11px !important;
+	letter-spacing: 0.08em !important;
+	text-transform: uppercase !important;
+	color: var(--nkzmp-color-text-muted) !important;
+}
+html body .nkzmp-shop-vendor__avatar {
+	width: 22px !important;
+	height: 22px !important;
+	border-radius: 50% !important;
+	object-fit: cover !important;
+	background: var(--nkzmp-color-bg-warm) !important;
+	flex-shrink: 0 !important;
+}
+
+/* Single product page: vendor karta pod titulem.
+ * Sjednocena karta avatar | (jmeno + bio) – cela klikatelna na vendor page.
+ * Bio uvnitr karty, at se nezamenuje s popisem produktu. */
+html body .nkzmp-single-vendor {
+	display: flex !important;
+	align-items: flex-start !important;
+	gap: 14px !important;
+	margin: 4px 0 24px !important;
+	padding: 14px 18px 14px 14px !important;
+	background: var(--nkzmp-color-bg-warm) !important;
+	border: 1px solid var(--nkzmp-color-border-soft) !important;
+	border-radius: 16px !important;
+	color: var(--nkzmp-color-text) !important;
+	text-decoration: none !important;
+	font-size: 14px !important;
+	line-height: 1.45 !important;
+	transition: border-color 0.15s ease, background 0.15s ease !important;
+	max-width: 560px !important;
+}
+html body .nkzmp-single-vendor:hover {
+	border-color: var(--nkzmp-color-accent) !important;
+	background: var(--nkzmp-color-surface) !important;
+}
+html body .nkzmp-single-vendor__avatar {
+	width: 44px !important;
+	height: 44px !important;
+	border-radius: 50% !important;
+	object-fit: cover !important;
+	background: var(--nkzmp-color-surface) !important;
+	flex-shrink: 0 !important;
+	margin-top: 2px !important;
+}
+html body .nkzmp-single-vendor__body {
+	display: flex !important;
+	flex-direction: column !important;
+	gap: 4px !important;
+	min-width: 0 !important;
+	flex: 1 1 auto !important;
+}
+html body .nkzmp-single-vendor__head {
+	display: flex !important;
+	align-items: baseline !important;
+	gap: 6px !important;
+	flex-wrap: wrap !important;
+}
+html body .nkzmp-single-vendor__by {
+	color: var(--nkzmp-color-text-muted) !important;
+	font-size: 13px !important;
+}
+html body .nkzmp-single-vendor__name {
+	font-weight: 500 !important;
+	color: var(--nkzmp-color-text) !important;
+}
+html body .nkzmp-single-vendor__bio {
+	margin: 0 !important;
+	color: var(--nkzmp-color-text-muted) !important;
+	font-size: 13px !important;
+	line-height: 1.5 !important;
+}
+html body .nkzmp-shop-vendor__by { opacity: 0.6 !important; }
+html body .nkzmp-shop-vendor__name {
+	font-weight: 600 !important;
+	color: var(--nkzmp-color-text) !important;
+}
+
+/* Pagination – pill buttons. */
+html body.woocommerce nav.woocommerce-pagination,
+html body.woocommerce-page nav.woocommerce-pagination {
+	margin: 24px 0 56px !important;
+	text-align: center !important;
+}
+html body.woocommerce nav.woocommerce-pagination ul,
+html body.woocommerce-page nav.woocommerce-pagination ul {
+	display: inline-flex !important;
+	gap: 6px !important;
+	border: 0 !important;
+	background: transparent !important;
+}
+html body.woocommerce nav.woocommerce-pagination ul li,
+html body.woocommerce-page nav.woocommerce-pagination ul li {
+	border: 0 !important;
+	background: transparent !important;
+	overflow: visible !important;
+}
+html body.woocommerce nav.woocommerce-pagination ul li a,
+html body.woocommerce nav.woocommerce-pagination ul li span,
+html body.woocommerce-page nav.woocommerce-pagination ul li a,
+html body.woocommerce-page nav.woocommerce-pagination ul li span {
+	display: inline-flex !important;
+	align-items: center;
+	justify-content: center;
+	min-width: 40px !important;
+	height: 40px !important;
+	padding: 0 14px !important;
+	background: var(--nkzmp-color-surface) !important;
+	border: 1px solid var(--nkzmp-color-border-soft) !important;
+	border-radius: 999px !important;
+	color: var(--nkzmp-color-text) !important;
+	font-size: 13px !important;
+	font-weight: 600 !important;
+	text-decoration: none !important;
+	transition: background .15s, border-color .15s, color .15s;
+}
+html body.woocommerce nav.woocommerce-pagination ul li a:hover,
+html body.woocommerce-page nav.woocommerce-pagination ul li a:hover {
+	border-color: var(--nkzmp-color-text) !important;
+	background: var(--nkzmp-color-bg-warm) !important;
+}
+html body.woocommerce nav.woocommerce-pagination ul li span.current,
+html body.woocommerce-page nav.woocommerce-pagination ul li span.current {
+	background: var(--nkzmp-color-text) !important;
+	border-color: var(--nkzmp-color-text) !important;
+	color: #fff !important;
+}
+
+/* CTA "Tvoříš taky?" – ze surface card na accent-soft, větší vizuál. */
+html body .nkzmp-shop-promo {
+	background: var(--nkzmp-color-accent-soft) !important;
+	border: 1px solid rgba(0,96,255,0.12) !important;
+	padding: 36px 40px !important;
+	margin: 40px 0 56px !important;
+}
+html body .nkzmp-shop-promo__h {
+	font-size: 24px !important;
+	font-weight: 500 !important;
+	letter-spacing: -0.02em !important;
+}
+html body .nkzmp-shop-promo__d {
+	font-size: 15px !important;
+	line-height: 1.6 !important;
+}
+
+/* ─────────────────────────────────────────────────────────────
+ * Hello Elementor / Elementor Pro fallback
+ *
+ * Elementor Site Settings → Global Colors injektuje --e-global-color-*
+ * na :root a theme/widgets přes ně barví linky a nadpisy. Naše
+ * standardní `body.woocommerce` selektory mají často nižší kaskádní
+ * prioritu než Elementor stylesheet, který se enqueue až po nás.
+ *
+ * Tato vrstva přebije všechny inline / Elementor color na titulech,
+ * cenách a vendor badge uvnitř product karet. Cílíme pouze na archivu
+ * (.woocommerce-shop / archive), abychom nezasáhli editor.
+ * ───────────────────────────────────────────────────────────── */
+
+body.woocommerce-shop ul.products li.product :is(h1,h2,h3,h4,a,span,bdi,p,div):not(.onsale),
+body.archive.woocommerce ul.products li.product :is(h1,h2,h3,h4,a,span,bdi,p,div):not(.onsale),
+body.tax-product_cat ul.products li.product :is(h1,h2,h3,h4,a,span,bdi,p,div):not(.onsale),
+body.tax-product_tag ul.products li.product :is(h1,h2,h3,h4,a,span,bdi,p,div):not(.onsale) {
+	color: var(--nkzmp-color-text) !important;
+}
+/* Sale badge výjimka – bílý text na tmavé pilulce. Musí mít stejnou
+   specificitu jako vrstva výše, jinak ho přebije a badge zůstane
+   „černá pilulka bez textu". */
+body.woocommerce-shop ul.products li.product span.onsale,
+body.archive.woocommerce ul.products li.product span.onsale,
+body.tax-product_cat ul.products li.product span.onsale,
+body.tax-product_tag ul.products li.product span.onsale {
+	color: #fff !important;
+	-webkit-text-fill-color: #fff !important;
+	background: var(--nkzmp-color-accent) !important;
+}
+/* Vendor badge výjimka – chceme decentní muted, ne plný text color. */
+body.woocommerce-shop ul.products li.product a.nkzmp-shop-vendor,
+body.archive.woocommerce ul.products li.product a.nkzmp-shop-vendor,
+body.tax-product_cat ul.products li.product a.nkzmp-shop-vendor,
+body.tax-product_tag ul.products li.product a.nkzmp-shop-vendor {
+	color: var(--nkzmp-color-text-muted) !important;
+}
+body.woocommerce-shop ul.products li.product a.nkzmp-shop-vendor:hover,
+body.archive.woocommerce ul.products li.product a.nkzmp-shop-vendor:hover {
+	color: var(--nkzmp-color-accent) !important;
+}
+
+/* Hello Elementor (a default WC) ukazuje vlastní "Showing all X results"
+ * jako .woocommerce-result-count. Náš counter v intro toolbaru tu samou
+ * informaci dává hezčí formou, takže default skrýt nataženě. */
+body.woocommerce-shop .woocommerce-result-count,
+body.archive.woocommerce .woocommerce-result-count,
+body.tax-product_cat .woocommerce-result-count,
+body.tax-product_tag .woocommerce-result-count {
+	display: none !important;
+}
+
+/* Elementor Hello: page title („Obchod") občas vykresluje jako .entry-title
+ * nebo .elementor-heading-title. Sjednotit s naším H1 stylem. */
+body.woocommerce-shop .entry-title,
+body.archive.woocommerce .entry-title,
+body.woocommerce-shop .elementor-heading-title,
+body.archive.woocommerce .elementor-heading-title {
+	font-size: clamp(40px, 6vw, 72px) !important;
+	font-weight: 400 !important;
+	letter-spacing: -0.035em !important;
+	line-height: 1 !important;
+	color: var(--nkzmp-color-text) !important;
+}
+
+/* ─────────────────────────────────────────────────────────────
+ * Shop filters – levý sidebar + výsledky (AJAX faceting)
+ * ───────────────────────────────────────────────────────────── */
+html body .nkzmp-shop-layout {
+	display: grid !important;
+	grid-template-columns: 260px minmax(0, 1fr) !important;
+	gap: 40px !important;
+	align-items: start !important;
+}
+/* Loading state – ztlumit grid během fetche. */
+html body .nkzmp-shop-layout.is-loading .nkzmp-shop-results {
+	opacity: 0.5 !important;
+	pointer-events: none !important;
+	transition: opacity 0.15s ease !important;
+}
+
+/* Sticky sidebar (desktop). */
+html body .nkzmp-shop-filters {
+	position: sticky !important;
+	top: 24px !important;
+	align-self: start !important;
+}
+
+html body .nkzmp-filters {
+	display: flex !important;
+	flex-direction: column !important;
+	gap: 22px !important;
+}
+html body .nkzmp-filters__head {
+	display: flex !important;
+	align-items: baseline !important;
+	justify-content: space-between !important;
+	padding-bottom: 14px !important;
+	border-bottom: 1px solid var(--nkzmp-color-border) !important;
+}
+html body .nkzmp-filters__title {
+	margin: 0 !important;
+	font-size: 18px !important;
+	font-weight: 500 !important;
+	letter-spacing: -0.01em !important;
+}
+html body .nkzmp-filters__clear {
+	padding: 0 !important;
+	border: 0 !important;
+	background: none !important;
+	color: var(--nkzmp-color-text-muted) !important;
+	font-size: 13px !important;
+	text-decoration: underline !important;
+	cursor: pointer !important;
+}
+html body .nkzmp-filters__clear:hover { color: var(--nkzmp-color-accent) !important; }
+
+html body .nkzmp-filters__group {
+	margin: 0 !important;
+	padding: 0 !important;
+	border: 0 !important;
+}
+html body .nkzmp-filters__group legend {
+	padding: 0 0 10px !important;
+	font-size: 12px !important;
+	font-weight: 600 !important;
+	letter-spacing: 0.06em !important;
+	text-transform: uppercase !important;
+	color: var(--nkzmp-color-text-muted) !important;
+}
+html body .nkzmp-filters__search {
+	width: 100% !important;
+	min-width: 0 !important;
+	box-sizing: border-box !important;
+	height: 40px !important;
+	padding: 0 10px !important;
+	border: 1px solid var(--nkzmp-color-border) !important;
+	border-radius: var(--nkzmp-radius-soft, 8px) !important;
+	background: var(--nkzmp-color-surface) !important;
+	color: var(--nkzmp-color-text) !important;
+	font-size: 14px !important;
+	line-height: normal !important;
+	outline: none !important;
+	-webkit-appearance: none !important;
+	appearance: none !important;
+	transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+}
+html body .nkzmp-filters__search::-webkit-search-decoration,
+html body .nkzmp-filters__search::-webkit-search-cancel-button {
+	-webkit-appearance: none !important;
+}
+html body .nkzmp-filters__search:focus {
+	border-color: var(--nkzmp-color-accent) !important;
+	box-shadow: 0 0 0 3px var(--nkzmp-color-accent-soft) !important;
+}
+html body .nkzmp-filters__list {
+	list-style: none !important;
+	margin: 0 !important;
+	padding: 0 !important;
+	display: flex !important;
+	flex-direction: column !important;
+	gap: 9px !important;
+	max-height: 240px !important;
+	overflow-y: auto !important;
+}
+html body .nkzmp-filters__list li { margin: 0 !important; }
+html body .nkzmp-filters__list label {
+	display: flex !important;
+	align-items: center !important;
+	gap: 9px !important;
+	font-size: 14px !important;
+	color: var(--nkzmp-color-text) !important;
+	cursor: pointer !important;
+	line-height: 1.3 !important;
+}
+html body .nkzmp-filters__list label span { flex: 1 1 auto !important; }
+html body .nkzmp-filters__list label em {
+	flex: 0 0 auto !important;
+	font-style: normal !important;
+	font-size: 12px !important;
+	color: var(--nkzmp-color-text-muted) !important;
+}
+html body .nkzmp-filters input[type="checkbox"] {
+	width: 16px !important;
+	height: 16px !important;
+	margin: 0 !important;
+	accent-color: var(--nkzmp-color-accent) !important;
+	flex: 0 0 auto !important;
+}
+
+/* Cena */
+html body .nkzmp-filters__price-inputs {
+	display: flex !important;
+	align-items: center !important;
+	gap: 8px !important;
+}
+html body .nkzmp-filters__price-inputs input {
+	width: 100% !important;
+	min-width: 0 !important;
+	height: 40px !important;
+	padding: 0 10px !important;
+	border: 1px solid var(--nkzmp-color-border) !important;
+	border-radius: var(--nkzmp-radius-soft, 8px) !important;
+	background: var(--nkzmp-color-surface) !important;
+	font-size: 14px !important;
+	color: var(--nkzmp-color-text) !important;
+}
+html body .nkzmp-filters__price-sep { color: var(--nkzmp-color-text-muted) !important; }
+html body .nkzmp-filters__range {
+	position: relative !important;
+	height: 24px !important;
+	margin-top: 12px !important;
+}
+/* Šedý podklad track + modrý fill mezi thumby (fill polohu řídí JS). */
+html body .nkzmp-filters__range-bg,
+html body .nkzmp-filters__range-fill {
+	position: absolute !important;
+	top: 50% !important;
+	height: 4px !important;
+	transform: translateY(-50%) !important;
+	border-radius: 999px !important;
+	pointer-events: none !important;
+}
+html body .nkzmp-filters__range-bg {
+	left: 0 !important;
+	right: 0 !important;
+	background: var(--nkzmp-color-border) !important;
+}
+html body .nkzmp-filters__range-fill {
+	left: 0 !important;
+	right: 0 !important;
+	background: var(--nkzmp-color-accent) !important;
+}
+html body .nkzmp-filters__range input[type="range"] {
+	position: absolute !important;
+	left: 0 !important;
+	top: 8px !important;
+	width: 100% !important;
+	height: 4px !important;
+	margin: 0 !important;
+	background: transparent !important;
+	pointer-events: none !important;
+	-webkit-appearance: none !important;
+	appearance: none !important;
+}
+/* WebKit track musí být transparentní, ať prosvítá náš bg/fill. */
+html body .nkzmp-filters__range input[type="range"]::-webkit-slider-runnable-track {
+	background: transparent !important;
+	border: 0 !important;
+}
+html body .nkzmp-filters__range input[type="range"]::-moz-range-track {
+	background: transparent !important;
+	border: 0 !important;
+}
+html body .nkzmp-filters__range input[type="range"]::-webkit-slider-thumb {
+	-webkit-appearance: none !important;
+	appearance: none !important;
+	width: 16px !important;
+	height: 16px !important;
+	border-radius: 50% !important;
+	background: var(--nkzmp-color-accent) !important;
+	border: 2px solid var(--nkzmp-color-surface) !important;
+	cursor: pointer !important;
+	pointer-events: auto !important;
+}
+html body .nkzmp-filters__range input[type="range"]::-moz-range-thumb {
+	width: 16px !important;
+	height: 16px !important;
+	border-radius: 50% !important;
+	background: var(--nkzmp-color-accent) !important;
+	border: 2px solid var(--nkzmp-color-surface) !important;
+	cursor: pointer !important;
+	pointer-events: auto !important;
+}
+
+/* Skladem switch */
+html body .nkzmp-filters__switch {
+	display: flex !important;
+	align-items: center !important;
+	gap: 9px !important;
+	font-size: 14px !important;
+	cursor: pointer !important;
+}
+
+html body .nkzmp-filters__submit {
+	width: 100% !important;
+	height: 44px !important;
+	border: 0 !important;
+	border-radius: var(--nkzmp-radius-soft, 8px) !important;
+	background: var(--nkzmp-color-accent) !important;
+	color: #fff !important;
+	font-weight: 600 !important;
+	cursor: pointer !important;
+}
+/* "Hotovo" - na desktopu skryto, v bottom-sheet rezimu sticky dole. */
+html body .nkzmp-filters__done { display: none !important; }
+
+/* Empty state */
+html body .nkzmp-shop-empty {
+	padding: 48px 24px !important;
+	text-align: center !important;
+	color: var(--nkzmp-color-text-muted) !important;
+	background: var(--nkzmp-color-bg-warm) !important;
+	border: 1px solid var(--nkzmp-color-border-soft) !important;
+	border-radius: var(--nkzmp-radius) !important;
+}
+
+/* Mobilní toggle – defaultně skrytý (desktop). */
+html body .nkzmp-shop-filters-toggle { display: none !important; }
+
+/* ── Tablet/mobil: sidebar do off-canvas draweru ── */
+@media (max-width: 1024px) {
+	html body .nkzmp-shop-layout {
+		grid-template-columns: 1fr !important;
+		gap: 0 !important;
+	}
+	html body .nkzmp-shop-filters-toggle {
+		display: inline-flex !important;
+		align-items: center !important;
+		gap: 8px !important;
+		margin-bottom: 20px !important;
+		padding: 11px 20px !important;
+		border: 1px solid var(--nkzmp-color-border) !important;
+		border-radius: 999px !important;
+		background: var(--nkzmp-color-surface) !important;
+		color: var(--nkzmp-color-text) !important;
+		font-size: 14px !important;
+		font-weight: 500 !important;
+		cursor: pointer !important;
+	}
+	html body .nkzmp-shop-filters-toggle::before {
+		content: "" !important;
+		width: 16px !important;
+		height: 16px !important;
+		background: currentColor !important;
+		-webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 5h18M6 12h12M10 19h4' stroke='black' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") center/contain no-repeat !important;
+		mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 5h18M6 12h12M10 19h4' stroke='black' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") center/contain no-repeat !important;
+	}
+	/* Sidebar jako bottom-sheet (vyjede zespodu). */
+	html body .nkzmp-shop-filters {
+		position: fixed !important;
+		left: 0 !important;
+		right: 0 !important;
+		bottom: 0 !important;
+		top: auto !important;
+		z-index: 9999 !important;
+		max-height: 85vh !important;
+		padding: 22px 22px 32px !important;
+		background: var(--nkzmp-color-surface, #fff) !important;
+		border-top-left-radius: 22px !important;
+		border-top-right-radius: 22px !important;
+		box-shadow: 0 -8px 40px rgba(0,0,0,0.18) !important;
+		overflow-y: auto !important;
+		transform: translateY(100%) !important;
+		transition: transform 0.28s cubic-bezier(0.22, 0.61, 0.36, 1) !important;
+	}
+	/* Sheet "handle" indikator nahore. */
+	html body .nkzmp-shop-filters::before {
+		content: "" !important;
+		display: block !important;
+		width: 44px !important;
+		height: 4px !important;
+		margin: 0 auto 18px !important;
+		border-radius: 999px !important;
+		background: var(--nkzmp-color-border, #ddd) !important;
+	}
+	html body .nkzmp-shop-layout.filters-open {
+		position: relative !important;
+	}
+	html body .nkzmp-shop-layout.filters-open::before {
+		content: "" !important;
+		position: fixed !important;
+		inset: 0 !important;
+		z-index: 9998 !important;
+		background: rgba(17,17,17,0.4) !important;
+	}
+	html body .nkzmp-shop-layout.filters-open .nkzmp-shop-filters {
+		transform: translateY(0) !important;
+	}
+	body.nkzmp-filters-locked { overflow: hidden !important; }
+	/* Hotovo button viditelny v sheet rezimu - sticky dole. */
+	html body .nkzmp-filters__done {
+		display: block !important;
+		position: sticky !important;
+		bottom: 0 !important;
+		margin: 18px -22px -32px !important;
+		padding: 16px 22px 22px !important;
+		width: auto !important;
+		border: 0 !important;
+		border-top: 1px solid var(--nkzmp-color-border) !important;
+		background: var(--nkzmp-color-surface) !important;
+		color: var(--nkzmp-color-text) !important;
+		font-size: 15px !important;
+		font-weight: 600 !important;
+		cursor: pointer !important;
+	}
+}
+
+
+/* ── Varianty na detailu produktu (Velikost dropdown) ─────────────────
+ * Přebarvíme defaultní WC variation form do AOZ brandu: čistý dropdown
+ * s vlastní šipkou, brand label, accent focus. */
+html body .variations {
+	width: 100% !important;
+	margin: 0 0 20px !important;
+	border: 0 !important;
+	border-collapse: collapse !important;
+	background: var(--nkzmp-color-bg-warm) !important;
+	border-radius: var(--nkzmp-radius) !important;
+	padding: 20px !important;
+	display: block !important;
+}
+html body .variations tbody,
+html body .variations tr {
+	display: block !important;
+}
+html body .variations tr + tr {
+	margin-top: 16px !important;
+}
+html body .variations td,
+html body .variations th {
+	display: block !important;
+	border: 0 !important;
+	padding: 0 !important;
+	width: 100% !important;
+	background: transparent !important;
+}
+html body .variations th.label,
+html body .variations th.label label {
+	font-weight: 600 !important;
+	font-size: 12px !important;
+	letter-spacing: 0.06em !important;
+	text-transform: uppercase !important;
+	color: var(--nkzmp-color-text-muted) !important;
+	margin: 0 0 8px !important;
+	display: block !important;
+}
+html body .variations td.value {
+	position: relative !important;
+}
+html body .variations select {
+	width: 100% !important;
+	min-height: 50px !important;
+	margin: 0 !important;
+	padding: 0 46px 0 16px !important;
+	border: 1px solid var(--nkzmp-color-border) !important;
+	border-radius: var(--nkzmp-radius-soft, 8px) !important;
+	background-color: var(--nkzmp-color-surface) !important;
+	color: var(--nkzmp-color-text) !important;
+	font-size: 15px !important;
+	line-height: 1.3 !important;
+	-webkit-appearance: none !important;
+	-moz-appearance: none !important;
+	appearance: none !important;
+	cursor: pointer !important;
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23111111' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") !important;
+	background-repeat: no-repeat !important;
+	background-position: right 16px center !important;
+	transition: border-color .15s ease, box-shadow .15s ease !important;
+}
+html body .variations select:focus {
+	border-color: var(--nkzmp-color-accent) !important;
+	box-shadow: 0 0 0 3px var(--nkzmp-color-accent-soft) !important;
+	outline: none !important;
+}
+html body .reset_variations {
+	display: inline-block !important;
+	margin-top: 12px !important;
+	font-size: 13px !important;
+	color: var(--nkzmp-color-text-muted) !important;
+	text-decoration: underline !important;
+	visibility: visible !important;
+}
+/* Cena zvolené varianty (pod dropdownem) */
+html body .single_variation .price {
+	color: var(--nkzmp-color-accent) !important;
+	font-weight: 600 !important;
+}
+
+/* Elementor single-product add-to-cart widget – pojistka vyšší specificity */
+html body .elementor-widget-woocommerce-product-add-to-cart .variations select,
+html body .woocommerce-variation-add-to-cart .variations select,
+html body form.variations_form .variations select {
+	width: 100% !important;
+	min-height: 50px !important;
+	padding: 0 46px 0 16px !important;
+	border: 1px solid var(--nkzmp-color-border) !important;
+	border-radius: var(--nkzmp-radius-soft, 8px) !important;
+	background-color: var(--nkzmp-color-surface) !important;
+	color: var(--nkzmp-color-text) !important;
+	font-size: 15px !important;
+	-webkit-appearance: none !important;
+	-moz-appearance: none !important;
+	appearance: none !important;
+	cursor: pointer !important;
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23111111' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") !important;
+	background-repeat: no-repeat !important;
+	background-position: right 16px center !important;
+}
+html body .elementor-widget-woocommerce-product-add-to-cart .variations,
+html body form.variations_form .variations {
+	background: var(--nkzmp-color-bg-warm) !important;
+	border-radius: var(--nkzmp-radius) !important;
+	padding: 20px !important;
+}
+
+/* ── Tabulka atributů (záložka „Další informace") ─────────────────── */
+html body .woocommerce-product-attributes,
+html body table.shop_attributes {
+	width: 100% !important;
+	border: 0 !important;
+	border-collapse: collapse !important;
+	margin: 0 0 24px !important;
+}
+html body .woocommerce-product-attributes tr,
+html body table.shop_attributes tr {
+	border: 0 !important;
+	border-bottom: 1px solid var(--nkzmp-color-border-soft) !important;
+	background: transparent !important;
+}
+html body .woocommerce-product-attributes tr:first-child,
+html body table.shop_attributes tr:first-child {
+	border-top: 1px solid var(--nkzmp-color-border-soft) !important;
+}
+html body .woocommerce-product-attributes th,
+html body table.shop_attributes th {
+	text-align: left !important;
+	padding: 14px 16px 14px 0 !important;
+	font-weight: 600 !important;
+	font-size: 12px !important;
+	letter-spacing: 0.06em !important;
+	text-transform: uppercase !important;
+	color: var(--nkzmp-color-text-muted) !important;
+	background: transparent !important;
+	border: 0 !important;
+	width: 200px !important;
+	vertical-align: top !important;
+}
+html body .woocommerce-product-attributes td,
+html body table.shop_attributes td {
+	padding: 14px 16px !important;
+	font-style: normal !important;
+	color: var(--nkzmp-color-text) !important;
+	background: transparent !important;
+	border: 0 !important;
+}
+html body .woocommerce-product-attributes td p,
+html body table.shop_attributes td p {
+	margin: 0 !important;
+	font-style: normal !important;
+}
+
+/* ── Filtr prodejců: nápověda, že seznam pokračuje ────────────────────
+   Seznam má max-height + scroll, ale bez vizuálního signálu si uživatelé
+   nevšimnou prodejců pod ohybem. Fade dole + vždy viditelný scrollbar. */
+html body .nkzmp-filters__scrollwrap { position: relative !important; }
+html body .nkzmp-filters__scrollwrap.is-scrollable::after {
+	content: "" !important;
+	position: absolute !important;
+	left: 0 !important;
+	right: 0 !important;
+	bottom: 0 !important;
+	height: 42px !important;
+	pointer-events: none !important;
+	background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0.96)) !important;
+}
+/* Scrollbar necháme viditelný (ne overlay), ať je scroll poznat i bez fade. */
+html body .nkzmp-filters__list--vendors {
+	scrollbar-width: thin !important;
+	scrollbar-color: rgba(0,0,0,0.28) transparent !important;
+	/* Odstup, aby počty nekolidovaly se scrollbarem. */
+	padding-right: 18px !important;
+	padding-bottom: 8px !important;
+}
+html body .nkzmp-filters__list--vendors::-webkit-scrollbar { width: 8px !important; }
+html body .nkzmp-filters__list--vendors::-webkit-scrollbar-track {
+	background: rgba(0,0,0,0.05) !important;
+	border-radius: 999px !important;
+}
+html body .nkzmp-filters__list--vendors::-webkit-scrollbar-thumb {
+	background: rgba(0,0,0,0.28) !important;
+	border-radius: 999px !important;
+}
+/* Počet prodejců v nadpisu skupiny. */
+html body .nkzmp-filters__legend-count {
+	font-style: normal !important;
+	font-size: 12px !important;
+	color: var(--nkzmp-color-text-muted) !important;
+	margin-left: 6px !important;
+}
+
+/* ── Mobil: katalog nesmí přetékat mimo obrazovku ──────────────────────
+   Grid má minmax(0,1fr), ale obsah dlaždice (řádek „OD PRODEJCE" jako
+   inline-flex + dlouhé názvy) se nezmenší pod min-content a vytlačí
+   stránku do strany → vodorovné posouvání a oříznuté sloupce. */
+html body .woocommerce ul.products li.product,
+html body.woocommerce ul.products li.product,
+html body .woocommerce-page ul.products li.product,
+html body.woocommerce-page ul.products li.product {
+	min-width: 0 !important;
+	max-width: 100% !important;
+}
+/* Řádek s prodejcem – smí se zúžit, dlouhé jméno se ořízne třemi tečkami. */
+html body .nkzmp-shop-vendor {
+	min-width: 0 !important;
+	max-width: 100% !important;
+}
+html body .nkzmp-shop-vendor__name,
+html body .nkzmp-shop-vendor__by {
+	min-width: 0 !important;
+	overflow: hidden !important;
+	text-overflow: ellipsis !important;
+	white-space: nowrap !important;
+}
+/* Dlouhé názvy produktů (i bez mezer) se zalomí místo přetečení. */
+html body ul.products li.product .woocommerce-loop-product__title,
+html body ul.products li.product h2,
+html body ul.products li.product .price {
+	overflow-wrap: anywhere !important;
+	word-break: break-word !important;
+	max-width: 100% !important;
+}
+html body ul.products li.product img {
+	max-width: 100% !important;
+	height: auto !important;
+}
+@media (max-width: 480px) {
+	/* Menší prokládání – „OD KAROLINA FERKL" se na úzkém displeji vejde. */
+	html body .nkzmp-shop-vendor { letter-spacing: 0.04em !important; font-size: 10px !important; }
+}
+
+/* ── Obchod: nic uvnitř nesmí být širší než dostupné místo ─────────────
+   min-width:0 je klíč – grid/flex potomci se jinak odmítnou zúžit pod
+   svůj min-content a vytlačí stránku do strany. */
+html body .nkzmp-shop-layout,
+html body .nkzmp-shop-results,
+html body .nkzmp-shop-intro,
+html body .nkzmp-shop-filters {
+	min-width: 0 !important;
+	max-width: 100% !important;
+	box-sizing: border-box !important;
+}
+html body .nkzmp-shop-results > *,
+html body .nkzmp-shop-intro > * {
+	min-width: 0 !important;
+	max-width: 100% !important;
+}
+
+/* ── Stránkování se musí vejít do displeje ─────────────────────────────
+   `inline-flex` bez zalamování se u 9+ stránek roztáhne přes šířku okna
+   (naměřeno 420 px na 390px displeji) a vytlačí celou stránku do strany
+   → useknutý pravý sloupec katalogu. Necháme ho zalomit a zúžit. */
+html body.woocommerce nav.woocommerce-pagination ul,
+html body.woocommerce-page nav.woocommerce-pagination ul,
+html body .nkzmp-pagination ul {
+	flex-wrap: wrap !important;
+	max-width: 100% !important;
+	justify-content: center !important;
+	row-gap: 8px !important;
+}
+html body.woocommerce nav.woocommerce-pagination,
+html body.woocommerce-page nav.woocommerce-pagination {
+	max-width: 100% !important;
+	overflow: visible !important;
+}
+@media (max-width: 480px) {
+	/* Menší dlaždice čísel – ať se jich na řádek vejde víc. */
+	html body.woocommerce nav.woocommerce-pagination ul li a,
+	html body.woocommerce nav.woocommerce-pagination ul li span,
+	html body.woocommerce-page nav.woocommerce-pagination ul li a,
+	html body.woocommerce-page nav.woocommerce-pagination ul li span {
+		min-width: 34px !important;
+		height: 34px !important;
+		font-size: 13px !important;
+	}
+}
+
+/* ── Katalog a promo banner musí lícovat ───────────────────────────────
+   Mřížka produktů a modrý banner „Tvoříš taky?" jsou sourozenci v <main>,
+   ale rozcházely se v okrajích – mřížka šla až ke kraji displeje, banner
+   měl mezeru. Dáme oběma STEJNÉ vodorovné okraje jedním pravidlem, aby
+   se nemohly rozejít. Změna hodnoty: --nkzmp-shop-pad. */
+html body.woocommerce .nkzmp-shop-layout,
+html body.woocommerce nav.woocommerce-pagination,
+html body.woocommerce-page .nkzmp-shop-layout,
+html body.woocommerce-page nav.woocommerce-pagination {
+	padding-left: var(--nkzmp-shop-pad, 0px) !important;
+	padding-right: var(--nkzmp-shop-pad, 0px) !important;
+	margin-left: 0 !important;
+	margin-right: 0 !important;
+	max-width: 100% !important;
+	box-sizing: border-box !important;
+}
+/* Banner: odsazení patří na samotný box, ne na jeho děti – padding na
+   dětech nafukoval tlačítko „Stát se prodejcem" a lepil ho ke kraji. */
+html body .nkzmp-shop-promo {
+	padding: 36px 40px !important;
+}
+@media (max-width: 720px) {
+	html body.woocommerce .nkzmp-shop-layout,
+	html body.woocommerce nav.woocommerce-pagination,
+	html body.woocommerce-page .nkzmp-shop-layout,
+	html body.woocommerce-page nav.woocommerce-pagination {
+		--nkzmp-shop-pad: 6px;
+	}
+	html body .nkzmp-shop-promo {
+		padding: 28px 22px !important;
+	}
+}
+
+/* ── Mobil: layout obchodu jako blok, ne grid ──────────────────────────
+   Grid položka má min-width:auto, takže se odmítne zúžit pod obsah a
+   „vyleze" z kontejneru – katalog pak přetékal za pravý okraj, zatímco
+   promo banner (obyčejný blok) seděl správně. Na mobilu grid stejně
+   nepotřebujeme (filtry jedou jako vysouvací panel). */
+@media (max-width: 1024px) {
+	html body .nkzmp-shop-layout {
+		display: block !important;
+	}
+	html body .nkzmp-shop-results,
+	html body .nkzmp-shop-results ul.products,
+	html body .nkzmp-shop-intro {
+		display: block !important;
+		width: 100% !important;
+		max-width: 100% !important;
+		box-sizing: border-box !important;
+	}
+	/* ul.products zpět na grid – jen s jistotou, že nepřeteče rodiče. */
+	html body .nkzmp-shop-results ul.products {
+		display: grid !important;
+	}
+	html body .nkzmp-shop-intro {
+		display: flex !important;
+		flex-wrap: wrap !important;
+		gap: 12px !important;
+	}
+}
+
+/* ── Mobil: kompaktní stránkování ──────────────────────────────────────
+   Devět čísel vedle sebe se na displej nevejde a tlačí celý layout. Na
+   úzkém displeji necháme jen šipky + aktuální stránku (běžný mobilní
+   vzor). Zbytek je dostupný proklikáním. */
+@media (max-width: 560px) {
+	html body nav.woocommerce-pagination ul.page-numbers > li {
+		display: none !important;
+	}
+	html body nav.woocommerce-pagination ul.page-numbers > li:has(> .current),
+	html body nav.woocommerce-pagination ul.page-numbers > li:has(> .prev),
+	html body nav.woocommerce-pagination ul.page-numbers > li:has(> .next) {
+		display: block !important;
+	}
+	/* Fallback pro prohlížeče bez :has() – šipky mají vlastní třídy. */
+	html body nav.woocommerce-pagination ul.page-numbers > li > .prev,
+	html body nav.woocommerce-pagination ul.page-numbers > li > .next,
+	html body nav.woocommerce-pagination ul.page-numbers > li > .current {
+		display: inline-flex !important;
+	}
+	html body nav.woocommerce-pagination ul.page-numbers {
+		flex-wrap: nowrap !important;
+		width: 100% !important;
+		max-width: 100% !important;
+	}
+}

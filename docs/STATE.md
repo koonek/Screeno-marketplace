@@ -1,0 +1,95 @@
+# NKZ Marketplace – stav & handoff
+
+> Živý stav projektu. Aktualizuj při větších milnících. Vše commitnuté na
+> branchi `claude/trusting-fermat-YBzZT`, PR #19 (Phase 1).
+
+## Aktuální verze (bundle 0.25.10)
+
+| Modul | Verze |
+|---|---|
+| nkz-marketplace (core) | 0.10.19-dev |
+| nkz-mp-stripe (adapter, slug nkz-woo-stripe-vendor-split) | 0.7.3 |
+| nkz-mp-storefront | 0.6.8 |
+| nkz-mp-vendor-registration | 0.5.11 |
+| nkz-mp-vendor-dashboard | 0.10.9 |
+| nkz-mp-shipping | 0.2.0 |
+| nkz-mp-vendor-billing | 0.5.2 |
+| nkz-mp-packeta | 0.2.6 |
+| **nkz-mp-aoz-bundle** | **0.25.10** |
+
+Build: `./scripts/build-bundles.sh` → `dist/nkz-marketplace-aoz-<ver>.zip`.
+
+## Architektura (rychlý kontext)
+
+- **Monorepo** `packages/`, každý modul = samostatný WP plugin.
+- **Bundle** (`nkz-mp-aoz-bundle`) je tenký wrapper – `require_once` všech modulů + jednotná aktivace. Distribuuje se jako 1 ZIP pro AOZ.
+- **Screeno** používá jen core + adapter (separátně). **AOZ** používá bundle (vše).
+- Moduly mají cross-module reference vždy guardované `class_exists` / `defined`.
+- AOZ design: bílá/černá + accent `#0060FF`, font Fabio XM (theme @font-face), kurátorský minimalismus.
+
+## Hotovo (Fáze 0 + Fáze 1)
+
+- **Core:** vendor model, ledger (append-only), payouts state machine, audit, reconciliation cron + Stripe driver, REST `nkzmp/v1/*`, WP-CLI, top-level admin menu + Dashboard (pending vendoři/produkty inline approve, billing přehled, config health filter `nkzmp/v1/admin/health_checks`), Tools (migrace/reconcile/backfill/cleanup rolí), GDPR, OwnershipGuard (email fallback), StatusService, MetaMigrator.
+- **Stripe adapter:** Connect split plateb, webhook (signature ověřený), reconciliation driver, observer → ledger.
+- **Storefront:** `/vendors`, `/vendor/<slug>`, hybrid render (Elementor TB / theme / fallback), Elementor Dynamic Tags + Loop Grid query, product→vendor link, SEO.
+- **Registration:** frontend form + ARES, 2-stage approval, AOZ HTML e-maily (editovatelné), status page (magic link), auto-create WP user + password e-mail, MetaWatcher (mirror status + emit hook).
+- **Dashboard (WC My Account):** přehled + onboarding checklist + provize, produkty (card grid, frontend editor create/edit, edit publ. zůstává live, stáhnout/smazat), objednávky, výplaty, profil (self-service), redirect vendor z wp-admin, AOZ branding.
+- **Shipping:** per-vendor paušál, product requires_shipping flag, admin meta box + vendor self-service sazba.
+- **Billing:** Stripe Billing subscription (CZK konfig.), Checkout + portal, webhook (signature), aktivace i na návratu, enforcement (bez předplatného nelze prodávat), grace cron fallback, admin přehled (MRR), health checks.
+- **Packeta:** výběr výdejny (widget v6), cena = per-vendor paušál, zobrazení u objednávky/e-mailů. **Auto-štítky (0.2.0):** `createPacket` per vendor + PDF štítek z dashboardu prodejce i admin detailu objednávky (idempotentní, multi-vendor split, váha z produktu/fallback, dobírka u `cod`). Odesílatel = per-vendor `eshop` label (fallback globální); adresa odesílatele v profilu prodejce (`_nkzmp_sender_*`). **Zrušení zásilky (0.2.1):** `cancelPacket` tlačítko v dashboardu i admin objednávce (užitečné pro testování bez přístupu do Packeta klienta). **Čeká na Packeta API klíč (widget) + API heslo (štítky).**
+- **Vendor order e-mail** při processing/completed.
+
+## Zbývá – polish (neblokuje launch)
+
+### Admin / ops batch (oranžová)
+- [x] **Vendor detail** ✅ (0.22.0, VendorDetailPage – read-only konsolidace: identita+status, Stripe Connect, adresa pro odeslání, finance z ledgeru + poslední pohyby, produkty; panel hook `nkzmp/v1/admin/vendor_detail/panels`; řádková akce „NKZ detail")
+- [x] **Bulk approve** vendorů ✅ (0.19.0, AdminBulk – bulk akce „Schválit (NKZ) → čeká na KYC" ve vendor list table; produkty řeší WC nativně)
+- [x] **Reconcile drift → e-mail adminovi** ✅ (0.18.0, DriftNotifier, dedupe 12h)
+- [ ] **Setup wizard / first-run checklist** pro admina
+- [x] **Unified Settings** ✅ (0.22.0, SettingsHub „Nastavení" s taby přes filter `nkzmp/v1/admin/settings/tabs`; Packeta + Billing migrované jako taby s fallbackem na vlastní submenu když hub chybí. Tools/Status zůstávají vlastní (nejsou config), Stripe je pod WC.)
+
+### Correctness / robustnost (žlutá)
+- [x] **Refund → reverzace provize** ✅ (0.10.9-dev, LegacyStripeObserver::record_reversals – při reverzaci transferu zapíše i proporční REVERSAL platform provize, vendor_id=0; dřív zůstávala provize započtená)
+- [ ] **Terminated vendor** – profil viditelný 30 dní pak archiv (plán); teď neimplementováno
+- [x] **Vendor orders pagination** ✅ (0.9.0, OrderVendorIndex meta `_nkzmp_order_vendor` + stránkovaná query přes wc_get_orders; fallback sken + lazy backfill indexu)
+- [x] **HPOS** ✅ (0.22.0, declare_compatibility `custom_order_tables` doplněno do packeta + dashboard; core + adapter měly už dřív)
+
+### Fáze 2 (po launchi)
+Packeta: tracking sync + ceník dle váhy + adresní doručení (auto-štítky hotové v 0.2.0), Packeta výběr výdejny v blokovém checkoutu (Blocks integrace + Store API), reviews, messaging, topování produktů, pokročilý shipping (zóny/váha), CZ/SK tax pack (DPH/OSS/faktury/VIES), i18n .pot/.po, Stripe adapter → first-class PaymentAdapter, pure-math Allocation\Calculator.
+
+### Screeno fáze (multi-tenant / white-label) – stav tokenizace designu
+Cíl: nasadit stejné jádro na Screeno bez forku, jen přes přebití brandingu + textů. Aktuální stav:
+
+- **✅ Plně přes filtry (Screeno přebije bez kódu):**
+  - `wp-login.php` branding – filtr `nkzmp/v1/login/tokens` (accent, accent_ink, bg, surface, text, border, radius, font, logo, logo_height, kicker), `nkzmp/v1/login/logo_url`, vypnutí `nkzmp/v1/login/enabled` (LoginBranding).
+- **🟡 Přes CSS proměnné (override blokem v tématu, ne filtrem):**
+  - Storefront / dashboard / registrace mají `:root { --nkzmp-*-accent, --bg-warm, --radius, --shadow, --font … }`. Funguje, ale není to filter-API.
+- **🔴 Zatím hardcoded (AOZ-specifické):**
+  - Texty „Art of život", „Pro tvůrce" + copy v šablonách/EmailSettings defaultech (CZ natvrdo, žádné .pot).
+  - Font Fabio XM v CSS fallback chainu.
+  - Slug `nkz-mp-aoz-bundle` + název bundle.
+
+**Plán pro Screeno onboarding (1 batch, ~půl dne, NEdělat před AOZ launchem):**
+1. Sjednotit storefront/dashboard/registraci na jeden filter `nkzmp/v1/brand/tokens` → vyplivne `:root` CSS proměnné (stejný princip jako LoginBranding). Theme/Screeno pak přepíše jedním filtrem.
+2. Protáhnout všechny CZ texty přes `gettext` + vygenerovat `.pot` (i18n je už v seznamu Fáze 2) – „Art of život" nahradit `{site_name}` / brandovatelným řetězcem.
+3. Druhý thin bundle `nkz-mp-screeno-bundle` (kopie aoz-bundle, jiný slug + default token override) NEBO přejmenovat aoz-bundle na neutrální + AOZ jako tenký wrapper.
+4. EmailSettings defaulty: „Art of život" → `{site_name}` placeholder.
+
+## Před produkcí (go-live checklist)
+
+- [ ] E2E test ve Stripe test módu dle `docs/test-scenarios-aoz.md` (sekce 1-8)
+- [ ] Billing webhook signing secret vyplněný (NKZ Marketplace → Billing)
+- [ ] Stripe adapter webhook signing secret vyplněný
+- [ ] Packeta účet + API klíč (pokud výdejní místa od startu)
+- [ ] Reálné AOZ Stripe live klíče (teď test)
+- [ ] Fabio XM @font-face v theme
+- [ ] Permalinks → Save po každé instalaci/upgradu
+
+## Známé „by design" (ne bugy)
+
+- Shipping = 1 řádek se součtem (ne řádek per vendor) – WC standard
+- Packeta odesílatel = `eshop` label v účtu (createPacket neumí volnou adresu odesílatele); per-vendor odesílatele nutno jednorázově založit v Packeta klientovi a namapovat label do profilu prodejce
+- **Packeta výběr výdejny vyžaduje klasický checkout** (`[woocommerce_checkout]` shortcode **nebo Elementor Pro widget Pokladna** – oba renderují classic review-order tabulku). CheckoutWidget se věší na `woocommerce_review_order_after_shipping`. **Blokový checkout (Gutenberg Checkout block) NEPODPOROVÁN** (nevolá classic hooky → picker se nevykreslí). Blocks integrace = Scope B.
+- Billing webhook funguje i bez secretu pro prvotní aktivaci (sync na návratu); secret nutný pro renewaly
+- CZ texty natvrdo (žádné .pot)
+- Dva webhook endpointy/secrety (adapter Connect + billing) – Stripe standard, nelze sdílet
