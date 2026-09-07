@@ -2,7 +2,7 @@
 /**
  * Plugin Name: NKZ Marketplace – Platform Fee
  * Description: 1% servisní poplatek z mezisoučtu produktů, min 5 Kč. Platí kupující, jde celý platformě. Konfigurovatelné přes filtry.
- * Version: 0.2.5
+ * Version: 0.3.0
  * Author: NKZ
  * Requires at least: 6.2
  * Requires PHP: 8.1
@@ -34,7 +34,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'NKZMP_PLATFORM_FEE_VERSION', '0.2.5' );
+define( 'NKZMP_PLATFORM_FEE_VERSION', '0.3.0' );
 
 add_action( 'plugins_loaded', static function (): void {
 	if ( ! class_exists( 'WooCommerce' ) ) {
@@ -48,6 +48,9 @@ add_action( 'plugins_loaded', static function (): void {
 	add_action( 'woocommerce_order_refunded', 'nkzmp_platform_fee_on_refund', 10, 2 );
 	// WC Blocks (Cart/Checkout) – server-side filter se nepoužije, tooltip nalepíme JSkem v DOM.
 	add_action( 'wp_enqueue_scripts', 'nkzmp_platform_fee_enqueue_tooltip_js' );
+	// Přepínač u produktu (admin): vyjmout z poplatku.
+	add_action( 'woocommerce_product_options_general_product_data', 'nkzmp_platform_fee_product_field' );
+	add_action( 'woocommerce_admin_process_product_object', 'nkzmp_platform_fee_save_product_field' );
 }, 20 );
 
 /**
@@ -245,6 +248,27 @@ function nkzmp_platform_fee_tooltip_label( string $label_html, $fee ): string {
 	return $label_html . $icon;
 }
 
+/** Meta klíč: produkt je vyjmutý ze servisního poplatku. */
+const NKZMP_PLATFORM_FEE_EXEMPT_META = '_nkzmp_no_platform_fee';
+
+/**
+ * Je produkt vyjmutý ze servisního poplatku?
+ *
+ * U varianty se ptáme i rodiče – nastavení se dělá na produktu, ne na
+ * jednotlivých variantách.
+ */
+function nkzmp_platform_fee_is_exempt( \WC_Product $product ): bool {
+	$id     = $product->get_id();
+	$exempt = get_post_meta( $id, NKZMP_PLATFORM_FEE_EXEMPT_META, true ) === 'yes';
+	if ( ! $exempt ) {
+		$parent = $product->get_parent_id();
+		if ( $parent ) {
+			$exempt = get_post_meta( $parent, NKZMP_PLATFORM_FEE_EXEMPT_META, true ) === 'yes';
+		}
+	}
+	return (bool) apply_filters( 'nkzmp/v1/platform_fee/product_exempt', $exempt, $product );
+}
+
 /**
  * Připočte servisní poplatek do košíku.
  *
@@ -255,7 +279,23 @@ function nkzmp_platform_fee_apply( \WC_Cart $cart ): void {
 		return;
 	}
 
-	$subtotal = (float) $cart->get_subtotal(); // mezisoučet produktů bez dopravy/daně
+	// Mezisoučet POUZE z produktů, které poplatku podléhají. Produkt lze
+	// z poplatku vyjmout zaškrtnutím u produktu (např. dárkové poukazy,
+	// charitativní zboží, spolupráce). Vyjmuté položky se do základu
+	// nepočítají – když je v košíku jen takové zboží, poplatek nevznikne.
+	$subtotal = 0.0;
+	foreach ( $cart->get_cart() as $item ) {
+		if ( empty( $item['data'] ) || ! $item['data'] instanceof \WC_Product ) {
+			continue;
+		}
+		if ( nkzmp_platform_fee_is_exempt( $item['data'] ) ) {
+			continue;
+		}
+		// Používáme line_subtotal (před slevami kupónem), stejně jako
+		// $cart->get_subtotal() dřív – ať se základ nezmění jinak než
+		// o vyjmuté položky.
+		$subtotal += (float) ( $item['line_subtotal'] ?? 0 );
+	}
 	if ( $subtotal <= 0 ) {
 		return;
 	}
@@ -278,4 +318,42 @@ function nkzmp_platform_fee_apply( \WC_Cart $cart ): void {
 	}
 
 	$cart->add_fee( $label, $fee, $taxable );
+}
+
+/**
+ * Zaškrtávátko u produktu v adminu (záložka Obecné).
+ *
+ * Schválně jen pro admina, ne pro prodejce – jestli produkt platí servisní
+ * poplatek, je rozhodnutí provozovatele platformy, ne prodejce.
+ */
+function nkzmp_platform_fee_product_field(): void {
+	$label = (string) apply_filters(
+		'nkzmp/v1/platform_fee/label',
+		__( 'Servisní poplatek', 'nkz-mp-platform-fee' )
+	);
+	woocommerce_wp_checkbox( [
+		'id'          => NKZMP_PLATFORM_FEE_EXEMPT_META,
+		'label'       => __( 'Bez servisního poplatku', 'nkz-mp-platform-fee' ),
+		'description' => sprintf(
+			/* translators: %s: název poplatku */
+			__( 'Z tohoto produktu se nebude počítat „%s". Hodí se u poukazů, charitativního zboží nebo domluvených výjimek. Když má zákazník v košíku jen takové zboží, poplatek se nepřidá vůbec.', 'nkz-mp-platform-fee' ),
+			$label
+		),
+		'desc_tip'    => false,
+	] );
+}
+
+/**
+ * Uloží přepínač. Používáme `woocommerce_admin_process_product_object`,
+ * takže to funguje i pro varianty (dědí z rodiče).
+ *
+ * @param \WC_Product $product
+ */
+function nkzmp_platform_fee_save_product_field( $product ): void {
+	if ( ! $product instanceof \WC_Product ) {
+		return;
+	}
+	// phpcs:ignore WordPress.Security.NonceVerification.Missing -- WC řeší nonce sám.
+	$on = isset( $_POST[ NKZMP_PLATFORM_FEE_EXEMPT_META ] );
+	$product->update_meta_data( NKZMP_PLATFORM_FEE_EXEMPT_META, $on ? 'yes' : 'no' );
 }
