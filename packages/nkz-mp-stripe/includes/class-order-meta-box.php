@@ -18,6 +18,10 @@ final class Order_Meta_Box {
 		add_action( 'add_meta_boxes', [ $this, 'register' ] );
 		add_action( 'admin_post_nkv_svs_action', [ $this, 'handle_action' ] );
 		add_action( 'admin_enqueue_scripts', [ $this, 'enqueue' ] );
+		// Forms musí být MIMO #post (WC admin obal order edit). Nested form by
+		// rozbil outer #post → 'Aktualizovat' / 'Dokončeno' v Order Actions
+		// pak nereaguje na klik. Renderujeme je v admin_footer mimo #post DOM.
+		add_action( 'admin_footer', [ $this, 'render_footer_forms' ] );
 	}
 
 	public function enqueue( string $hook ): void {
@@ -94,25 +98,80 @@ final class Order_Meta_Box {
 			echo '<p>' . esc_html__( 'Žádný výpočet zatím neexistuje.', 'nkz-woo-stripe-vendor-split' ) . '</p>';
 		}
 
-		// Actions form.
-		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="margin-top:10px;">';
-		echo '<input type="hidden" name="action" value="nkv_svs_action" />';
-		echo '<input type="hidden" name="order_id" value="' . esc_attr( (string) $order->get_id() ) . '" />';
-		wp_nonce_field( 'nkv_svs_action_' . $order->get_id(), 'nkv_svs_nonce' );
+		// Tlačítka MIMO <form> – odkazují na externí form přes atribut form=.
+		// Form vyrenderujeme v admin_footer mimo #post (jinak by nested form
+		// rozbil outer 'Aktualizovat / Dokončeno' button).
+		$form_id = 'nkv-svs-actions-' . $order->get_id();
+		$this->footer_form_id   = $form_id;
+		$this->footer_order_id  = $order->get_id();
 
-		echo '<p>';
-		submit_button( __( 'Přepočítat', 'nkz-woo-stripe-vendor-split' ), 'secondary small', 'nkv_action_recalculate', false );
-		echo ' ';
-		submit_button( __( 'Vytvořit transfery', 'nkz-woo-stripe-vendor-split' ), 'primary small', 'nkv_action_run', false );
-		echo ' ';
-		submit_button( __( 'Opakovat neúspěšné', 'nkz-woo-stripe-vendor-split' ), 'secondary small', 'nkv_action_retry', false );
-		echo ' ';
-		submit_button( __( 'Označit jako vyřešené', 'nkz-woo-stripe-vendor-split' ), 'secondary small', 'nkv_action_resolve', false );
+		// Escrow panel – zádržné výplat (jen když je escrow aktivní).
+		if ( Escrow::is_active() ) {
+			$sched = Escrow::schedule_for( $order );
+			echo '<div style="margin-top:12px;padding:10px;background:#f6f7f7;border-radius:4px;">';
+			echo '<strong>' . esc_html__( 'Escrow – zádržné výplat', 'nkz-woo-stripe-vendor-split' ) . '</strong>';
+			if ( empty( $sched ) ) {
+				echo '<p style="margin:6px 0 0;color:#646970;">' . esc_html__( 'Žádná zásilka zatím nepodána – výplaty drží platforma.', 'nkz-woo-stripe-vendor-split' ) . '</p>';
+			} else {
+				echo '<ul style="margin:6px 0 0;">';
+				foreach ( $sched as $vid => $info ) {
+					$vname = get_the_title( (int) $vid ) ?: ( '#' . (int) $vid );
+					if ( ! empty( $info['released'] ) ) {
+						echo '<li>' . esc_html( $vname ) . ': <span style="color:#1a7f37;font-weight:600;">' . esc_html__( 'uvolněno', 'nkz-woo-stripe-vendor-split' ) . '</span></li>';
+					} else {
+						$at = ! empty( $info['at'] ) ? wp_date( 'j. n. Y', (int) $info['at'] ) : '—';
+						printf(
+							'<li style="margin:4px 0;">%1$s: %2$s <strong>%3$s</strong> <button type="submit" form="%4$s" name="nkv_action_escrow_release" value="%5$d" class="button button-small">%6$s</button></li>',
+							esc_html( $vname ),
+							esc_html__( 'uvolní se', 'nkz-woo-stripe-vendor-split' ),
+							esc_html( $at ),
+							esc_attr( $form_id ),
+							(int) $vid,
+							esc_html__( 'Uvolnit teď', 'nkz-woo-stripe-vendor-split' )
+						);
+					}
+				}
+				echo '</ul>';
+			}
+			echo '</div>';
+		}
+
+		echo '<p style="margin-top:10px;">';
+		printf( '<button type="submit" form="%s" name="nkv_action_recalculate" class="button button-secondary button-small">%s</button> ', esc_attr( $form_id ), esc_html__( 'Přepočítat', 'nkz-woo-stripe-vendor-split' ) );
+		printf( '<button type="submit" form="%s" name="nkv_action_run" class="button button-primary button-small">%s</button> ', esc_attr( $form_id ), esc_html__( 'Vytvořit transfery', 'nkz-woo-stripe-vendor-split' ) );
+		printf( '<button type="submit" form="%s" name="nkv_action_retry" class="button button-secondary button-small">%s</button> ', esc_attr( $form_id ), esc_html__( 'Opakovat neúspěšné', 'nkz-woo-stripe-vendor-split' ) );
+		printf( '<button type="submit" form="%s" name="nkv_action_resolve" class="button button-secondary button-small">%s</button>', esc_attr( $form_id ), esc_html__( 'Označit jako vyřešené', 'nkz-woo-stripe-vendor-split' ) );
 		echo '</p>';
+
+		// Partial reversal panel — také mimo #post (renderuje vlastní formy do footeru).
+		$this->render_partial_reversal( $order, $records );
+	}
+
+	/** ID akčního formu pro tlačítka (renderovaného v admin_footer). */
+	private string $footer_form_id  = '';
+	private int $footer_order_id = 0;
+	/** @var array<int,array{vendor_id:int,remaining:int,suggested:int,currency:string,form_id:string}> */
+	private array $footer_reversal_forms = [];
+
+	public function render_footer_forms(): void {
+		if ( $this->footer_form_id === '' || $this->footer_order_id <= 0 ) {
+			return;
+		}
+		$action = esc_url( admin_url( 'admin-post.php' ) );
+		echo '<form id="' . esc_attr( $this->footer_form_id ) . '" method="post" action="' . $action . '" style="display:none;">';
+		echo '<input type="hidden" name="action" value="nkv_svs_action" />';
+		echo '<input type="hidden" name="order_id" value="' . esc_attr( (string) $this->footer_order_id ) . '" />';
+		wp_nonce_field( 'nkv_svs_action_' . $this->footer_order_id, 'nkv_svs_nonce' );
 		echo '</form>';
 
-		// Partial reversal panel — one form per completed transfer.
-		$this->render_partial_reversal( $order, $records );
+		foreach ( $this->footer_reversal_forms as $f ) {
+			echo '<form id="' . esc_attr( $f['form_id'] ) . '" method="post" action="' . $action . '" style="display:none;">';
+			echo '<input type="hidden" name="action" value="nkv_svs_action" />';
+			echo '<input type="hidden" name="order_id" value="' . esc_attr( (string) $this->footer_order_id ) . '" />';
+			echo '<input type="hidden" name="reverse_vendor_id" value="' . esc_attr( (string) $f['vendor_id'] ) . '" />';
+			wp_nonce_field( 'nkv_svs_action_' . $this->footer_order_id, 'nkv_svs_nonce' );
+			echo '</form>';
+		}
 	}
 
 	private function render_partial_reversal( \WC_Order $order, array $records ): void {
@@ -140,29 +199,35 @@ final class Order_Meta_Box {
 			$default   = $suggested > 0 ? $suggested : $remaining;
 			$currency  = $order->get_currency();
 
-			echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:wrap;">';
-			echo '<input type="hidden" name="action" value="nkv_svs_action" />';
-			echo '<input type="hidden" name="order_id" value="' . esc_attr( (string) $order->get_id() ) . '" />';
-			echo '<input type="hidden" name="reverse_vendor_id" value="' . esc_attr( (string) $vendor_id ) . '" />';
-			wp_nonce_field( 'nkv_svs_action_' . $order->get_id(), 'nkv_svs_nonce' );
+			$form_id = 'nkv-svs-reversal-' . $order->get_id() . '-' . $vendor_id;
+			$this->footer_reversal_forms[] = [
+				'vendor_id' => $vendor_id,
+				'remaining' => $remaining,
+				'suggested' => $default,
+				'currency'  => $currency,
+				'form_id'   => $form_id,
+			];
 
-			printf(
-				'<strong style="min-width:120px;">%s</strong>',
-				esc_html( $vname )
-			);
+			echo '<div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:wrap;">';
+			printf( '<strong style="min-width:120px;">%s</strong>', esc_html( $vname ) );
 			printf(
 				'<span style="color:#50575e;font-size:12px;">%s: %s</span>',
 				esc_html__( 'lze vrátit', 'nkz-woo-stripe-vendor-split' ),
 				esc_html( nkvsvs_from_minor_display( $remaining, $currency ) )
 			);
 			printf(
-				'<input type="number" name="reverse_amount" step="0.01" min="0.01" max="%s" value="%s" style="width:110px;" />',
+				'<input type="number" form="%s" name="reverse_amount" step="0.01" min="0.01" max="%s" value="%s" style="width:110px;" />',
+				esc_attr( $form_id ),
 				esc_attr( (string) ( $remaining / nkvsvs_minor_factor( $currency ) ) ),
 				esc_attr( (string) ( $default / nkvsvs_minor_factor( $currency ) ) )
 			);
 			echo '<span style="color:#50575e;">' . esc_html( $currency ) . '</span>';
-			submit_button( __( 'Vrátit částku', 'nkz-woo-stripe-vendor-split' ), 'secondary small', 'nkv_action_reverse', false );
-			echo '</form>';
+			printf(
+				'<button type="submit" form="%s" name="nkv_action_reverse" class="button button-secondary button-small">%s</button>',
+				esc_attr( $form_id ),
+				esc_html__( 'Vrátit částku', 'nkz-woo-stripe-vendor-split' )
+			);
+			echo '</div>';
 		}
 	}
 
@@ -187,8 +252,16 @@ final class Order_Meta_Box {
 		} elseif ( isset( $_POST['nkv_action_run'] ) ) {
 			$ts->maybe_create_transfers( $order_id );
 		} elseif ( isset( $_POST['nkv_action_retry'] ) ) {
-			// Reset failed records so they can be retried (new run uses same idempotency key — Stripe returns cached if completed).
+			// Reset failed records + BUMP idempotency attempt counter pro daného
+			// vendora – jinak Stripe vrátí cached failure ze starého pokusu
+			// (idempotency cache 24h) a retry by byl no-op pro mezitím
+			// napravené chyby (capability, klíče …).
 			$records = $ts->get_transfer_records( $order );
+			foreach ( $records as $r ) {
+				if ( 'failed' === ( $r['status'] ?? '' ) && ! empty( $r['vendor_id'] ) ) {
+					$ts->bump_retry_attempt( $order, (int) $r['vendor_id'] );
+				}
+			}
 			$records = array_filter( $records, static fn( $r ) => 'failed' !== $r['status'] );
 			$ts->save_transfer_records( $order, array_values( $records ) );
 			$ts->maybe_create_transfers( $order_id );
@@ -196,6 +269,15 @@ final class Order_Meta_Box {
 			$order->update_meta_data( '_nkv_split_status', 'manual' );
 			$order->add_order_note( __( 'NKV: Označeno jako ručně vyřešeno.', 'nkz-woo-stripe-vendor-split' ) );
 			$order->save();
+		} elseif ( isset( $_POST['nkv_action_escrow_release'] ) ) {
+			$vendor_id = (int) $_POST['nkv_action_escrow_release'];
+			if ( $vendor_id > 0 ) {
+				Escrow::release_now( $order_id, $vendor_id );
+				$order->add_order_note( sprintf(
+					__( 'Escrow: admin ručně uvolnil výplatu prodejce #%d.', 'nkz-woo-stripe-vendor-split' ),
+					$vendor_id
+				) );
+			}
 		} elseif ( isset( $_POST['nkv_action_reverse'] ) ) {
 			$vendor_id = (int) ( $_POST['reverse_vendor_id'] ?? 0 );
 			$amount    = (float) ( $_POST['reverse_amount'] ?? 0 );
