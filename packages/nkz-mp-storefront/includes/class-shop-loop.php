@@ -56,6 +56,33 @@ final class ShopLoop {
 	}
 
 	/**
+	 * Potřebuje produkt reálně dopravu?
+	 *
+	 * U variabilního produktu se NELZE ptát rodiče – ten hlásí „ano" i když
+	 * jsou všechny varianty virtuální (typicky vstupenky s výběrem typu).
+	 * Ptáme se proto variant a bereme i náš vlastní příznak z formuláře.
+	 */
+	private function needs_shipping( \WC_Product $product ): bool {
+		// Ruční vypnutí u produktu (admin) – když automatika netrefí.
+		if ( get_post_meta( $product->get_id(), '_nkzmp_hide_delivery', true ) === 'yes' ) {
+			return false;
+		}
+		if ( get_post_meta( $product->get_id(), '_nkzmp_requires_shipping', true ) === 'no' ) {
+			return false;
+		}
+		if ( $product->is_type( 'variable' ) ) {
+			foreach ( $product->get_children() as $child_id ) {
+				$child = wc_get_product( $child_id );
+				if ( $child && $child->needs_shipping() ) {
+					return true; // aspoň jedna varianta se posílá
+				}
+			}
+			return false; // všechny varianty virtuální → žádná doprava
+		}
+		return $product->needs_shipping();
+	}
+
+	/**
 	 * Text dodací lhůty pro produkt, nebo '' když modul lhůt není aktivní.
 	 *
 	 * @return array{0:string,1:bool} [text, je na objednávku]
@@ -81,7 +108,7 @@ final class ShopLoop {
 	/** Dodací lhůta na detailu produktu. */
 	public function delivery_promise(): void {
 		global $product;
-		if ( ! $product instanceof \WC_Product || ! $product->needs_shipping() ) {
+		if ( ! $product instanceof \WC_Product || ! $this->needs_shipping( $product ) ) {
 			return;
 		}
 		[ $text, $preorder ] = $this->delivery_text( (int) $product->get_id() );
@@ -100,7 +127,7 @@ final class ShopLoop {
 	/** Drobný štítek s lhůtou v katalogu (jen u „na objednávku"). */
 	public function loop_delivery_badge(): void {
 		global $product;
-		if ( ! $product instanceof \WC_Product || ! $product->needs_shipping() ) {
+		if ( ! $product instanceof \WC_Product || ! $this->needs_shipping( $product ) ) {
 			return;
 		}
 		[ $text, $preorder ] = $this->delivery_text( (int) $product->get_id() );
@@ -136,6 +163,10 @@ final class ShopLoop {
 		// obsah i markup určíme sami – text je pak vždy vidět a shodný s tím,
 		// co ukazuje landing page. Text: filtr `nkzmp/v1/storefront/sale_label`.
 		add_filter( 'woocommerce_sale_flash', [ $this, 'sale_flash' ], 20, 3 );
+
+		// Ruční přepínač u produktu: skrýt informaci o dodací lhůtě.
+		add_action( 'woocommerce_product_options_shipping_product_data', [ $this, 'hide_delivery_field' ] );
+		add_action( 'woocommerce_admin_process_product_object', [ $this, 'save_hide_delivery_field' ] );
 
 		// Single product page: vendor badge hned pod titulem (priority 6,
 		// mezi title @5 a price @10). Větší varianta s 36px avatarem.
@@ -388,5 +419,24 @@ final class ShopLoop {
 		if ( $meta_key === '_nkzmp_vendor_status' || $meta_key === '_nkv_vendor_status' ) {
 			self::forget_count();
 		}
+	}
+
+	/** Zaškrtávátko v adminu (Údaje o produktu → Doprava). */
+	public function hide_delivery_field(): void {
+		woocommerce_wp_checkbox( [
+			'id'          => '_nkzmp_hide_delivery',
+			'label'       => __( 'Skrýt dodací lhůtu', 'nkz-mp-storefront' ),
+			'description' => __( 'Nezobrazovat u produktu „Skladem – odesíláme do X dnů". Hodí se u vstupenek, poukazů a dalších věcí, které se nikam neposílají.', 'nkz-mp-storefront' ),
+			'desc_tip'    => false,
+		] );
+	}
+
+	/** @param mixed $product */
+	public function save_hide_delivery_field( $product ): void {
+		if ( ! $product instanceof \WC_Product ) {
+			return;
+		}
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce řeší WC.
+		$product->update_meta_data( '_nkzmp_hide_delivery', isset( $_POST['_nkzmp_hide_delivery'] ) ? 'yes' : 'no' );
 	}
 }
