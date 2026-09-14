@@ -23,5 +23,6 @@ final class Plugin {
 		CheckoutWidget::instance()->init();
 		OrderDisplay::instance()->init();
 		LabelController::instance()->init();
+		StatusSync::instance()->init();
 	}
 }

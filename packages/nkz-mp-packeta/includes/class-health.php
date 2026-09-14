@@ -86,6 +86,49 @@ final class Health {
 			];
 		}
 
+		// 5) Doptávání stavů zásilek. Na tomhle stojí spuštění ochranné lhůty
+		// i dokončení objednávky – když to neběží, prodejci nedostanou peníze
+		// a objednávky zůstanou viset ve „zpracovává se".
+		$sync = get_option( StatusSync::HEALTH_OPTION, [] );
+		if ( ! is_array( $sync ) || empty( $sync['time'] ) ) {
+			$rows[] = [
+				'label'  => __( 'Packeta – sledování stavu zásilek', 'nkz-mp-packeta' ),
+				'state'  => wp_next_scheduled( StatusSync::CRON_HOOK ) ? 'warn' : 'fail',
+				'detail' => wp_next_scheduled( StatusSync::CRON_HOOK )
+					? __( 'naplánováno, ale zatím neproběhlo', 'nkz-mp-packeta' )
+					: __( 'cron není naplánovaný → lhůty na výplatu se nespustí', 'nkz-mp-packeta' ),
+			];
+		} else {
+			$age    = time() - (int) $sync['time'];
+			$stale  = $age > 6 * HOUR_IN_SECONDS;
+			$errors = (int) ( $sync['errors'] ?? 0 );
+			$rows[] = [
+				'label'  => __( 'Packeta – sledování stavu zásilek', 'nkz-mp-packeta' ),
+				'state'  => ( $stale || $errors > 0 ) ? 'warn' : 'ok',
+				'detail' => sprintf(
+					/* translators: 1: čas, 2: počet dotazů, 3: počet chyb */
+					__( 'naposledy před %1$s, zkontrolováno zásilek: %2$d, chyb: %3$d', 'nkz-mp-packeta' ),
+					human_time_diff( (int) $sync['time'], time() ),
+					(int) ( $sync['checked'] ?? 0 ),
+					$errors
+				),
+			];
+		}
+
+		// 6) Vrácené zásilky čekající na rozhodnutí.
+		$returned = get_option( StatusSync::RETURNED_OPTION, [] );
+		if ( is_array( $returned ) && $returned ) {
+			$rows[] = [
+				'label'  => __( 'Packeta – vrácené zásilky', 'nkz-mp-packeta' ),
+				'state'  => 'warn',
+				'detail' => sprintf(
+					/* translators: %d: počet objednávek */
+					__( 'u %d objednávek se balík vrací prodejci a výplata je pozastavená', 'nkz-mp-packeta' ),
+					count( $returned )
+				),
+			];
+		}
+
 		return $rows;
 	}
 

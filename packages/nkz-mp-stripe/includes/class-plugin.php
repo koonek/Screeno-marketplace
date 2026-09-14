@@ -71,6 +71,7 @@ final class Plugin {
 			'debug_logging'                    => 'no',
 			'transfer_hook'                    => 'payment_complete',
 			'escrow_hold_days'                 => 3, // escrow: ochranná lhůta po podání zásilky
+			'escrow_trigger'                   => 'dispatch', // co spustí lhůtu: dispatch = reálné podání, label = tisk štítku
 			'require_currency_match'           => 'yes',
 			'auto_reversal_on_full_refund'     => 'no',
 		];

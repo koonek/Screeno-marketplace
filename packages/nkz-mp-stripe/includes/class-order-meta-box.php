@@ -119,12 +119,15 @@ final class Order_Meta_Box {
 					if ( ! empty( $info['released'] ) ) {
 						echo '<li>' . esc_html( $vname ) . ': <span style="color:#1a7f37;font-weight:600;">' . esc_html__( 'uvolněno', 'nkz-woo-stripe-vendor-split' ) . '</span></li>';
 					} else {
-						$at = ! empty( $info['at'] ) ? wp_date( 'j. n. Y', (int) $info['at'] ) : '—';
+						$blocked = ! empty( $info['blocked'] );
+						$at      = ! empty( $info['at'] ) ? wp_date( 'j. n. Y', (int) $info['at'] ) : '—';
 						printf(
 							'<li style="margin:4px 0;">%1$s: %2$s <strong>%3$s</strong> <button type="submit" form="%4$s" name="nkv_action_escrow_release" value="%5$d" class="button button-small">%6$s</button></li>',
 							esc_html( $vname ),
-							esc_html__( 'uvolní se', 'nkz-woo-stripe-vendor-split' ),
-							esc_html( $at ),
+							$blocked
+								? '<span style="color:#b32d2e;font-weight:600;">' . esc_html__( 'pozastaveno — zásilka se vrací', 'nkz-woo-stripe-vendor-split' ) . '</span>'
+								: esc_html__( 'uvolní se', 'nkz-woo-stripe-vendor-split' ),
+							$blocked ? '' : esc_html( $at ),
 							esc_attr( $form_id ),
 							(int) $vid,
 							esc_html__( 'Uvolnit teď', 'nkz-woo-stripe-vendor-split' )

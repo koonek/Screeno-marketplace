@@ -115,6 +115,104 @@ final class ApiClient {
 	}
 
 	/**
+	 * Zjistí aktuální stav zásilky.
+	 *
+	 * Vrací normalizovaný záznam:
+	 *   state → jeden z self::STATE_* (co z toho plyne pro nás)
+	 *   code  → číselný statusCode Zásilkovny
+	 *   text  → originální codeText (např. „delivered")
+	 *   at    → timestamp poslední změny, 0 když ho Packeta nedala
+	 *
+	 * @return array{state:string,code:int,text:string,at:int}|\WP_Error
+	 */
+	public function packet_status( string $packet_id ) {
+		$packet_id = trim( $packet_id );
+		if ( $packet_id === '' ) {
+			return new \WP_Error( 'nkzmp_packeta_no_packet', __( 'Chybí ID zásilky.', 'nkz-mp-packeta' ) );
+		}
+
+		$body = '<?xml version="1.0" encoding="UTF-8"?>'
+			. '<packetStatus>'
+			. '<apiPassword>' . htmlspecialchars( $this->password, ENT_XML1 | ENT_QUOTES, 'UTF-8' ) . '</apiPassword>'
+			. '<packetId>' . htmlspecialchars( $packet_id, ENT_XML1 | ENT_QUOTES, 'UTF-8' ) . '</packetId>'
+			. '</packetStatus>';
+
+		$xml = $this->post( $body );
+		if ( is_wp_error( $xml ) ) {
+			return $xml;
+		}
+		if ( (string) $xml->status !== 'ok' ) {
+			return new \WP_Error( 'nkzmp_packeta_api_fault', $this->fault_message( $xml ) );
+		}
+
+		$text = isset( $xml->result->codeText ) ? (string) $xml->result->codeText : '';
+		$code = isset( $xml->result->statusCode ) ? (int) $xml->result->statusCode : 0;
+		$when = isset( $xml->result->dateTime ) ? strtotime( (string) $xml->result->dateTime ) : false;
+
+		return [
+			'state' => self::map_state( $text, $code ),
+			'code'  => $code,
+			'text'  => $text,
+			'at'    => $when ?: 0,
+		];
+	}
+
+	/* Stavy, se kterými pracujeme dál. */
+	public const STATE_PENDING   = 'pending';   // štítek vytvořen, zásilka fyzicky nepodaná
+	public const STATE_DISPATCHED = 'dispatched'; // prodejce podal – první naskenování
+	public const STATE_DELIVERED = 'delivered'; // vyzvednuto zákazníkem
+	public const STATE_RETURNED  = 'returned';  // vrací se / vráceno prodejci
+	public const STATE_CANCELLED = 'cancelled'; // zásilka zrušena
+
+	/**
+	 * Převede stav Zásilkovny na jeden z našich.
+	 *
+	 * Záměrně stavíme jen na stavech, které známe jistě, a VŠECHNO ostatní
+	 * bereme jako „podáno". Zásilkovna svoje mezistavy občas přidává
+	 * (celnice, pokus o doručení, přeprava mezi depy) a kdybychom je museli
+	 * vyjmenovat, každý nový by znamenal nevyplaceného prodejce. Jediný stav,
+	 * který podání NEznamená, je „received data" – to je jen zaevidovaný
+	 * štítek, se kterým prodejce ještě nikam nešel.
+	 */
+	public static function map_state( string $code_text, int $code = 0 ): string {
+		$t = strtolower( trim( $code_text ) );
+
+		if ( $t === 'received data' || 1 === $code ) {
+			return self::STATE_PENDING;
+		}
+		if ( str_contains( $t, 'cancel' ) ) {
+			return self::STATE_CANCELLED;
+		}
+		if ( $t === 'delivered' || str_contains( $t, 'delivered to' ) ) {
+			return self::STATE_DELIVERED;
+		}
+		if ( str_contains( $t, 'return' ) || str_contains( $t, 'posted back' ) || str_contains( $t, 'rejected' ) ) {
+			return self::STATE_RETURNED;
+		}
+		if ( $t === '' && 0 === $code ) {
+			return self::STATE_PENDING; // nic jsme se nedozvěděli – nehýbeme s ničím
+		}
+
+		return self::STATE_DISPATCHED;
+	}
+
+	/** Český popis stavu pro poznámku u objednávky a admin výpisy. */
+	public static function state_label( string $state ): string {
+		switch ( $state ) {
+			case self::STATE_DISPATCHED:
+				return __( 'podáno u Zásilkovny', 'nkz-mp-packeta' );
+			case self::STATE_DELIVERED:
+				return __( 'doručeno zákazníkovi', 'nkz-mp-packeta' );
+			case self::STATE_RETURNED:
+				return __( 'vrací se prodejci', 'nkz-mp-packeta' );
+			case self::STATE_CANCELLED:
+				return __( 'zrušeno', 'nkz-mp-packeta' );
+			default:
+				return __( 'čeká na podání', 'nkz-mp-packeta' );
+		}
+	}
+
+	/**
 	 * Ověří, že odesílatel (eshop label) v účtu Zásilkovny existuje.
 	 *
 	 * Používá `senderGetReturnRouting` – vrací data pro existujícího odesílatele

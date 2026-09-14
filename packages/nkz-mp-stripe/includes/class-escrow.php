@@ -48,7 +48,75 @@ final class Escrow {
 		if ( ! self::is_active() ) {
 			return;
 		}
-		add_action( 'nkzmp/v1/packeta/packet_created', [ $this, 'on_packet_created' ], 10, 3 );
+
+		// Spouštěč ochranné lhůty. Výchozí = skutečné podání zásilky
+		// (StatusSync se doptává Zásilkovny). Volba 'label' je nouzový návrat
+		// ke starému chování, kdy lhůtu spouštěl už tisk štítku – použitelné,
+		// kdyby doptávání stavů nefungovalo a prodejci zůstali nevyplacení.
+		$trigger = (string) ( Plugin::settings()['escrow_trigger'] ?? 'dispatch' );
+		if ( 'label' === $trigger ) {
+			add_action( 'nkzmp/v1/packeta/packet_created', [ $this, 'on_packet_created' ], 10, 3 );
+		} else {
+			add_action( 'nkzmp/v1/packeta/packet_dispatched', [ $this, 'on_packet_created' ], 10, 3 );
+		}
+
+		// Vrácená zásilka → peníze prodejci nepatří, výplatu pozastavíme.
+		add_action( 'nkzmp/v1/packeta/packet_returned', [ $this, 'on_packet_returned' ], 10, 3 );
+	}
+
+	/**
+	 * Zásilka se vrací prodejci → zablokuj výplatu.
+	 *
+	 * Neuvolňujeme automaticky ani nevracíme peníze – jen zastavíme odpočet
+	 * a necháme to na adminovi. Vrácení může mít víc příčin (zákazník si
+	 * nevyzvedl, odmítl převzít, špatná adresa) a každá se řeší jinak.
+	 *
+	 * @param \WC_Order $order
+	 * @param int       $vendor_id
+	 * @param array     $record
+	 */
+	public function on_packet_returned( $order, $vendor_id, $record ): void {
+		if ( ! $order instanceof \WC_Order ) {
+			return;
+		}
+		$vendor_id = (int) $vendor_id;
+		$sched     = $order->get_meta( self::META );
+		$sched     = is_array( $sched ) ? $sched : [];
+
+		if ( ! empty( $sched[ $vendor_id ]['released'] ) ) {
+			// Pozdě – lhůta doběhla dřív, než se zásilka vrátila. Aspoň to
+			// hlasitě zapíšeme, ať se to při reklamaci najde.
+			$order->add_order_note( sprintf(
+				/* translators: %d: vendor id */
+				__( 'Escrow: zásilka prodejce #%d se vrací, ale výplata už byla uvolněna — řeš ručně.', 'nkz-woo-stripe-vendor-split' ),
+				$vendor_id
+			) );
+			$order->save();
+			return;
+		}
+
+		$sched[ $vendor_id ]             = is_array( $sched[ $vendor_id ] ?? null ) ? $sched[ $vendor_id ] : [];
+		$sched[ $vendor_id ]['blocked']  = true;
+		$sched[ $vendor_id ]['blocked_at'] = time();
+		$order->update_meta_data( self::META, $sched );
+		$order->add_order_note( sprintf(
+			/* translators: %d: vendor id */
+			__( 'Escrow: výplata prodejce #%d pozastavena — zásilka se vrací. Uvolnit lze ručně v tomto detailu.', 'nkz-woo-stripe-vendor-split' ),
+			$vendor_id
+		) );
+		$order->save();
+
+		$ts = wp_next_scheduled( self::RELEASE_HOOK, [ $order->get_id(), $vendor_id ] );
+		if ( $ts ) {
+			wp_unschedule_event( $ts, self::RELEASE_HOOK, [ $order->get_id(), $vendor_id ] );
+		}
+		$queue = get_option( self::QUEUE_OPTION, [] );
+		if ( is_array( $queue ) ) {
+			unset( $queue[ $order->get_id() . ':' . $vendor_id ] );
+			update_option( self::QUEUE_OPTION, $queue, false );
+		}
+
+		do_action( 'nkv_svs_escrow_blocked', $order, $vendor_id );
 	}
 
 	/** Fallback processor – uvolní splatné položky z fronty (throttled). */
@@ -137,11 +205,24 @@ final class Escrow {
 	 * @param int $order_id
 	 * @param int $vendor_id
 	 */
-	public function release( $order_id, $vendor_id ): void {
+	public function release( $order_id, $vendor_id, bool $force = false ): void {
 		$order_id  = (int) $order_id;
 		$vendor_id = (int) $vendor_id;
 		$order     = wc_get_order( $order_id );
 		if ( ! $order instanceof \WC_Order ) {
+			return;
+		}
+
+		// Pozastavená výplata (vrácená zásilka) se sama neuvolní – jen ručně.
+		$sched_now = $order->get_meta( self::META );
+		$sched_now = is_array( $sched_now ) ? $sched_now : [];
+		if ( ! $force && ! empty( $sched_now[ $vendor_id ]['blocked'] ) ) {
+			$order->add_order_note( sprintf(
+				/* translators: %d: vendor id */
+				__( 'Escrow: automatické uvolnění výplaty prodejce #%d přeskočeno (zásilka se vrací).', 'nkz-woo-stripe-vendor-split' ),
+				$vendor_id
+			) );
+			$order->save();
 			return;
 		}
 
@@ -162,6 +243,7 @@ final class Escrow {
 		$sched[ $vendor_id ]              = is_array( $sched[ $vendor_id ] ?? null ) ? $sched[ $vendor_id ] : [];
 		$sched[ $vendor_id ]['released']  = true;
 		$sched[ $vendor_id ]['released_at'] = time();
+		unset( $sched[ $vendor_id ]['blocked'] );
 		$order->update_meta_data( self::META, $sched );
 		$order->save();
 
@@ -182,7 +264,11 @@ final class Escrow {
 		if ( $ts ) {
 			wp_unschedule_event( $ts, self::RELEASE_HOOK, [ $order_id, $vendor_id ] );
 		}
-		self::instance()->release( $order_id, $vendor_id );
+		// force = admin ví, co dělá; projde i přes pozastavenou výplatu.
+		self::instance()->release( $order_id, $vendor_id, true );
+		if ( class_exists( \NKZMP\Packeta\StatusSync::class ) ) {
+			\NKZMP\Packeta\StatusSync::clear_returned( $order_id );
+		}
 	}
 
 	/**
