@@ -31,6 +31,7 @@ final class Plugin {
 		CartGrouping::instance()->init();
 		ThankYou::instance()->init();
 		ShopLoop::instance()->init();
+		TicketPicker::instance()->init();
 		ShopFilters::instance()->init();
 		Shortcodes::instance()->init();
 		ProductReadmore::instance()->init();
