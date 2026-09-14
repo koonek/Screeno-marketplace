@@ -75,6 +75,7 @@ final class ShipDeadline {
 			14 => __( 'do 14 dnů (2 týdny)', 'nkz-mp-vendor-dashboard' ),
 			21 => __( 'do 21 dnů (3 týdny)', 'nkz-mp-vendor-dashboard' ),
 			30 => __( 'do 30 dnů (měsíc)', 'nkz-mp-vendor-dashboard' ),
+			37 => __( 'do 37 dnů (5 týdnů)', 'nkz-mp-vendor-dashboard' ),
 		] );
 	}
 

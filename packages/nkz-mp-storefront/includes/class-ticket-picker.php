@@ -291,9 +291,18 @@ final class TicketPicker {
 		.nkzmp-ticket__price{font-weight:700;font-size:17px;white-space:nowrap;color:<?php echo esc_html( $brand ); ?>}
 		.nkzmp-ticket__price del{opacity:.5;font-weight:400}
 		.nkzmp-ticket__qty{display:flex;align-items:stretch;border-top:1px solid #e6e8ee}
-		.nkzmp-ticket__step{flex:1 1 0;min-width:0;background:none;border:0;font-size:22px;line-height:1;padding:12px 0;cursor:pointer;color:<?php echo esc_html( $brand ); ?>}
-		.nkzmp-ticket__step:hover{background:#f4f6fb}
-		.nkzmp-ticket__step:disabled{opacity:.3;cursor:default;background:none}
+		/* Šablona si barví tlačítka na :focus/:active (po kliknutí zčervenaly),
+		   proto všechny stavy přebíjíme natvrdo. */
+		.nkzmp-ticket__step,.nkzmp-ticket__step:hover,.nkzmp-ticket__step:focus,
+		.nkzmp-ticket__step:active,.nkzmp-ticket__step:focus-visible,.nkzmp-ticket__step:disabled{
+			flex:1 1 0;min-width:0;border:0 !important;font-size:22px;line-height:1;padding:12px 0;cursor:pointer;
+			background:transparent !important;background-color:transparent !important;background-image:none !important;
+			box-shadow:none !important;text-shadow:none !important;outline:none;
+			color:<?php echo esc_html( $brand ); ?> !important;-webkit-text-fill-color:<?php echo esc_html( $brand ); ?> !important;
+		}
+		.nkzmp-ticket__step:hover:not(:disabled){background:#f4f6fb !important;background-color:#f4f6fb !important}
+		.nkzmp-ticket__step:focus-visible{outline:2px solid <?php echo esc_html( $brand ); ?>;outline-offset:-3px}
+		.nkzmp-ticket__step:disabled{opacity:.3;cursor:default}
 		.nkzmp-ticket__qty input{flex:0 0 84px;width:84px;text-align:center;border:0;border-left:1px solid #e6e8ee;border-right:1px solid #e6e8ee;border-radius:0;font-size:16px;font-weight:600;background:none;-moz-appearance:textfield;appearance:textfield}
 		.nkzmp-ticket__qty input::-webkit-outer-spin-button,.nkzmp-ticket__qty input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 		.nkzmp-ticket__left{padding:0 18px 12px;font-size:13px;color:#b45309}
