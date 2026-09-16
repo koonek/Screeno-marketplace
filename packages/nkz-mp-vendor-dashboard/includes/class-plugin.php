@@ -29,6 +29,7 @@ final class Plugin {
 		OrderNotifications::instance()->init();
 		ShipDeadline::instance()->init();
 		HeicUploads::instance()->init();
+		ImageOrientation::instance()->init();
 		OrderVendorIndex::instance()->init();
 	}
 }
