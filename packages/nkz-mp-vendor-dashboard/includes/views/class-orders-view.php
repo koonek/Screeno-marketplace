@@ -76,10 +76,24 @@ final class OrdersView {
 
 							<ul class="nkzmp-vd-order-items">
 								<?php foreach ( $o['items'] as $line ) : ?>
-									<li>
+									<li style="display:flex;align-items:center;gap:12px;">
+										<?php if ( ! empty( $line['thumb'] ) ) : ?>
+											<img src="<?php echo esc_url( $line['thumb'] ); ?>" alt="" width="48" height="48" loading="lazy" style="flex:0 0 48px;width:48px;height:48px;object-fit:cover;border-radius:6px;display:block;" />
+										<?php else : ?>
+											<span aria-hidden="true" style="flex:0 0 48px;width:48px;height:48px;border-radius:6px;background:rgba(0,0,0,.06);display:block;"></span>
+										<?php endif; ?>
 										<span class="nkzmp-vd-oi-qty"><?php echo (int) $line['qty']; ?>×</span>
-										<span class="nkzmp-vd-oi-name"><?php echo esc_html( $line['name'] ); ?></span>
-										<span class="nkzmp-vd-oi-total"><?php echo wp_kses_post( $line['total'] ); ?></span>
+										<span class="nkzmp-vd-oi-name" style="min-width:0;">
+											<?php echo esc_html( $line['name'] ); ?>
+											<?php if ( ! empty( $line['meta'] ) ) : ?>
+												<span style="display:block;font-size:12px;opacity:.7;"><?php echo wp_kses_post( $line['meta'] ); ?></span>
+											<?php endif; ?>
+											<span style="display:block;font-size:12px;opacity:.7;">
+												<code><?php echo esc_html( $line['code'] ); ?></code>
+												<a href="<?php echo esc_url( $line['edit_url'] ); ?>" style="margin-left:8px;"><?php esc_html_e( 'zobrazit produkt', 'nkz-mp-vendor-dashboard' ); ?> →</a>
+											</span>
+										</span>
+										<span class="nkzmp-vd-oi-total" style="margin-left:auto;"><?php echo wp_kses_post( $line['total'] ); ?></span>
 									</li>
 								<?php endforeach; ?>
 							</ul>
@@ -217,10 +231,39 @@ final class OrdersView {
 			}
 			$line_total = (float) $item->get_total();
 			$subtotal  += $line_total;
-			$lines[]    = [
-				'qty'   => (float) $item->get_quantity(),
-				'name'  => $item->get_name(),
-				'total' => wc_price( $line_total, [ 'currency' => $order->get_currency() ] ),
+
+			// Prodejce musí z objednávky poznat, KTERÝ kus má zabalit. Samotný
+			// název nestačí – když má několik produktů se stejným názvem,
+			// nemá to podle čeho rozlišit. Proto fotka, kód a odkaz.
+			$variation_id = (int) $item->get_variation_id();
+			$thumb_src    = '';
+			$image_id     = 0;
+			if ( $variation_id > 0 ) {
+				$variation = wc_get_product( $variation_id );
+				if ( $variation ) {
+					$image_id = (int) $variation->get_image_id();
+				}
+			}
+			if ( ! $image_id && $product ) {
+				$image_id = (int) $product->get_image_id();
+			}
+			if ( $image_id ) {
+				$src       = wp_get_attachment_image_src( $image_id, 'thumbnail' );
+				$thumb_src = $src ? (string) $src[0] : '';
+			}
+
+			$sku = $product ? (string) $product->get_sku() : '';
+
+			$lines[] = [
+				'qty'       => (float) $item->get_quantity(),
+				'name'      => $item->get_name(),
+				'total'     => wc_price( $line_total, [ 'currency' => $order->get_currency() ] ),
+				'thumb'     => $thumb_src,
+				// Kód, podle kterého se produkt najde. Vlastní SKU má přednost,
+				// jinak ID produktu – to má každý produkt vždycky.
+				'code'      => $sku !== '' ? $sku : '#' . ( $variation_id > 0 ? $variation_id : $pid ),
+				'edit_url'  => add_query_arg( 'edit', $pid, wc_get_account_endpoint_url( 'vendor-products' ) ),
+				'meta'      => wc_display_item_meta( $item, [ 'echo' => false, 'before' => '', 'after' => '', 'separator' => ', ' ] ),
 			];
 		}
 		if ( empty( $lines ) ) {

@@ -141,6 +141,12 @@ final class ProductFormView {
 					</div>
 
 					<div class="nkzmp-vd-field">
+						<label for="vd_sku"><?php esc_html_e( 'Kód produktu', 'nkz-mp-vendor-dashboard' ); ?></label>
+						<input id="vd_sku" type="text" name="sku" maxlength="100" value="<?php echo esc_attr( $product ? $product->get_sku() : '' ); ?>" />
+						<small><?php esc_html_e( 'Nepovinné. Tvoje vlastní označení — hodí se, když máš víc produktů se stejným názvem. Uvidíš ho u položek v objednávce, ať poznáš, který kus zabalit. Když ho nevyplníš, použijeme číslo produktu.', 'nkz-mp-vendor-dashboard' ); ?></small>
+					</div>
+
+					<div class="nkzmp-vd-field">
 						<label for="vd_short"><?php esc_html_e( 'Krátký popis', 'nkz-mp-vendor-dashboard' ); ?></label>
 						<textarea id="vd_short" name="short_description" rows="3" maxlength="500"><?php echo esc_textarea( $short_desc ); ?></textarea>
 						<small><?php esc_html_e( '1–3 věty. Co produkt je, čím je tvůj.', 'nkz-mp-vendor-dashboard' ); ?></small>

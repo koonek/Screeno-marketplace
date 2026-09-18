@@ -65,6 +65,7 @@ final class ProductSubmitController {
 		}
 		$title      = sanitize_text_field( wp_unslash( $_POST['title'] ?? '' ) );
 		$short      = wp_kses_post( wp_unslash( $_POST['short_description'] ?? '' ) );
+		$sku        = sanitize_text_field( wp_unslash( $_POST['sku'] ?? '' ) );
 		$desc       = wp_kses_post( wp_unslash( $_POST['description'] ?? '' ) );
 		$price      = (string) ( $_POST['regular_price'] ?? '' );
 		$sale       = (string) ( $_POST['sale_price'] ?? '' );
@@ -119,6 +120,15 @@ final class ProductSubmitController {
 		if ( ! $use_variations && ( $price === '' || ! is_numeric( $price ) || (float) $price < 0 ) ) {
 			$this->redirect_error( __( 'Vyplň platnou cenu (nebo přidej varianty).', 'nkz-mp-vendor-dashboard' ) );
 		}
+		// Kód produktu musí být v celém obchodě unikátní (WooCommerce).
+		// Chytit to tady je lepší než až u set_sku(), kde by výjimka shodila
+		// uložení celého produktu.
+		if ( $sku !== '' ) {
+			$owner = (int) wc_get_product_id_by_sku( $sku );
+			if ( $owner > 0 && $owner !== $product_id ) {
+				$this->redirect_error( __( 'Kód produktu už používá jiný produkt. Zvol prosím jiný.', 'nkz-mp-vendor-dashboard' ) );
+			}
+		}
 		if ( $has_variations && ! $use_variations ) {
 			$this->redirect_error( __( 'U variant vyplň název atributu (např. „Velikost") a alespoň jednu variantu s cenou.', 'nkz-mp-vendor-dashboard' ) );
 		}
@@ -158,6 +168,15 @@ final class ProductSubmitController {
 
 		$product->set_name( $title );
 		$product->set_short_description( $short );
+
+		// Kód produktu. WooCommerce vyžaduje unikátní SKU – kdyby ho prodejce
+		// zadal duplicitně, set_sku() vyhodí výjimku a shodila by celé uložení
+		// produktu. Radši kód zahodíme a produkt uložíme.
+		try {
+			$product->set_sku( $sku );
+		} catch ( \Throwable $e ) {
+			$product->set_sku( '' );
+		}
 		$product->set_description( $desc );
 		$product->set_category_ids( $cats );
 

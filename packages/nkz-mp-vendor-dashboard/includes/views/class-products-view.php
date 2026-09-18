@@ -131,6 +131,13 @@ final class ProductsView {
 							</div>
 							<div class="nkzmp-vd-card-body">
 								<h3 class="nkzmp-vd-card-title"><?php echo esc_html( $product->get_name() ); ?></h3>
+								<?php
+								// Stejný kód, jaký je u položky v objednávce – bez něj nejde
+								// rozlišit dva produkty se stejným názvem.
+								$sku  = (string) $product->get_sku();
+								$code = $sku !== '' ? $sku : '#' . (int) get_the_ID();
+								?>
+								<div class="nkzmp-vd-card-code" style="font-size:12px;opacity:.6;margin:2px 0 4px;"><code><?php echo esc_html( $code ); ?></code></div>
 								<div class="nkzmp-vd-card-price"><?php echo wp_kses_post( $product->get_price_html() ); ?></div>
 								<div class="nkzmp-vd-card-stock">
 									<?php if ( $product->managing_stock() ) :
