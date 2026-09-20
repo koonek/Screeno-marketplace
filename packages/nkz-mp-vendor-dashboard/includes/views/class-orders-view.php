@@ -56,7 +56,7 @@ final class OrdersView {
 								$ship = $o['ship'];
 								if ( $ship['state'] === 'done' ) : ?>
 									<div class="nkzmp-vd-ship nkzmp-vd-ship--done" style="display:flex;align-items:center;gap:8px;margin:10px 0;padding:8px 12px;border-radius:8px;font-size:13px;font-weight:500;background:#e8f5e9;color:#1b5e20;">
-										<span aria-hidden="true">✓</span> <?php esc_html_e( 'Odesláno', 'nkz-mp-vendor-dashboard' ); ?>
+										<span aria-hidden="true">✓</span> <?php esc_html_e( 'Podáno u Zásilkovny', 'nkz-mp-vendor-dashboard' ); ?>
 									</div>
 								<?php else :
 									$tones = [
@@ -70,6 +70,9 @@ final class OrdersView {
 										<span style="font-weight:600;"><?php echo esc_html( $ic ); ?> <?php esc_html_e( 'Čas na odeslání:', 'nkz-mp-vendor-dashboard' ); ?></span>
 										<span style="font-weight:600;"><?php echo esc_html( $ship['remain'] ); ?></span>
 										<span style="opacity:.75;"><?php echo esc_html( sprintf( __( '(do %s)', 'nkz-mp-vendor-dashboard' ), $ship['deadline'] ) ); ?></span>
+										<?php if ( ! empty( $ship['label_only'] ) ) : ?>
+											<span style="flex-basis:100%;opacity:.8;"><?php esc_html_e( 'Štítek máš vytvořený, ale Zásilkovna zásilku zatím nepřevzala — odpočet běží dál, dokud balík fyzicky nepodáš.', 'nkz-mp-vendor-dashboard' ); ?></span>
+										<?php endif; ?>
 									</div>
 								<?php endif; ?>
 							<?php endif; ?>
@@ -278,7 +281,7 @@ final class OrdersView {
 			'items'        => $lines,
 			'vendor_total' => wc_price( $subtotal, [ 'currency' => $order->get_currency() ] ),
 			'packeta'      => $packeta,
-			'ship'         => self::ship_deadline( $order, $packeta, $needs_shipping ),
+			'ship'         => self::ship_deadline( $order, $packeta, $needs_shipping, $vendor_id ),
 		];
 	}
 
@@ -291,13 +294,19 @@ final class OrdersView {
 	 * @param array|null $packeta  Výsledek packeta_action (barcode = odesláno).
 	 * @return array{state:string,deadline:string,remain:string,dispatched:bool}|null
 	 */
-	private static function ship_deadline( \WC_Order $order, ?array $packeta, bool $needs_shipping ): ?array {
-		$dispatched = ! empty( $packeta['barcode'] );
+	private static function ship_deadline( \WC_Order $order, ?array $packeta, bool $needs_shipping, int $vendor_id ): ?array {
+		// Pozor: samotná existence štítku NEznamená odesláno. Rozhoduje
+		// skutečný stav u Zásilkovny – jinak si prodejce vytiskne etiketu,
+		// objednávka se tváří jako hotová a odpočet se zastaví, i když balík
+		// ještě leží doma.
+		$dispatched = \NKZMP\Dashboard\ShipDeadline::is_vendor_dispatched( $order, $vendor_id );
 
 		// Odesláno → krátké potvrzení, žádný odpočet.
 		if ( $dispatched ) {
 			return [ 'state' => 'done', 'deadline' => '', 'remain' => '', 'dispatched' => true ];
 		}
+
+		$label_only = ! empty( $packeta['barcode'] );
 
 		// Odpočet jen u otevřených, fyzických, ještě neodeslaných objednávek.
 		if ( ! $needs_shipping || ! $order->has_status( [ 'processing', 'on-hold' ] ) ) {
@@ -328,6 +337,7 @@ final class OrdersView {
 			'deadline'   => wp_date( 'j. n. Y H:i', $deadline_ts ),
 			'remain'     => $remain_label,
 			'dispatched' => false,
+			'label_only' => $label_only,
 		];
 	}
 

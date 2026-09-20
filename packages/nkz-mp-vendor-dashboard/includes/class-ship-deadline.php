@@ -193,13 +193,49 @@ final class ShipDeadline {
 		return false;
 	}
 
-	/** Odeslal už prodejce svou část? (Packeta štítek s barcode.) */
+	/**
+	 * Odeslal už prodejce svou část?
+	 *
+	 * Rozhoduje SKUTEČNÉ podání podle Zásilkovny, ne vytvoření štítku.
+	 * Vytištěná etiketa neznamená odeslaný balík – prodejci se do téhle
+	 * mezery vešel i celý týden a objednávka mezitím vypadala jako hotová.
+	 *
+	 * Výjimka: u zásilek založených dřív, než jsme stav začali sledovat,
+	 * ještě žádný stav nemáme. Tam se držíme původního chování, jinak by se
+	 * po aktualizaci rozsvítily jako „po termínu" i objednávky, které jsou
+	 * dávno v pořádku. StatusSync jim stav doplní při nejbližším běhu.
+	 */
 	public static function is_vendor_dispatched( \WC_Order $order, int $vendor_id ): bool {
 		if ( ! class_exists( \NKZMP\Packeta\LabelService::class ) ) {
 			return false;
 		}
 		$packet = \NKZMP\Packeta\LabelService::instance()->get_packet( $order, $vendor_id );
-		return is_array( $packet ) && ! empty( $packet['barcode'] );
+		if ( ! is_array( $packet ) || empty( $packet['barcode'] ) ) {
+			return false;
+		}
+
+		$state = (string) ( $packet['state'] ?? '' );
+		if ( $state === '' || ! class_exists( \NKZMP\Packeta\ApiClient::class ) ) {
+			return true; // stav zatím neznáme
+		}
+
+		return in_array(
+			$state,
+			[ \NKZMP\Packeta\ApiClient::STATE_DISPATCHED, \NKZMP\Packeta\ApiClient::STATE_DELIVERED ],
+			true
+		);
+	}
+
+	/** Má prodejce vytvořený štítek, ale zásilku ještě nepodal? */
+	public static function is_label_only( \WC_Order $order, int $vendor_id ): bool {
+		if ( ! class_exists( \NKZMP\Packeta\LabelService::class ) || ! class_exists( \NKZMP\Packeta\ApiClient::class ) ) {
+			return false;
+		}
+		$packet = \NKZMP\Packeta\LabelService::instance()->get_packet( $order, $vendor_id );
+		if ( ! is_array( $packet ) || empty( $packet['barcode'] ) ) {
+			return false;
+		}
+		return ( $packet['state'] ?? '' ) === \NKZMP\Packeta\ApiClient::STATE_PENDING;
 	}
 
 	/**
