@@ -88,17 +88,39 @@ final class ThankYou {
 					)
 					: __( 'Posíláme shrnutí na tvůj e-mail.', 'nkz-mp-storefront' ),
 			],
-			[
+		];
+
+		// Kroky o balení a Zásilkovně dávají smysl jen u fyzického zboží.
+		// U vstupenek a digitálních produktů by zákazník marně čekal na balík.
+		if ( self::order_needs_shipping( $order ) ) {
+			$steps[] = [
 				'n' => '2',
 				'h' => __( 'Prodejce balí', 'nkz-mp-storefront' ),
 				'd' => __( 'Tvorba se balí ručně. Typicky 1–3 pracovní dny, u větších kusů déle.', 'nkz-mp-storefront' ),
-			],
-			[
+			];
+			$steps[] = [
 				'n' => '3',
 				'h' => __( 'Odesíláme přes Zásilkovnu', 'nkz-mp-storefront' ),
 				'd' => __( 'Až prodejce zásilku podá, přijde ti tracking e-mail s odkazem na sledování.', 'nkz-mp-storefront' ),
-			],
-		];
+			];
+		} else {
+			$steps[] = [
+				'n' => '2',
+				'h' => __( 'Nic se nikam neposílá', 'nkz-mp-storefront' ),
+				'd' => __( 'Tvoje objednávka je elektronická — žádný balík ani doprava. Vše potřebné máš v e-mailu.', 'nkz-mp-storefront' ),
+			];
+		}
+
+		/**
+		 * Kroky „Co se stane teď" na děkovací stránce.
+		 *
+		 * @param array     $steps
+		 * @param \WC_Order $order
+		 */
+		$steps = (array) apply_filters( 'nkzmp/v1/storefront/thankyou_steps', $steps, $order );
+		if ( ! $steps ) {
+			return;
+		}
 
 		echo '<section class="nkzmp-thx-steps" aria-label="' . esc_attr__( 'Co se stane teď', 'nkz-mp-storefront' ) . '">';
 		echo '<h2 class="nkzmp-thx-steps__title">' . esc_html__( 'Co se stane teď', 'nkz-mp-storefront' ) . '</h2>';
@@ -112,6 +134,41 @@ final class ThankYou {
 			echo '</div></li>';
 		}
 		echo '</ol></section>';
+	}
+
+	/**
+	 * Posílá se z téhle objednávky vůbec něco fyzicky?
+	 *
+	 * Stačí jedna fyzická položka – smíšená objednávka (vstupenka + miska)
+	 * se balí a posílá jako každá jiná.
+	 */
+	public static function order_needs_shipping( \WC_Order $order ): bool {
+		foreach ( $order->get_items( 'line_item' ) as $item ) {
+			if ( ! $item instanceof \WC_Order_Item_Product ) {
+				continue;
+			}
+			// U položky známe konkrétní variantu, takže se ptáme přímo jí –
+			// u variabilního rodiče by odpověď byla nespolehlivá.
+			$variation_id = (int) $item->get_variation_id();
+			if ( $variation_id > 0 ) {
+				$parent_id = (int) $item->get_product_id();
+				// Ruční přepínače u produktu platí i pro jeho varianty.
+				if ( get_post_meta( $parent_id, '_nkzmp_hide_delivery', true ) === 'yes'
+					|| get_post_meta( $parent_id, '_nkzmp_requires_shipping', true ) === 'no' ) {
+					continue;
+				}
+				$variation = wc_get_product( $variation_id );
+				if ( $variation && $variation->needs_shipping() ) {
+					return true;
+				}
+				continue;
+			}
+			$product = $item->get_product();
+			if ( $product && ShopLoop::product_needs_shipping( $product ) ) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/** „Od koho jsi nakoupil/a" – karta pro každého unikátního vendora v objednávce. */

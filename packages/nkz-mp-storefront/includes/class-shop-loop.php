@@ -63,6 +63,16 @@ final class ShopLoop {
 	 * Ptáme se proto variant a bereme i náš vlastní příznak z formuláře.
 	 */
 	private function needs_shipping( \WC_Product $product ): bool {
+		return self::product_needs_shipping( $product );
+	}
+
+	/**
+	 * Totéž, dostupné i mimo tuhle třídu (thank-you stránka, e-maily).
+	 *
+	 * Držíme to na jednom místě – pravidla pro „co je fyzické zboží" se
+	 * jinak rozejdou a každé místo bude tvrdit něco jiného.
+	 */
+	public static function product_needs_shipping( \WC_Product $product ): bool {
 		// Ruční vypnutí u produktu (admin) – když automatika netrefí.
 		if ( get_post_meta( $product->get_id(), '_nkzmp_hide_delivery', true ) === 'yes' ) {
 			return false;
