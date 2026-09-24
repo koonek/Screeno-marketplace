@@ -68,7 +68,9 @@ final class FormHandler {
 			$country = 'CZ';
 		}
 
-		if ( $name === '' || ! is_email( $email ) || $ico === '' || $bio === '' || ! $terms || ! $gdpr || ! $vendor_terms_ok ) {
+		// IČO je nepovinné – prodávat může i nepodnikající tvůrce. Stripe si
+		// identifikaci vyžádá sám při ověření pro výplaty.
+		if ( $name === '' || ! is_email( $email ) || $bio === '' || ! $terms || ! $gdpr || ! $vendor_terms_ok ) {
 			$this->redirect_error( __( 'Vyplň prosím všechna povinná pole a odsouhlas všechny souhlasy.', 'nkz-mp-vendor-registration' ) );
 		}
 

@@ -125,7 +125,8 @@ final class EmailService {
 			'name'           => $name,
 			'name_vocative'  => $name_vocative,
 			'email'       => (string) $vendor['email'],
-			'ico'         => (string) get_post_meta( $vendor_id, '_nkv_vendor_ico', true ),
+			// IČO je nepovinné – ať v e-mailu nesvítí „IČO:" s prázdnem za tím.
+			'ico'         => ( (string) get_post_meta( $vendor_id, '_nkv_vendor_ico', true ) ) ?: __( 'neuvedeno', 'nkz-mp-vendor-registration' ),
 			'website'     => (string) get_post_meta( $vendor_id, '_nkv_vendor_website', true ),
 			'bio'         => (string) $vendor['bio'],
 			'stripe_link' => $stripe_link,

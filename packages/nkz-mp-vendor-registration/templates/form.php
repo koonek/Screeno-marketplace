@@ -60,10 +60,10 @@ defined( 'ABSPATH' ) || exit;
 			?>
 			<div class="nkzmp-reg-grid nkzmp-reg-grid--2">
 				<div class="nkzmp-reg-field">
-					<label for="nkzmp_ico"><?php esc_html_e( 'IČO', 'nkz-mp-vendor-registration' ); ?> <span class="req">*</span></label>
-					<input id="nkzmp_ico" type="text" name="ico" required maxlength="10" inputmode="numeric" pattern="[0-9]{6,10}" />
+					<label for="nkzmp_ico"><?php esc_html_e( 'IČO (nepovinné)', 'nkz-mp-vendor-registration' ); ?></label>
+					<input id="nkzmp_ico" type="text" name="ico" maxlength="10" inputmode="numeric" pattern="[0-9]{6,10}" />
 					<small class="nkzmp-reg-ares-status" aria-live="polite"></small>
-					<small><?php esc_html_e( 'Bez IČO ti Stripe neumí vyplácet. České IČO se samo vyplní z ARES.', 'nkz-mp-vendor-registration' ); ?></small>
+					<small><?php esc_html_e( 'Když podnikáš, vyplň ho — české IČO se samo doplní z ARES. Bez něj to jde taky, ale Stripe si ho pak vyžádá při ověření pro výplaty.', 'nkz-mp-vendor-registration' ); ?></small>
 				</div>
 				<div class="nkzmp-reg-field">
 					<label for="nkzmp_country"><?php esc_html_e( 'Země podnikání', 'nkz-mp-vendor-registration' ); ?> <span class="req">*</span></label>
