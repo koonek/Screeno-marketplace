@@ -99,6 +99,30 @@ final class Onboarding_Controller {
 		);
 	}
 
+	/**
+	 * Země, ve kterých umíme založit Stripe Connect účet. Země je u Stripe účtu
+	 * NEMĚNNÁ po vytvoření – slovenský prodejce potřebuje účet rovnou pro SK,
+	 * jinak mu Stripe pole „země" zašedne a nepustí ho dál. Filtrovatelné.
+	 *
+	 * @return array<string,string> ISO kód => název
+	 */
+	public static function allowed_countries(): array {
+		return (array) apply_filters(
+			'nkv/v1/onboarding/allowed_countries',
+			[
+				'CZ' => __( 'Česko', 'nkz-woo-stripe-vendor-split' ),
+				'SK' => __( 'Slovensko', 'nkz-woo-stripe-vendor-split' ),
+			]
+		);
+	}
+
+	/** Země prodejce pro založení Stripe účtu (default CZ, validovaná proti allowlistu). */
+	public static function vendor_country( int $vendor_id ): string {
+		$c       = strtoupper( (string) get_post_meta( $vendor_id, '_nkv_stripe_country', true ) );
+		$allowed = self::allowed_countries();
+		return isset( $allowed[ $c ] ) ? $c : 'CZ';
+	}
+
 	/* ---------------------------------------------------------------------
 	 * Public (vendor) handlers.
 	 * ------------------------------------------------------------------- */
@@ -119,9 +143,10 @@ final class Onboarding_Controller {
 		try {
 			$account_id = $vendor['stripe_account_id'];
 			if ( '' === $account_id ) {
+				$country = self::vendor_country( $vendor_id );
 				$params = [
 					'type'             => 'express',
-					'country'          => 'CZ',
+					'country'          => $country,
 					'capabilities'     => [
 						'card_payments' => [ 'requested' => 'true' ],
 						'transfers'     => [ 'requested' => 'true' ],
@@ -146,6 +171,9 @@ final class Onboarding_Controller {
 				}
 				update_post_meta( $vendor_id, '_nkv_stripe_account_id', $account_id );
 				update_post_meta( $vendor_id, '_nkv_stripe_account_status', 'pending' );
+				// Ulož zemi, se kterou byl účet reálně vytvořen (pro varování v adminu,
+				// když někdo později přepne výběr země – změna vyžaduje reset účtu).
+				update_post_meta( $vendor_id, '_nkv_stripe_account_country', $country );
 			}
 
 			$link = $client->create_account_link(
@@ -244,7 +272,9 @@ final class Onboarding_Controller {
 		delete_post_meta( $vendor_id, '_nkv_stripe_account_status' );
 		delete_post_meta( $vendor_id, '_nkv_stripe_charges_enabled' );
 		delete_post_meta( $vendor_id, '_nkv_stripe_payouts_enabled' );
+		delete_post_meta( $vendor_id, '_nkv_stripe_transfers_capability' );
 		delete_post_meta( $vendor_id, '_nkv_stripe_requirements_due' );
+		delete_post_meta( $vendor_id, '_nkv_stripe_account_country' );
 		// Bump attempt counter so the next create call uses a fresh Stripe idempotency key.
 		$attempt = (int) get_post_meta( $vendor_id, '_nkv_stripe_create_attempt', true );
 		update_post_meta( $vendor_id, '_nkv_stripe_create_attempt', $attempt + 1 );
@@ -358,7 +388,28 @@ final class Onboarding_Controller {
 		$disabled_reason = $account['requirements']['disabled_reason'] ?? null;
 		$currently_due   = $account['requirements']['currently_due'] ?? [];
 
-		if ( $charges_enabled && $payouts_enabled ) {
+		// Capability `transfers` musí být 'active', jinak transfer prodejci
+		// selže s „destination account needs transfers capability".
+		$transfers_state  = (string) ( $account['capabilities']['transfers'] ?? '' );
+		$transfers_active = ( 'active' === $transfers_state );
+
+		// Pokud capability chybí / je inactive (ne jen pending), znovu ji
+		// vyžádáme – řeší účty založené bez ní. Idempotentní.
+		if ( $transfers_state === '' || $transfers_state === 'inactive' ) {
+			try {
+				( new Stripe_Client() )->update_account( $account_id, [
+					'capabilities' => [ 'transfers' => [ 'requested' => 'true' ] ],
+				] );
+				Logger::info( 'Re-requested transfers capability', [ 'vendor' => $vendor_id, 'account' => $account_id ] );
+			} catch ( \Throwable $e ) {
+				Logger::error( 'Transfers capability re-request failed', [ 'vendor' => $vendor_id, 'err' => $e->getMessage() ] );
+			}
+		}
+
+		// „enabled" = může i přijímat transfery. Vyžadujeme charges+payouts
+		// I aktivní transfers capability (jinak je prodejce „aktivní" ale
+		// transfer mu nejde).
+		if ( $charges_enabled && $payouts_enabled && $transfers_active ) {
 			$status = 'enabled';
 		} elseif ( $disabled_reason && empty( $currently_due ) ) {
 			$status = 'restricted';
@@ -369,7 +420,41 @@ final class Onboarding_Controller {
 		update_post_meta( $vendor_id, '_nkv_stripe_account_status', $status );
 		update_post_meta( $vendor_id, '_nkv_stripe_charges_enabled', $charges_enabled ? 1 : 0 );
 		update_post_meta( $vendor_id, '_nkv_stripe_payouts_enabled', $payouts_enabled ? 1 : 0 );
+		update_post_meta( $vendor_id, '_nkv_stripe_transfers_capability', $transfers_active ? 1 : 0 );
 		update_post_meta( $vendor_id, '_nkv_stripe_requirements_due', wp_json_encode( $currently_due ) );
+
+		// KYC dokončené (charges+payouts+transfers) → aktivuj vendora čekajícího
+		// na KYC. Jen v bundle režimu s NKZ core; standalone adapter (Screeno)
+		// řídí stav prodejce ručně, takže tam nezasahujeme.
+		if ( 'enabled' === $status ) {
+			$this->maybe_activate_after_kyc( $vendor_id );
+		}
+
 		return null;
+	}
+
+	/**
+	 * Po dokončení Stripe Connect KYC překlopí vendora
+	 * approved_awaiting_kyc → active přes core StatusService. Bez core
+	 * (standalone adapter) je no-op.
+	 */
+	private function maybe_activate_after_kyc( int $vendor_id ): void {
+		if ( ! class_exists( \NKZMP\Vendor\StatusService::class ) ) {
+			return;
+		}
+		$current = (string) get_post_meta( $vendor_id, '_nkzmp_vendor_status', true );
+		if ( \NKZMP\Vendor\Status::APPROVED_AWAITING_KYC->value !== $current ) {
+			return; // aktivujeme jen z čekání na KYC; ostatní stavy neřešíme
+		}
+		try {
+			( new \NKZMP\Vendor\StatusService() )->transition(
+				$vendor_id,
+				\NKZMP\Vendor\Status::ACTIVE,
+				[ 'source' => 'stripe_connect_kyc' ]
+			);
+			Logger::info( 'Vendor aktivován po dokončení Stripe KYC', [ 'vendor' => $vendor_id ] );
+		} catch ( \Throwable $e ) {
+			Logger::error( 'Auto-aktivace po KYC selhala', [ 'vendor' => $vendor_id, 'err' => $e->getMessage() ] );
+		}
 	}
 }

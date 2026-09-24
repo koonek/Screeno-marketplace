@@ -35,9 +35,9 @@ final class StatusPage {
 
 	public function register_menu(): void {
 		add_submenu_page(
-			'woocommerce',
-			__( 'NKZ Marketplace', 'nkz-marketplace' ),
-			__( 'NKZ Marketplace', 'nkz-marketplace' ),
+			NKZMP_ADMIN_MENU_SLUG,
+			__( 'Status', 'nkz-marketplace' ),
+			__( 'Status', 'nkz-marketplace' ),
 			Capabilities::MANAGE_VENDORS,
 			'nkz-marketplace-status',
 			[ $this, 'render' ]
@@ -320,18 +320,28 @@ final class StatusPage {
 				: esc_html__( 'vypnutý filterem nkzmp/v1/integration/legacy_observer_enabled', 'nkz-marketplace' ),
 		];
 
-		// Legacy adapter coexistence.
-		$legacy_active = is_plugin_active( 'nkz-woo-stripe-vendor-split/nkz-woo-stripe-vendor-split.php' );
-		$legacy_count  = 0;
+		// Stripe adapter — buď jako samostatný plugin nebo loaded přes bundle.
+		$legacy_plugin_active = is_plugin_active( 'nkz-woo-stripe-vendor-split/nkz-woo-stripe-vendor-split.php' );
+		$adapter_loaded       = $legacy_plugin_active || class_exists( \NKVSVS\Plugin::class );
+		$bundle_active        = defined( 'NKZMP_AOZ_BUNDLE_VERSION' );
+		$legacy_count         = 0;
 		if ( post_type_exists( 'nkv_vendor' ) ) {
 			$legacy_count = (int) wp_count_posts( 'nkv_vendor' )->publish;
 		}
+		if ( $adapter_loaded ) {
+			$source = $bundle_active && ! $legacy_plugin_active
+				? __( 'načtený přes AOZ bundle', 'nkz-marketplace' )
+				: __( 'aktivní samostatný plugin', 'nkz-marketplace' );
+			$detail = sprintf( '%s – %d vendorů v <code>nkv_vendor</code> CPT', esc_html( $source ), $legacy_count );
+			$state  = 'ok';
+		} else {
+			$detail = esc_html__( 'neaktivní – pro Stripe Connect split musí být buď samostatný plugin nebo AOZ bundle', 'nkz-marketplace' );
+			$state  = 'warn';
+		}
 		$rows[] = [
-			'label'  => __( 'Legacy Stripe adapter', 'nkz-marketplace' ),
-			'state'  => $legacy_active ? 'ok' : 'warn',
-			'detail' => $legacy_active
-				? sprintf( '%s – %d vendorů v <code>nkv_vendor</code> CPT', esc_html__( 'aktivní (chování beze změny)', 'nkz-marketplace' ), $legacy_count )
-				: esc_html__( 'neaktivní – pokud je tohle Screeno produkce, někdo plugin deaktivoval!', 'nkz-marketplace' ),
+			'label'  => __( 'Stripe adapter', 'nkz-marketplace' ),
+			'state'  => $state,
+			'detail' => $detail,
 		];
 
 		// Autoloader probe.

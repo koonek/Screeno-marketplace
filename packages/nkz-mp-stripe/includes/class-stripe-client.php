@@ -84,6 +84,16 @@ final class Stripe_Client {
 	}
 
 	/**
+	 * Update connected account – např. re-request capability `transfers`
+	 * u účtů založených bez ní.
+	 *
+	 * @param array $params např. ['capabilities' => ['transfers' => ['requested' => 'true']]]
+	 */
+	public function update_account( string $account_id, array $params ): ?array {
+		return $this->request( 'POST', "accounts/{$account_id}", $params );
+	}
+
+	/**
 	 * Create an Account Link for hosted onboarding.
 	 *
 	 * @param array $params account, refresh_url, return_url, type (account_onboarding|account_update)

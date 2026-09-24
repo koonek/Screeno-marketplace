@@ -1,0 +1,20 @@
+.nkzmp-packeta-row th { vertical-align: top; }
+.nkzmp-packeta-btn {
+	display: inline-block;
+	background: #0060FF !important;
+	color: #fff !important;
+	border: 0 !important;
+	border-radius: 0 !important;
+	padding: 10px 18px !important;
+	font-weight: 500 !important;
+	cursor: pointer;
+}
+.nkzmp-packeta-btn:hover { background: #0050d6 !important; }
+.nkzmp-packeta-selected {
+	margin-top: 10px;
+	font-size: 14px;
+	padding: 8px 12px;
+	border-left: 3px solid #0060FF;
+	background: rgba(0, 96, 255, 0.06);
+}
+.nkzmp-packeta-order h2 { font-size: 18px; margin-top: 24px; }
