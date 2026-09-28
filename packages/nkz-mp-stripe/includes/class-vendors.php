@@ -289,6 +289,22 @@ final class Vendors {
 				if ( \NKVSVS\Account_State::needs_hosted_flow( array_merge( (array) ( $snapshot['currently_due'] ?? [] ), (array) ( $snapshot['past_due'] ?? [] ) ) ) ) {
 					echo '<div class="notice notice-info inline"><p>' . esc_html__( 'Mezi požadavky je krok, který zvládne jen Stripe (selfie / naskenování obličeje nebo nahrání dokladu). Prodejce ho musí dokončit ve Stripe onboardingu — vlastním formulářem to nenahradíme.', 'nkz-woo-stripe-vendor-split' ) . '</p></div>';
 				}
+
+				// Náhradní cesta od Stripe. Tohle je pro admina ta nejdůležitější
+				// informace v celém panelu: znamená to, že opakované vyplňování
+				// údajů nikdy neprojde a prodejce musí nahrát doklady.
+				$alt = \NKVSVS\Account_State::alternative_labels( $snapshot );
+				if ( $alt ) {
+					printf(
+						'<div class="notice notice-warning inline"><p><strong>%s</strong><br>%s</p></div>',
+						esc_html__( 'Stripe nabízí náhradní ověření — prodejce NEMÁ vyplňovat údaje znovu.', 'nkz-woo-stripe-vendor-split' ),
+						esc_html( sprintf(
+							/* translators: %s: seznam dokladů */
+							__( 'Ověření podle vyplněných údajů u tohoto účtu selhalo a bude selhávat i při dalších pokusech. Stripe místo nich přijme: %s. Prodejce to nahraje ve Stripe onboardingu přes svůj odkaz.', 'nkz-woo-stripe-vendor-split' ),
+							implode( ', ', $alt )
+						) )
+					);
+				}
 			}
 
 			printf(

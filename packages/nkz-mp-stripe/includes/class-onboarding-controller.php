@@ -267,11 +267,21 @@ final class Onboarding_Controller {
 		$show_retry = Account_State::needs_user_action( $state );
 		$retry_url  = self::vendor_start_url( $vendor_id );
 
-		$missing = [];
+		$missing     = [];
+		$missing_head = __( 'Stripe ještě potřebuje:', 'nkz-woo-stripe-vendor-split' );
 		if ( $show_retry && $snapshot ) {
-			$missing = Account_State::requirement_labels(
-				array_merge( (array) ( $snapshot['past_due'] ?? [] ), (array) ( $snapshot['currently_due'] ?? [] ) )
-			);
+			// Když Stripe nabízí náhradní cestu (doklady místo vyplňování),
+			// vypisujeme JEN ji. Původní seznam polí by prodejce poslal zpátky
+			// do smyčky, ve které mu ověření pokaždé znovu spadne.
+			$alt = Account_State::alternative_labels( $snapshot );
+			if ( $alt ) {
+				$missing      = $alt;
+				$missing_head = __( 'Stripe místo vyplňování přijme:', 'nkz-woo-stripe-vendor-split' );
+			} else {
+				$missing = Account_State::requirement_labels(
+					array_merge( (array) ( $snapshot['past_due'] ?? [] ), (array) ( $snapshot['currently_due'] ?? [] ) )
+				);
+			}
 		}
 
 		status_header( 200 );
@@ -293,7 +303,7 @@ final class Onboarding_Controller {
 			<h1><?php echo esc_html( $title ); ?></h1>
 			<p><?php echo esc_html( $body ); ?></p>
 			<?php if ( $missing ) : ?>
-				<p><strong><?php esc_html_e( 'Stripe ještě potřebuje:', 'nkz-woo-stripe-vendor-split' ); ?></strong></p>
+				<p><strong><?php echo esc_html( $missing_head ); ?></strong></p>
 				<ul><?php foreach ( $missing as $m ) : ?><li><?php echo esc_html( $m ); ?></li><?php endforeach; ?></ul>
 			<?php endif; ?>
 			<?php if ( $show_retry ) : ?>

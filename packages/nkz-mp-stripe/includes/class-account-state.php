@@ -216,10 +216,20 @@ final class Account_State {
 				return __( 'Stripe si vyžádal doplnění údajů a termín už uplynul, takže může mít pozastavené platby nebo výplaty. Dokonči prosím ověření co nejdřív.', 'nkz-woo-stripe-vendor-split' );
 
 			case self::VERIFICATION_ERROR:
-				$reason = self::first_error_reason( $snapshot );
-				return $reason !== ''
-					/* translators: %s: důvod od Stripe */
-					? sprintf( __( 'Stripe zadané údaje nepřijal: %s Oprav to prosím a zkus to znovu.', 'nkz-woo-stripe-vendor-split' ), $reason )
+				$hint = self::error_hint( $snapshot );
+				$alt  = self::alternative_labels( $snapshot );
+				if ( $alt ) {
+					// Když Stripe nabízí náhradní cestu, je to JEDINÁ rozumná
+					// instrukce. Znovu vyplňovat to samé vede na stejnou chybu
+					// donekonečna – proto o původních polích ani nemluvíme.
+					return $hint . ' ' . sprintf(
+						/* translators: %s: seznam dokladů */
+						__( 'Nevyplňuj prosím údaje znovu — Stripe místo nich přijme %s. Otevři ověření a zvol nahrání dokladů.', 'nkz-woo-stripe-vendor-split' ),
+						self::join_list( $alt )
+					);
+				}
+				return $hint !== ''
+					? $hint
 					: __( 'Stripe zadané údaje nepřijal. Otevři prosím ověření — uvidíš tam, co je potřeba opravit.', 'nkz-woo-stripe-vendor-split' );
 
 			case self::ACCOUNT_RESTRICTED:
@@ -242,6 +252,89 @@ final class Account_State {
 		$first = $errors[0];
 		// `reason` od Stripe je anglicky, ale konkrétní a bez osobních údajů.
 		return trim( (string) ( $first['reason'] ?? '' ) );
+	}
+
+	/**
+	 * Česky, co se pokazilo — podle KÓDU chyby, ne podle anglického textu.
+	 *
+	 * Nejčastější je `verification_failed_keyed_identity`: Stripe se pokusil
+	 * dohledat člověka v registrech podle ručně vyplněných údajů a nenašel
+	 * dost záznamů. V ČR a na SK je pokrytí těchhle registrů slabé, takže
+	 * to potkává i lidi, kteří mají všechno vyplněné správně. Stripe pak
+	 * údaje zneplatní a vyžádá si je znovu — a znovu je nedohledá. Bez
+	 * náhradní cesty (doklady) se z té smyčky nedá dostat.
+	 */
+	public static function error_hint( array $snapshot ): string {
+		$errors = $snapshot['errors'] ?? [];
+		if ( ! is_array( $errors ) || ! $errors ) {
+			return '';
+		}
+		$code = (string) ( $errors[0]['code'] ?? '' );
+
+		$map = [
+			'verification_failed_keyed_identity'  => __( 'Stripe si nedokázal ověřit tvoji totožnost podle vyplněných údajů — v registrech, do kterých vidí, tě nenašel. Není to chyba na tvé straně, v Česku se to stává běžně.', 'nkz-woo-stripe-vendor-split' ),
+			'verification_failed_keyed_match'     => __( 'Vyplněné údaje se neshodují se záznamy, které Stripe našel.', 'nkz-woo-stripe-vendor-split' ),
+			'verification_failed_name_match'      => __( 'Jméno se neshoduje se záznamy, které Stripe našel.', 'nkz-woo-stripe-vendor-split' ),
+			'verification_failed_address_match'   => __( 'Adresa se neshoduje se záznamy, které Stripe našel.', 'nkz-woo-stripe-vendor-split' ),
+			'verification_failed_document_match'  => __( 'Údaje se neshodují s nahraným dokladem.', 'nkz-woo-stripe-vendor-split' ),
+			'verification_document_not_readable'  => __( 'Nahraný doklad je nečitelný. Vyfoť ho prosím znovu za lepšího světla.', 'nkz-woo-stripe-vendor-split' ),
+			'verification_document_failed_copy'   => __( 'Stripe nepřijal kopii dokladu — potřebuje fotku originálu.', 'nkz-woo-stripe-vendor-split' ),
+			'verification_document_expired'       => __( 'Nahraný doklad má prošlou platnost.', 'nkz-woo-stripe-vendor-split' ),
+			'verification_document_incomplete'    => __( 'Na fotce dokladu není vidět celý doklad.', 'nkz-woo-stripe-vendor-split' ),
+			'verification_document_failed_greyscale' => __( 'Doklad musí být nafocený barevně, ne černobíle.', 'nkz-woo-stripe-vendor-split' ),
+			'verification_document_country_not_supported' => __( 'Stripe tenhle typ dokladu z dané země nepřijímá.', 'nkz-woo-stripe-vendor-split' ),
+			'invalid_dob_age_under_18'            => __( 'Podle data narození je majitel účtu mladší 18 let.', 'nkz-woo-stripe-vendor-split' ),
+			'invalid_street_address'              => __( 'Stripe neuznal zadanou adresu.', 'nkz-woo-stripe-vendor-split' ),
+			'invalid_address_city_state_postal_code' => __( 'Město a PSČ si neodpovídají.', 'nkz-woo-stripe-vendor-split' ),
+		];
+
+		if ( isset( $map[ $code ] ) ) {
+			return $map[ $code ];
+		}
+		// Neznámý kód – radši anglický originál od Stripe než nic.
+		return self::first_error_reason( $snapshot );
+	}
+
+	/**
+	 * Náhradní cesta, kterou Stripe sám nabízí (`requirements.alternatives`).
+	 *
+	 * Když se ověření podle vyplněných údajů nepovede, Stripe typicky
+	 * napíše: „místo tohohle všeho mi nahraj doklad totožnosti a doklad
+	 * o adrese". Tuhle informaci jsme dřív zahazovali, takže prodejci
+	 * neměli jak zjistit, že existuje jiná cesta než pořád dokola vyplňovat
+	 * ta samá pole.
+	 *
+	 * @return string[] Přeložené názvy dokladů, které Stripe přijme místo původních polí.
+	 */
+	public static function alternative_labels( array $snapshot ): array {
+		$alts = $snapshot['alternatives'] ?? [];
+		if ( ! is_array( $alts ) || ! $alts ) {
+			return [];
+		}
+		$fields = [];
+		foreach ( $alts as $alt ) {
+			if ( ! is_array( $alt ) ) {
+				continue;
+			}
+			foreach ( (array) ( $alt['alternative_fields_due'] ?? [] ) as $f ) {
+				$fields[] = (string) $f;
+			}
+		}
+		return self::requirement_labels( $fields );
+	}
+
+	/** „a, b a c" – pro plynulou větu v češtině. */
+	private static function join_list( array $items ): string {
+		$items = array_values( array_filter( $items ) );
+		$n     = count( $items );
+		if ( 0 === $n ) {
+			return '';
+		}
+		if ( 1 === $n ) {
+			return $items[0];
+		}
+		$last = array_pop( $items );
+		return implode( ', ', $items ) . ' ' . __( 'a', 'nkz-woo-stripe-vendor-split' ) . ' ' . $last;
 	}
 
 	/** Proč Stripe účet omezil. */
