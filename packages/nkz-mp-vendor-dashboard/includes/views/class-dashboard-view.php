@@ -208,14 +208,27 @@ final class DashboardView {
 
 		// KYC CTA: pokud máme Stripe adapter, vendor je už schválený (approved_awaiting_kyc)
 		// a KYC neproběhlo, ukážeme „Dokončit registraci“ → Stripe Connect onboarding URL.
-		$kyc_cta = null;
+		// KYC CTA: nabízíme JEN když po prodejci Stripe opravdu něco chce.
+		// Když Stripe jen ověřuje, co dostal, další formulář ho nikam
+		// neposune – jen to budí dojem, že se musí ověřovat pořád dokola.
+		$kyc_cta   = null;
+		$kyc_label = __( 'Ověření totožnosti pro přijímání plateb', 'nkz-mp-vendor-dashboard' );
 		if ( ! $kyc && $approved && class_exists( \NKVSVS\Onboarding_Controller::class ) ) {
+			$snapshot   = \NKVSVS\Onboarding_Controller::snapshot( $vendor_id );
+			$state      = (string) ( $snapshot['state'] ?? '' );
+			$waiting    = $state === \NKVSVS\Account_State::PENDING_VERIFICATION;
 			$stripe_url = (string) \NKVSVS\Onboarding_Controller::vendor_start_url( $vendor_id );
-			if ( $stripe_url !== '' ) {
-				$kyc_cta = [ $stripe_url, __( 'Dokončit registraci', 'nkz-mp-vendor-dashboard' ), true ];
+
+			if ( $waiting ) {
+				$kyc_label = __( 'Ověření totožnosti — Stripe kontroluje zadané údaje, nemusíš nic dělat', 'nkz-mp-vendor-dashboard' );
+			} elseif ( $stripe_url !== '' ) {
+				if ( $state !== '' ) {
+					$kyc_label = \NKVSVS\Account_State::label( $state );
+				}
+				$kyc_cta = [ $stripe_url, __( 'Dokončit ověření u Stripe', 'nkz-mp-vendor-dashboard' ), true ];
 			}
 		}
-		$steps[] = [ 'done' => $kyc, 'label' => __( 'Ověření totožnosti pro přijímání plateb', 'nkz-mp-vendor-dashboard' ), 'cta' => $kyc_cta ];
+		$steps[] = [ 'done' => $kyc, 'label' => $kyc_label, 'cta' => $kyc_cta ];
 		if ( $billing_on ) {
 			$steps[] = [
 				'done'  => $billing_ok,

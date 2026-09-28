@@ -123,6 +123,10 @@ final class Admin_Settings {
 				$desc = $existing ? sprintf( __( 'Aktuálně nastaveno: %s', 'nkz-woo-stripe-vendor-split' ), self::mask( $existing ) ) : __( 'Nenastaveno.', 'nkz-woo-stripe-vendor-split' );
 				if ( 'nkv_svs_webhook_secret' === $f['id'] ) {
 					$desc .= '<br><strong>' . esc_html__( 'Endpoint URL pro Stripe:', 'nkz-woo-stripe-vendor-split' ) . '</strong> <code>' . esc_html( Webhook_Controller::endpoint_url() ) . '</code>';
+					// Bez těchhle eventů se stav Connect účtů v DB neaktualizuje
+					// a prodejci zůstanou viset na starém stavu ověření.
+					$desc .= '<br><strong>' . esc_html__( 'Události, které musí být u webhooku zapnuté:', 'nkz-woo-stripe-vendor-split' ) . '</strong> <code>account.updated</code>, <code>capability.updated</code>, <code>person.updated</code>';
+					$desc .= '<br>' . esc_html__( 'Webhook musí být typu „Connected accounts", ne „Your account".', 'nkz-woo-stripe-vendor-split' );
 				}
 				$f['desc'] = $desc;
 			}
