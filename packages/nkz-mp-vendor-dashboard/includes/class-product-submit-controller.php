@@ -310,8 +310,20 @@ final class ProductSubmitController {
 		// produkt se uložil bez fotky a nikdo nevěděl proč). Typicky HEIC.
 		$upload_errors = [];
 
+		// Fotky z foťáku (DSC_*.JPG) bývají 6–8 MB / 24 Mpx a generování
+		// náhledů je pamětově i časově náročné. Pět takových v jednom
+		// požadavku dokáže spolehlivě vyčerpat limity a shodit celé uložení.
+		if ( function_exists( 'wp_raise_memory_limit' ) ) {
+			wp_raise_memory_limit( 'image' );
+		}
+		if ( ! ini_get( 'safe_mode' ) ) {
+			@set_time_limit( 300 ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+		}
+
+		$featured_att_id = 0;
+
 		if ( ! empty( $_FILES['featured_image']['name'] ) ) {
-			$att_id = media_handle_upload( 'featured_image', $product_id );
+			$att_id = self::upload( 'featured_image', $product_id );
 			if ( is_wp_error( $att_id ) ) {
 				error_log( '[NKZMP] featured image upload failed: ' . $att_id->get_error_message() );
 				$upload_errors[] = sprintf(
@@ -320,7 +332,7 @@ final class ProductSubmitController {
 					$att_id->get_error_message()
 				);
 			} else {
-				set_post_thumbnail( $product_id, $att_id );
+				$featured_att_id = (int) $att_id;
 			}
 		}
 
@@ -342,7 +354,7 @@ final class ProductSubmitController {
 			if ( empty( $_FILES[ $field ]['name'] ) ) {
 				continue;
 			}
-			$att_id = media_handle_upload( $field, $product_id );
+			$att_id = self::upload( $field, $product_id );
 			if ( is_wp_error( $att_id ) ) {
 				error_log( '[NKZMP] gallery ' . $i . ' upload failed: ' . $att_id->get_error_message() );
 				$upload_errors[] = sprintf(
@@ -362,14 +374,43 @@ final class ProductSubmitController {
 			}
 		}
 
-		if ( $gallery_touched ) {
-			// Odebíráme jen z galerie produktu; soubor v Médiích zůstává
-			// (mohl by být použitý jinde) – bezpečnější než mazat natvrdo.
+		if ( $featured_att_id > 0 || $gallery_touched ) {
+			// Zapisujeme přes CRUD, NE přes update_post_meta().
+			//
+			// WooCommerce si produkt drží v objektové cache (skupina
+			// `wc_products`) a `$product->get_gallery_image_ids()` čte odtud.
+			// Syrový zápis do meta tu cache neaktualizuje: editační formulář
+			// čte meta a fotky vidí, ale `wc_get_product()` na frontendu vrátí
+			// starý objekt bez nich. S persistentní object cache (LiteSpeed)
+			// to takhle může viset dlouho — přesně to prodejci hlásili.
 			if ( ! empty( $remove_ids ) ) {
+				// Odebíráme jen z galerie produktu; soubor v Médiích zůstává
+				// (mohl by být použitý jinde) – bezpečnější než mazat natvrdo.
 				$gallery = array_diff( $gallery, $remove_ids );
 			}
 			$final = array_values( array_unique( array_filter( $gallery ) ) );
-			update_post_meta( $product_id, '_product_image_gallery', implode( ',', $final ) );
+
+			$fresh = wc_get_product( $product_id );
+			if ( $fresh ) {
+				if ( $featured_att_id > 0 ) {
+					$fresh->set_image_id( $featured_att_id );
+				}
+				if ( $gallery_touched ) {
+					$fresh->set_gallery_image_ids( $final );
+				}
+				$fresh->save();
+			} else {
+				// Nouzově aspoň syrově, ať se práce prodejce neztratí.
+				if ( $featured_att_id > 0 ) {
+					set_post_thumbnail( $product_id, $featured_att_id );
+				}
+				if ( $gallery_touched ) {
+					update_post_meta( $product_id, '_product_image_gallery', implode( ',', $final ) );
+				}
+			}
+
+			wc_delete_product_transients( $product_id );
+			clean_post_cache( $product_id );
 		}
 
 		// Audit + hook.
@@ -378,7 +419,7 @@ final class ProductSubmitController {
 				action:      $is_edit ? 'product.submitted_edit' : 'product.submitted_new',
 				entity_type: 'product',
 				entity_id:   $product_id,
-				summary:     sprintf( '%s: %s', $title, get_userdata( get_current_user_id() )->user_login ?? '?' ),
+				summary:     sprintf( '%s: %s', $title, ( get_userdata( get_current_user_id() )->user_login ?? '?' ) ),
 				payload:     [ 'vendor_id' => $vendor_id, 'price' => $price, 'has_image' => ! empty( $_FILES['featured_image']['name'] ) ],
 				actor_label: 'vendor_self',
 			);
@@ -406,6 +447,28 @@ final class ProductSubmitController {
 	}
 
 	/* ── Unpublish / Delete ──────────────────────────────────────── */
+
+	/**
+	 * Nahrání jedné fotky, které nesmí shodit celý požadavek.
+	 *
+	 * `media_handle_upload()` u velké fotky (typicky 24 Mpx z foťáku) umí
+	 * spadnout na paměti nebo na chybě knihovny. Bez odchycení to znamená
+	 * bílou stránku s „závažnou chybou" a ztrátu všeho, co prodejce vyplnil.
+	 * Takhle propadne jen ta jedna fotka a prodejce se dozví proč.
+	 *
+	 * @return int|\WP_Error
+	 */
+	private static function upload( string $field, int $product_id ) {
+		try {
+			return media_handle_upload( $field, $product_id );
+		} catch ( \Throwable $e ) {
+			error_log( '[NKZMP] upload ' . $field . ' threw: ' . $e->getMessage() );
+			return new \WP_Error(
+				'nkzmp_upload_exception',
+				__( 'fotka je nejspíš moc velká — zkus ji zmenšit (stačí kolem 2000 px na delší straně)', 'nkz-mp-vendor-dashboard' )
+			);
+		}
+	}
 
 	public function init_actions(): void {
 		add_action( 'admin_post_nkzmp_vd_product_unpublish', [ $this, 'unpublish' ] );

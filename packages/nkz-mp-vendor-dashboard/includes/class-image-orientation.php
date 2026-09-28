@@ -75,8 +75,14 @@ final class ImageOrientation {
 			return $file; // 0 = nezjištěno, 1 = už narovnáno → nesaháme
 		}
 
-		$done = self::rotate_imagick( $tmp ) || self::rotate_gd( $tmp, $orientation );
-		if ( $done && isset( $file['size'] ) ) {
+		// Otočení znamená načíst celou fotku do paměti. U 24 Mpx snímku
+		// z foťáku to je řádově stovky MB, takže si o limit řekneme dřív,
+		// než na něm spadneme.
+		if ( function_exists( 'wp_raise_memory_limit' ) ) {
+			wp_raise_memory_limit( 'image' );
+		}
+
+		$done = self::rotate_imagick( $tmp ) || self::rotate_gd( $tmp, $orientation );		if ( $done && isset( $file['size'] ) ) {
 			clearstatcache( true, $tmp );
 			$file['size'] = (int) filesize( $tmp );
 		}
