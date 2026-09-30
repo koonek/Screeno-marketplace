@@ -72,11 +72,68 @@ final class OrderDisplay {
 			$url         = LabelController::label_url( $order->get_id(), $vid );
 			echo '<p style="margin:6px 0;">' . esc_html( $vendor_name ) . ': ';
 			if ( $packet !== null && ! empty( $packet['barcode'] ) ) {
-				$cancel  = LabelController::cancel_url( $order->get_id(), $vid );
-				$created = ! empty( $packet['created'] ) ? wp_date( 'j. n. Y H:i', (int) $packet['created'] ) : '';
-				echo '<span style="color:#1a7f37;font-weight:600;">✓ ' . esc_html__( 'Podáno', 'nkz-mp-packeta' ) . '</span>';
-				if ( $created !== '' ) {
-					echo ' <span style="color:#666;">(' . esc_html( $created ) . ')</span>';
+				$cancel = LabelController::cancel_url( $order->get_id(), $vid );
+
+				// Vytvořený štítek NEznamená podanou zásilku. Rozhoduje stav
+				// od Zásilkovny (StatusSync); dokud ho nemáme, je to jen
+				// vytištěná etiketa. Dřív tu svítilo „Podáno" hned po tisku
+				// a s časem tisku — podle toho pak nikdo nepoznal, že balík
+				// pořád leží u prodejce.
+				$state = (string) ( $packet['state'] ?? '' );
+				$when  = ! empty( $packet['state_at'] ) ? (int) $packet['state_at'] : 0;
+
+				switch ( $state ) {
+					case ApiClient::STATE_DELIVERED:
+						$color = '#1a7f37';
+						$icon  = '✓';
+						$text  = __( 'Doručeno', 'nkz-mp-packeta' );
+						break;
+					case ApiClient::STATE_DISPATCHED:
+						$color = '#1a7f37';
+						$icon  = '✓';
+						$text  = __( 'Podáno', 'nkz-mp-packeta' );
+						break;
+					case ApiClient::STATE_RETURNED:
+						$color = '#b32d2e';
+						$icon  = '↩';
+						$text  = __( 'Vrací se prodejci', 'nkz-mp-packeta' );
+						break;
+					case ApiClient::STATE_CANCELLED:
+						$color = '#646970';
+						$icon  = '✕';
+						$text  = __( 'Zrušeno', 'nkz-mp-packeta' );
+						break;
+					case ApiClient::STATE_PENDING:
+						$color = '#b26900';
+						$icon  = '⏳';
+						$text  = __( 'Štítek vytvořen — Zásilkovna zásilku zatím nepřevzala', 'nkz-mp-packeta' );
+						$when  = 0; // čas vytištění tu jen mate
+						break;
+					default:
+						// Sledování stavů ještě neproběhlo (starší zásilka).
+						$color = '#646970';
+						$icon  = '•';
+						$text  = __( 'Štítek vytvořen — stav zjišťujeme', 'nkz-mp-packeta' );
+						$when  = 0;
+				}
+
+				printf(
+					'<span style="color:%s;font-weight:600;">%s %s</span>',
+					esc_attr( $color ),
+					esc_html( $icon ),
+					esc_html( $text )
+				);
+				if ( $when > 0 ) {
+					echo ' <span style="color:#666;">(' . esc_html( wp_date( 'j. n. Y H:i', $when ) ) . ')</span>';
+				}
+				if ( ! empty( $packet['created'] ) ) {
+					echo ' <span style="color:#888;font-size:12px;">'
+						. esc_html( sprintf(
+							/* translators: %s: datum a čas */
+							__( 'štítek vytištěn %s', 'nkz-mp-packeta' ),
+							wp_date( 'j. n. Y H:i', (int) $packet['created'] )
+						) )
+						. '</span>';
 				}
 				echo '<br><code>' . esc_html( (string) $packet['barcode'] ) . '</code> ';
 				echo '<a class="button button-small" href="' . esc_url( $url ) . '">' . esc_html__( 'Stáhnout štítek', 'nkz-mp-packeta' ) . '</a> ';

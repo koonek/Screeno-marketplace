@@ -22,6 +22,13 @@ final class LabelService {
 
 	private static ?LabelService $instance = null;
 
+	public function init(): void {
+		// E-mail „zásilka je na cestě" posíláme až při SKUTEČNÉM podání.
+		// Dřív odcházel hned po vytvoření štítku — zákazník čekal balík,
+		// který se ještě ani nehnul od prodejce.
+		add_action( 'nkzmp/v1/packeta/packet_dispatched', [ $this, 'notify_customer_shipped' ], 10, 3 );
+	}
+
 	public static function instance(): LabelService {
 		return self::$instance ??= new self();
 	}
@@ -115,7 +122,7 @@ final class LabelService {
 		$order->add_order_note(
 			sprintf(
 				/* translators: 1: vendor name, 2: barcode */
-				__( 'Zásilkovna: prodejce „%1$s" podal zásilku (kód %2$s).', 'nkz-mp-packeta' ),
+				__( 'Zásilkovna: prodejce „%1$s" vytvořil štítek (kód %2$s). Zásilka zatím nebyla podána.', 'nkz-mp-packeta' ),
 				$vendor_name,
 				$record['barcode']
 			)
@@ -123,8 +130,8 @@ final class LabelService {
 		$order->save();
 
 		/**
-		 * Prodejce podal zásilku (vytvořen packet/štítek). Napojuje se escrow
-		 * hold plateb (uvolnění výplaty po ochranné lhůtě).
+		 * Vytvořen packet/štítek. POZOR: neznamená to podanou zásilku —
+		 * na to je `nkzmp/v1/packeta/packet_dispatched` ze StatusSync.
 		 *
 		 * @param \WC_Order $order
 		 * @param int       $vendor_id
@@ -132,13 +139,9 @@ final class LabelService {
 		 */
 		do_action( 'nkzmp/v1/packeta/packet_created', $order, $vendor_id, $record );
 
-		// Side-effecty (e-mail zákazníkovi, auto-dokončení). Guardované, aby
-		// případná chyba neshodila vytvoření zásilky.
-		try {
-			$this->notify_customer_shipped( $order, $vendor_id, $record );
-		} catch ( \Throwable $e ) {
-			// ticho – e-mail není kritický
-		}
+		// Side-effecty. Guardované, aby případná chyba neshodila vytvoření
+		// zásilky. E-mail zákazníkovi tu ZÁMĚRNĚ není — odchází až při
+		// skutečném podání (viz init()).
 		try {
 			$this->maybe_complete_order( $order );
 		} catch ( \Throwable $e ) {
@@ -157,8 +160,31 @@ final class LabelService {
 	/**
 	 * Pošle zákazníkovi e-mail „zásilka od prodejce je na cestě" + tracking.
 	 * Šablona je editovatelná v Nastavení → E-maily (email_shipment_*).
+	 *
+	 * Visí na `packet_dispatched`, ne na vytvoření štítku.
+	 *
+	 * @param \WC_Order $order
+	 * @param int       $vendor_id
+	 * @param array     $record
 	 */
-	private function notify_customer_shipped( \WC_Order $order, int $vendor_id, array $record ): void {
+	public function notify_customer_shipped( $order, $vendor_id, $record ): void {
+		if ( ! $order instanceof \WC_Order ) {
+			return;
+		}
+		$vendor_id = (int) $vendor_id;
+		$record    = is_array( $record ) ? $record : [];
+
+		// Pojistka proti dvojímu odeslání – dispatched i delivered můžou
+		// dorazit v jednom běhu synchronizace.
+		$sent = $order->get_meta( '_nkzmp_packeta_shipped_mail' );
+		$sent = is_array( $sent ) ? $sent : [];
+		if ( ! empty( $sent[ $vendor_id ] ) ) {
+			return;
+		}
+		$sent[ $vendor_id ] = time();
+		$order->update_meta_data( '_nkzmp_packeta_shipped_mail', $sent );
+		$order->save();
+
 		if ( ! apply_filters( 'nkzmp/v1/packeta/notify_customer', true, $order, $vendor_id ) ) {
 			return;
 		}
