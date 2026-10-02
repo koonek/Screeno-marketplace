@@ -56,6 +56,57 @@ final class StatusSync {
 		add_action( 'nkzmp/v1/packeta/packet_created', [ $this, 'mark_pending' ], 5, 3 );
 
 		add_action( 'admin_notices', [ $this, 'returned_notice' ] );
+
+		// Ruční „zjistit stav teď" z detailu objednávky.
+		add_action( 'admin_post_nkzmp_packeta_sync_order', [ $this, 'handle_manual_sync' ] );
+
+		// Pojistka, když WP-Cron nejede (nízká návštěvnost, DISABLE_WP_CRON).
+		// Bez ní by se stav zásilek nikdy neaktualizoval a stálo by na tom
+		// jak uvolnění výplaty, tak dokončení objednávky.
+		add_action( 'admin_init', [ $this, 'maybe_catch_up' ] );
+	}
+
+	/** Doběhne synchronizaci, když cron dlouho neproběhl (throttle 15 min). */
+	public function maybe_catch_up(): void {
+		$last = (array) get_option( self::HEALTH_OPTION, [] );
+		$age  = time() - (int) ( $last['time'] ?? 0 );
+		if ( $age < 2 * HOUR_IN_SECONDS ) {
+			return;
+		}
+		if ( get_transient( 'nkzmp_packeta_catchup' ) ) {
+			return;
+		}
+		set_transient( 'nkzmp_packeta_catchup', 1, 15 * MINUTE_IN_SECONDS );
+		$this->run();
+	}
+
+	/** Ruční synchronizace jedné objednávky (tlačítko v adminu). */
+	public function handle_manual_sync(): void {
+		if ( ! current_user_can( 'manage_woocommerce' ) ) {
+			wp_die( esc_html__( 'Nemáš oprávnění.', 'nkz-mp-packeta' ) );
+		}
+		$order_id = absint( $_GET['order_id'] ?? 0 );
+		check_admin_referer( 'nkzmp_packeta_sync_order_' . $order_id );
+
+		$order = wc_get_order( $order_id );
+		if ( $order instanceof \WC_Order && Settings::is_configured() ) {
+			$this->sync_order( $order );
+		}
+
+		$back = $order instanceof \WC_Order ? $order->get_edit_order_url() : admin_url();
+		wp_safe_redirect( add_query_arg( 'nkzmp_packeta', 'synced', $back ) );
+		exit;
+	}
+
+	/** URL tlačítka „Zjistit stav u Zásilkovny". */
+	public static function manual_sync_url( int $order_id ): string {
+		return wp_nonce_url(
+			add_query_arg(
+				[ 'action' => 'nkzmp_packeta_sync_order', 'order_id' => $order_id ],
+				admin_url( 'admin-post.php' )
+			),
+			'nkzmp_packeta_sync_order_' . $order_id
+		);
 	}
 
 	public static function unschedule(): void {

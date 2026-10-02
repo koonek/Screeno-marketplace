@@ -147,6 +147,15 @@ final class OrderDisplay {
 			}
 			echo '</p>';
 		}
+
+		// Stav se jinak doptává jednou za hodinu. Když admin potřebuje vědět
+		// hned (typicky „zákazník mi psal, že si balík vyzvedl"), ať nemusí
+		// čekat na cron.
+		printf(
+			'<p><a class="button button-small" href="%s">%s</a></p>',
+			esc_url( StatusSync::manual_sync_url( $order->get_id() ) ),
+			esc_html__( 'Zjistit stav u Zásilkovny', 'nkz-mp-packeta' )
+		);
 	}
 
 	public function frontend_block( \WC_Order $order ): void {
