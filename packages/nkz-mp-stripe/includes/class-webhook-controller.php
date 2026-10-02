@@ -62,8 +62,14 @@ final class Webhook_Controller {
 
 		try {
 			switch ( $event['type'] ) {
+				// Všechny tři nesou změnu, po které se může změnit stav
+				// requirements. `account.updated` sám nestačí: když Stripe
+				// dověří osobu nebo pustí capability, přijde jen person.updated
+				// / capability.updated a stav v DB by zůstal starý.
 				case 'account.updated':
-					$this->on_account_updated( $event );
+				case 'capability.updated':
+				case 'person.updated':
+					$this->on_account_event( $event );
 					break;
 				default:
 					// Ignore unknown events — Stripe will not retry on 200.
@@ -77,9 +83,28 @@ final class Webhook_Controller {
 		return new \WP_REST_Response( [ 'ok' => true ], 200 );
 	}
 
-	private function on_account_updated( array $event ): void {
-		$account_id = (string) ( $event['data']['object']['id'] ?? '' );
+	/**
+	 * Vytáhne z eventu ID connected accountu.
+	 *
+	 * U `account.updated` je účet přímo v data.object.id, u person/capability
+	 * eventů je to ID osoby resp. capability a účet sedí jinde. Spoléhat se
+	 * jen na data.object.id znamená ty ostatní eventy tiše zahodit.
+	 */
+	private static function account_id_from( array $event ): string {
+		$object = is_array( $event['data']['object'] ?? null ) ? $event['data']['object'] : [];
+
+		foreach ( [ (string) ( $event['account'] ?? '' ), (string) ( $object['account'] ?? '' ), (string) ( $object['id'] ?? '' ) ] as $candidate ) {
+			if ( str_starts_with( $candidate, 'acct_' ) ) {
+				return $candidate;
+			}
+		}
+		return '';
+	}
+
+	private function on_account_event( array $event ): void {
+		$account_id = self::account_id_from( $event );
 		if ( '' === $account_id ) {
+			Logger::info( 'Webhook without resolvable account', [ 'type' => (string) $event['type'] ] );
 			return;
 		}
 		$posts = get_posts(

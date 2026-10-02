@@ -25,6 +25,7 @@ final class Onboarding_Controller {
 		add_action( 'admin_post_nkv_stripe_sync',      [ $this, 'handle_sync' ] );
 		add_action( 'admin_post_nkv_stripe_email',     [ $this, 'handle_email' ] );
 		add_action( 'admin_post_nkv_stripe_reset',     [ $this, 'handle_reset' ] );
+		add_action( 'admin_post_nkv_stripe_diagnose',  [ $this, 'handle_diagnose' ] );
 
 		// Public (vendor-facing) — both logged-in and anonymous.
 		add_action( 'admin_post_nopriv_nkv_stripe_vendor_start',  [ $this, 'handle_vendor_start' ] );
@@ -99,6 +100,48 @@ final class Onboarding_Controller {
 		);
 	}
 
+	/**
+	 * READ-ONLY diagnostika účtu. Nic nemění, jen vypíše sanitizovaný stav.
+	 *
+	 * `account` je volitelný – dá se jím zdiagnostikovat i účet, který
+	 * u žádného prodejce zapsaný není (typicky při dohledávání s podporou).
+	 */
+	public static function diagnose_url( int $vendor_id, string $account_id = '' ): string {
+		$args = [ 'action' => 'nkv_stripe_diagnose', 'vendor_id' => $vendor_id ];
+		if ( '' !== $account_id ) {
+			$args['account'] = $account_id;
+		}
+		return wp_nonce_url(
+			add_query_arg( $args, admin_url( 'admin-post.php' ) ),
+			'nkv_stripe_diagnose_' . $vendor_id,
+			'_nkv_nonce'
+		);
+	}
+
+	/**
+	 * Země, ve kterých umíme založit Stripe Connect účet. Země je u Stripe účtu
+	 * NEMĚNNÁ po vytvoření – slovenský prodejce potřebuje účet rovnou pro SK,
+	 * jinak mu Stripe pole „země" zašedne a nepustí ho dál. Filtrovatelné.
+	 *
+	 * @return array<string,string> ISO kód => název
+	 */
+	public static function allowed_countries(): array {
+		return (array) apply_filters(
+			'nkv/v1/onboarding/allowed_countries',
+			[
+				'CZ' => __( 'Česko', 'nkz-woo-stripe-vendor-split' ),
+				'SK' => __( 'Slovensko', 'nkz-woo-stripe-vendor-split' ),
+			]
+		);
+	}
+
+	/** Země prodejce pro založení Stripe účtu (default CZ, validovaná proti allowlistu). */
+	public static function vendor_country( int $vendor_id ): string {
+		$c       = strtoupper( (string) get_post_meta( $vendor_id, '_nkv_stripe_country', true ) );
+		$allowed = self::allowed_countries();
+		return isset( $allowed[ $c ] ) ? $c : 'CZ';
+	}
+
 	/* ---------------------------------------------------------------------
 	 * Public (vendor) handlers.
 	 * ------------------------------------------------------------------- */
@@ -106,8 +149,11 @@ final class Onboarding_Controller {
 	public function handle_vendor_start(): void {
 		[ $vendor_id, $vendor ] = $this->authorize_public();
 
-		// Policy: bez IČO se prodejce neonboarduje (vendoři s pouhým rodným číslem nemohou).
-		if ( '' === trim( (string) $vendor['ico'] ) ) {
+		// IČO není povinné – prodávat může i nepodnikající tvůrce a Stripe si
+		// identifikaci vyžádá sám (u fyzické osoby doklad, ne IČO). Tvrdý gate
+		// tu blokoval přesně ty prodejce, které registrace od 0.75.0 pouští dál.
+		// Vypnutí/zapnutí: filtr `nkv/v1/onboarding/require_ico`.
+		if ( apply_filters( 'nkv/v1/onboarding/require_ico', false ) && '' === trim( (string) $vendor['ico'] ) ) {
 			$this->public_error( __( 'Pro registraci v Stripe je potřeba IČO. Pokud podnikáš pod jiným identifikátorem, ozvi se prosím provozovateli platformy.', 'nkz-woo-stripe-vendor-split' ) );
 		}
 
@@ -119,9 +165,10 @@ final class Onboarding_Controller {
 		try {
 			$account_id = $vendor['stripe_account_id'];
 			if ( '' === $account_id ) {
+				$country = self::vendor_country( $vendor_id );
 				$params = [
 					'type'             => 'express',
-					'country'          => 'CZ',
+					'country'          => $country,
 					'capabilities'     => [
 						'card_payments' => [ 'requested' => 'true' ],
 						'transfers'     => [ 'requested' => 'true' ],
@@ -146,6 +193,9 @@ final class Onboarding_Controller {
 				}
 				update_post_meta( $vendor_id, '_nkv_stripe_account_id', $account_id );
 				update_post_meta( $vendor_id, '_nkv_stripe_account_status', 'pending' );
+				// Ulož zemi, se kterou byl účet reálně vytvořen (pro varování v adminu,
+				// když někdo později přepne výběr země – změna vyžaduje reset účtu).
+				update_post_meta( $vendor_id, '_nkv_stripe_account_country', $country );
 			}
 
 			$link = $client->create_account_link(
@@ -192,34 +242,73 @@ final class Onboarding_Controller {
 	}
 
 	private function render_thank_you( int $vendor_id ): void {
-		$vendor = Vendor_Repository::get( $vendor_id );
-		$status = $vendor['stripe_account_status'] ?? 'unknown';
-		$site   = get_bloginfo( 'name' );
+		// Stav čteme ze snapshotu, který právě doběhl ze Stripe v
+		// handle_vendor_return() – ne z toho, co bylo v DB před onboardingem.
+		$snapshot = self::snapshot( $vendor_id );
+		$state    = (string) ( $snapshot['state'] ?? Account_State::UNKNOWN );
+		$site     = get_bloginfo( 'name' );
 
-		$messages = [
-			'enabled'    => [ __( 'Hotovo!', 'nkz-woo-stripe-vendor-split' ), __( 'Tvůj Stripe účet je aktivní. Můžeš začít prodávat.', 'nkz-woo-stripe-vendor-split' ), '#46b450' ],
-			'pending'    => [ __( 'Děkujeme!', 'nkz-woo-stripe-vendor-split' ), __( 'Tvoje údaje se ověřují. Obvykle to trvá pár minut, někdy až 24 hodin. Pak ti dáme vědět.', 'nkz-woo-stripe-vendor-split' ), '#ffb900' ],
-			'restricted' => [ __( 'Ještě něco chybí', 'nkz-woo-stripe-vendor-split' ), __( 'Stripe potřebuje další informace. Otevři prosím onboarding znovu pomocí tvého odkazu a dokonči zbývající kroky.', 'nkz-woo-stripe-vendor-split' ), '#dc3232' ],
-			'unknown'    => [ __( 'Děkujeme', 'nkz-woo-stripe-vendor-split' ), __( 'Tvoje žádost byla zaznamenána.', 'nkz-woo-stripe-vendor-split' ), '#888' ],
+		$colors = [
+			Account_State::VERIFIED             => '#46b450',
+			Account_State::PENDING_VERIFICATION => '#2271b1',
+			Account_State::ACTION_REQUIRED      => '#ffb900',
+			Account_State::PAST_DUE             => '#dc3232',
+			Account_State::VERIFICATION_ERROR   => '#dc3232',
+			Account_State::ACCOUNT_RESTRICTED   => '#dc3232',
 		];
-		$m = $messages[ $status ] ?? $messages['unknown'];
+		$color = $colors[ $state ] ?? '#888';
+
+		$title = Account_State::label( $state );
+		$body  = $snapshot ? Account_State::description( $snapshot ) : __( 'Tvoje žádost byla zaznamenána.', 'nkz-woo-stripe-vendor-split' );
+
+		// Odkaz na dokončení nabízíme JEN když Stripe opravdu něco chce.
+		// Dřív se formulář nabízel i lidem, kteří mají jen čekat – proto ten
+		// dojem „pořád dokola mě to nutí ověřovat se znovu".
+		$show_retry = Account_State::needs_user_action( $state );
+		$retry_url  = self::vendor_start_url( $vendor_id );
+
+		$missing     = [];
+		$missing_head = __( 'Stripe ještě potřebuje:', 'nkz-woo-stripe-vendor-split' );
+		if ( $show_retry && $snapshot ) {
+			// Když Stripe nabízí náhradní cestu (doklady místo vyplňování),
+			// vypisujeme JEN ji. Původní seznam polí by prodejce poslal zpátky
+			// do smyčky, ve které mu ověření pokaždé znovu spadne.
+			$alt = Account_State::alternative_labels( $snapshot );
+			if ( $alt ) {
+				$missing      = $alt;
+				$missing_head = __( 'Stripe místo vyplňování přijme:', 'nkz-woo-stripe-vendor-split' );
+			} else {
+				$missing = Account_State::requirement_labels(
+					array_merge( (array) ( $snapshot['past_due'] ?? [] ), (array) ( $snapshot['currently_due'] ?? [] ) )
+				);
+			}
+		}
 
 		status_header( 200 );
 		nocache_headers();
 		?><!doctype html>
-		<html lang="cs"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title><?php echo esc_html( $m[0] ); ?></title>
+		<html lang="cs"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title><?php echo esc_html( $title ); ?></title>
 		<style>
 			body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; background: #f5f5f5; margin: 0; padding: 40px 20px; }
 			.card { max-width: 480px; margin: 40px auto; background: #fff; border-radius: 8px; padding: 32px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
-			.badge { display: inline-block; padding: 4px 12px; border-radius: 999px; color: #fff; font-size: 12px; font-weight: 600; text-transform: uppercase; margin-bottom: 16px; }
+			.badge { display: inline-block; padding: 4px 12px; border-radius: 999px; color: #fff; font-size: 12px; font-weight: 600; margin-bottom: 16px; }
 			h1 { margin: 0 0 12px; font-size: 24px; color: #1d2327; }
 			p { color: #50575e; line-height: 1.6; }
+			ul { color: #50575e; line-height: 1.6; }
+			.cta { display: inline-block; margin-top: 8px; padding: 12px 24px; border-radius: 999px; background: #0060FF; color: #fff; text-decoration: none; font-weight: 600; }
 			.footer { margin-top: 24px; font-size: 13px; color: #8c8f94; }
 		</style></head><body>
 		<div class="card">
-			<span class="badge" style="background: <?php echo esc_attr( $m[2] ); ?>;"><?php echo esc_html( $status ); ?></span>
-			<h1><?php echo esc_html( $m[0] ); ?></h1>
-			<p><?php echo esc_html( $m[1] ); ?></p>
+			<span class="badge" style="background: <?php echo esc_attr( $color ); ?>;"><?php echo esc_html( $title ); ?></span>
+			<h1><?php echo esc_html( $title ); ?></h1>
+			<p><?php echo esc_html( $body ); ?></p>
+			<?php if ( $missing ) : ?>
+				<p><strong><?php echo esc_html( $missing_head ); ?></strong></p>
+				<ul><?php foreach ( $missing as $m ) : ?><li><?php echo esc_html( $m ); ?></li><?php endforeach; ?></ul>
+			<?php endif; ?>
+			<?php if ( $show_retry ) : ?>
+				<p><a class="cta" href="<?php echo esc_url( $retry_url ); ?>"><?php esc_html_e( 'Dokončit ověření u Stripe', 'nkz-woo-stripe-vendor-split' ); ?></a></p>
+			<?php endif; ?>
 			<p class="footer"><?php printf( esc_html__( 'Tuto stránku můžeš zavřít. — %s', 'nkz-woo-stripe-vendor-split' ), esc_html( $site ) ); ?></p>
 		</div>
 		</body></html><?php
@@ -244,7 +333,9 @@ final class Onboarding_Controller {
 		delete_post_meta( $vendor_id, '_nkv_stripe_account_status' );
 		delete_post_meta( $vendor_id, '_nkv_stripe_charges_enabled' );
 		delete_post_meta( $vendor_id, '_nkv_stripe_payouts_enabled' );
+		delete_post_meta( $vendor_id, '_nkv_stripe_transfers_capability' );
 		delete_post_meta( $vendor_id, '_nkv_stripe_requirements_due' );
+		delete_post_meta( $vendor_id, '_nkv_stripe_account_country' );
 		// Bump attempt counter so the next create call uses a fresh Stripe idempotency key.
 		$attempt = (int) get_post_meta( $vendor_id, '_nkv_stripe_create_attempt', true );
 		update_post_meta( $vendor_id, '_nkv_stripe_create_attempt', $attempt + 1 );
@@ -312,6 +403,138 @@ final class Onboarding_Controller {
 		exit;
 	}
 
+	/**
+	 * READ-ONLY diagnostika: načte účet ze Stripe a vypíše sanitizovaný stav.
+	 *
+	 * Nic nezapisuje do Stripe ani do DB. Výstup je schválně bez osobních
+	 * údajů — jsou v něm jen NÁZVY chybějících polí, příznaky a chybové kódy,
+	 * takže se dá bez obav poslat podpoře.
+	 */
+	public function handle_diagnose(): void {
+		$vendor_id = $this->authorize_admin( 'nkv_stripe_diagnose_' );
+
+		$account_id = isset( $_GET['account'] ) ? sanitize_text_field( wp_unslash( $_GET['account'] ) ) : '';
+		if ( '' === $account_id ) {
+			$account_id = (string) get_post_meta( $vendor_id, '_nkv_stripe_account_id', true );
+		}
+		if ( ! preg_match( '/^acct_[A-Za-z0-9]+$/', $account_id ) ) {
+			wp_die( esc_html__( 'Chybí nebo je neplatné ID Stripe účtu.', 'nkz-woo-stripe-vendor-split' ) );
+		}
+
+		$client = new Stripe_Client();
+		if ( ! $client->is_ready() ) {
+			wp_die( esc_html__( 'Stripe klíč není nakonfigurovaný.', 'nkz-woo-stripe-vendor-split' ) );
+		}
+
+		$account = $client->retrieve_account( $account_id );
+		if ( ! is_array( $account ) || isset( $account['error'] ) ) {
+			$msg = is_array( $account ) ? (string) ( $account['error']['message'] ?? '' ) : '';
+			wp_die( esc_html( sprintf(
+				/* translators: %s: chybová hláška Stripe */
+				__( 'Stripe účet se nepodařilo načíst. %s', 'nkz-woo-stripe-vendor-split' ),
+				$msg
+			) ) );
+		}
+
+		$snapshot = Account_State::evaluate( $account );
+
+		$out = [
+			'account' => [
+				'id'                => (string) ( $account['id'] ?? '' ),
+				'type'              => (string) ( $account['type'] ?? '' ),
+				'business_type'     => (string) ( $account['business_type'] ?? '' ),
+				'country'           => (string) ( $account['country'] ?? '' ),
+				// `controller` je objekt bez PII (typ platformy, kdo platí fees).
+				'controller'        => is_array( $account['controller'] ?? null ) ? $account['controller'] : null,
+				'details_submitted' => ! empty( $account['details_submitted'] ),
+				'charges_enabled'   => ! empty( $account['charges_enabled'] ),
+				'payouts_enabled'   => ! empty( $account['payouts_enabled'] ),
+				'capabilities'      => is_array( $account['capabilities'] ?? null ) ? $account['capabilities'] : [],
+			],
+			'requirements' => [
+				'disabled_reason'      => $snapshot['disabled_reason'],
+				'current_deadline'     => $snapshot['current_deadline'],
+				'currently_due'        => $snapshot['currently_due'],
+				'past_due'             => $snapshot['past_due'],
+				'pending_verification' => $snapshot['pending_verification'],
+				'eventually_due'       => $snapshot['eventually_due'],
+				'errors'               => $snapshot['errors'],
+				'alternatives'         => $snapshot['alternatives'],
+			],
+			'future_requirements' => [
+				'currently_due'        => $snapshot['future_currently_due'],
+				'eventually_due'       => $snapshot['future_eventually_due'],
+				'pending_verification' => $snapshot['future_pending_verification'],
+			],
+			'derived' => [
+				'state'             => $snapshot['state'],
+				'legacy_status'     => Account_State::to_legacy( (string) $snapshot['state'] ),
+				'needs_user_action' => Account_State::needs_user_action( (string) $snapshot['state'] ),
+				'needs_hosted_flow' => Account_State::needs_hosted_flow(
+					array_merge( $snapshot['currently_due'], $snapshot['past_due'] )
+				),
+			],
+			// Co máme uložené u prodejce – kvůli odhalení zastaralého stavu v DB.
+			'stored' => [
+				'vendor_id'      => $vendor_id,
+				'legacy_status'  => (string) get_post_meta( $vendor_id, '_nkv_stripe_account_status', true ),
+				'state'          => (string) get_post_meta( $vendor_id, '_nkv_stripe_account_state', true ),
+				'snapshot_at'    => (int) ( ( self::snapshot( $vendor_id )['synced_at'] ?? 0 ) ),
+			],
+			'individual' => self::sanitize_person( $account['individual'] ?? null ),
+		];
+
+		self::log_diagnostics( $vendor_id, $account_id, $snapshot );
+
+		nocache_headers();
+		header( 'Content-Type: application/json; charset=utf-8' );
+		echo wp_json_encode( $out, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
+		exit;
+	}
+
+	/**
+	 * Stav ověření osoby BEZ osobních údajů.
+	 *
+	 * Ze `individual` bereme výhradně verification.status/details_code
+	 * a booleovské „je vyplněno" – žádná jména, adresy, data narození
+	 * ani čísla dokladů.
+	 *
+	 * @param mixed $individual
+	 * @return array|null
+	 */
+	private static function sanitize_person( $individual ): ?array {
+		if ( ! is_array( $individual ) ) {
+			return null;
+		}
+		$v = is_array( $individual['verification'] ?? null ) ? $individual['verification'] : [];
+
+		return [
+			'verification_status'        => (string) ( $v['status'] ?? '' ),
+			'verification_details_code'  => (string) ( $v['details_code'] ?? '' ),
+			// `details` může obsahovat volný text od Stripe – vynecháváme.
+			'document_front_present'     => ! empty( $v['document']['front'] ),
+			'document_back_present'      => ! empty( $v['document']['back'] ),
+			'document_details_code'      => (string) ( $v['document']['details_code'] ?? '' ),
+			'has_first_name'             => ! empty( $individual['first_name'] ),
+			'has_last_name'              => ! empty( $individual['last_name'] ),
+			'has_dob'                    => ! empty( $individual['dob']['year'] ),
+			'has_address_line1'          => ! empty( $individual['address']['line1'] ),
+			'has_address_city'           => ! empty( $individual['address']['city'] ),
+			'has_address_postal_code'    => ! empty( $individual['address']['postal_code'] ),
+			'has_phone'                  => ! empty( $individual['phone'] ),
+			'has_id_number'              => ! empty( $individual['id_number_provided'] ),
+			'requirements_currently_due' => isset( $individual['requirements']['currently_due'] )
+				? array_map( 'strval', (array) $individual['requirements']['currently_due'] )
+				: [],
+			'requirements_past_due'      => isset( $individual['requirements']['past_due'] )
+				? array_map( 'strval', (array) $individual['requirements']['past_due'] )
+				: [],
+			'requirements_pending_verification' => isset( $individual['requirements']['pending_verification'] )
+				? array_map( 'strval', (array) $individual['requirements']['pending_verification'] )
+				: [],
+		];
+	}
+
 	private function authorize_admin( string $nonce_prefix ): int {
 		if ( ! current_user_can( 'manage_woocommerce' ) ) {
 			wp_die( esc_html__( 'Nemáš oprávnění.', 'nkz-woo-stripe-vendor-split' ) );
@@ -337,6 +560,9 @@ final class Onboarding_Controller {
 	 * Status sync (shared).
 	 * ------------------------------------------------------------------- */
 
+	/** Meta s celým (sanitizovaným) snapshotem stavu účtu. */
+	public const SNAPSHOT_META = '_nkv_stripe_account_snapshot';
+
 	public function sync_account_status( int $vendor_id, string $account_id ): ?string {
 		try {
 			$account = ( new Stripe_Client() )->retrieve_account( $account_id );
@@ -353,23 +579,109 @@ final class Onboarding_Controller {
 			return $msg;
 		}
 
-		$charges_enabled = ! empty( $account['charges_enabled'] );
-		$payouts_enabled = ! empty( $account['payouts_enabled'] );
-		$disabled_reason = $account['requirements']['disabled_reason'] ?? null;
-		$currently_due   = $account['requirements']['currently_due'] ?? [];
+		$snapshot = Account_State::evaluate( $account );
 
-		if ( $charges_enabled && $payouts_enabled ) {
-			$status = 'enabled';
-		} elseif ( $disabled_reason && empty( $currently_due ) ) {
-			$status = 'restricted';
-		} else {
-			$status = 'pending';
+		// Capability `transfers` musí být 'active', jinak transfer prodejci
+		// selže s „destination account needs transfers capability". Pokud
+		// chybí / je inactive (ne jen pending), znovu ji vyžádáme. Posíláme
+		// VÝHRADNĚ capabilities – žádná pole s osobními údaji, aby nešlo
+		// přepsat už ověřené informace prázdnou hodnotou.
+		$transfers_state = (string) ( $account['capabilities']['transfers'] ?? '' );
+		if ( $transfers_state === '' || $transfers_state === 'inactive' ) {
+			try {
+				( new Stripe_Client() )->update_account( $account_id, [
+					'capabilities' => [ 'transfers' => [ 'requested' => 'true' ] ],
+				] );
+				Logger::info( 'Re-requested transfers capability', [ 'vendor' => $vendor_id, 'account' => $account_id ] );
+			} catch ( \Throwable $e ) {
+				Logger::error( 'Transfers capability re-request failed', [ 'vendor' => $vendor_id, 'err' => $e->getMessage() ] );
+			}
 		}
 
+		$state  = (string) $snapshot['state'];
+		$status = Account_State::to_legacy( $state );
+
 		update_post_meta( $vendor_id, '_nkv_stripe_account_status', $status );
-		update_post_meta( $vendor_id, '_nkv_stripe_charges_enabled', $charges_enabled ? 1 : 0 );
-		update_post_meta( $vendor_id, '_nkv_stripe_payouts_enabled', $payouts_enabled ? 1 : 0 );
-		update_post_meta( $vendor_id, '_nkv_stripe_requirements_due', wp_json_encode( $currently_due ) );
+		update_post_meta( $vendor_id, '_nkv_stripe_account_state', $state );
+		update_post_meta( $vendor_id, '_nkv_stripe_charges_enabled', $snapshot['charges_enabled'] ? 1 : 0 );
+		update_post_meta( $vendor_id, '_nkv_stripe_payouts_enabled', $snapshot['payouts_enabled'] ? 1 : 0 );
+		update_post_meta( $vendor_id, '_nkv_stripe_transfers_capability', $snapshot['transfers_active'] ? 1 : 0 );
+		update_post_meta( $vendor_id, '_nkv_stripe_requirements_due', wp_json_encode( $snapshot['currently_due'] ) );
+
+		$snapshot['synced_at'] = time();
+		update_post_meta( $vendor_id, self::SNAPSHOT_META, wp_json_encode( $snapshot ) );
+
+		self::log_diagnostics( $vendor_id, $account_id, $snapshot );
+
+		// KYC dokončené → aktivuj vendora čekajícího na KYC. Jen v bundle
+		// režimu s NKZ core; standalone adapter (Screeno) řídí stav ručně.
+		if ( Account_State::VERIFIED === $state ) {
+			$this->maybe_activate_after_kyc( $vendor_id );
+		}
+
 		return null;
+	}
+
+	/**
+	 * Načtený snapshot stavu účtu, nebo null.
+	 *
+	 * @return array|null
+	 */
+	public static function snapshot( int $vendor_id ): ?array {
+		$raw = (string) get_post_meta( $vendor_id, self::SNAPSHOT_META, true );
+		if ( '' === $raw ) {
+			return null;
+		}
+		$data = json_decode( $raw, true );
+		return is_array( $data ) ? $data : null;
+	}
+
+	/**
+	 * Diagnostický záznam o stavu účtu.
+	 *
+	 * Schválně jen názvy požadavků a příznaky – žádné osobní údaje, žádné
+	 * klíče. Díky tomu se dá log poslat podpoře i nalepit do ticketu.
+	 */
+	public static function log_diagnostics( int $vendor_id, string $account_id, array $snapshot ): void {
+		Logger::info( 'Stripe account diagnostics', [
+			'vendorId'            => $vendor_id,
+			'accountId'           => $account_id,
+			'state'               => $snapshot['state'] ?? '',
+			'detailsSubmitted'    => ! empty( $snapshot['details_submitted'] ),
+			'chargesEnabled'      => ! empty( $snapshot['charges_enabled'] ),
+			'payoutsEnabled'      => ! empty( $snapshot['payouts_enabled'] ),
+			'transfersActive'     => ! empty( $snapshot['transfers_active'] ),
+			'disabledReason'      => $snapshot['disabled_reason'] ?? null,
+			'currentlyDue'        => $snapshot['currently_due'] ?? [],
+			'pastDue'             => $snapshot['past_due'] ?? [],
+			'pendingVerification' => $snapshot['pending_verification'] ?? [],
+			'eventuallyDue'       => $snapshot['eventually_due'] ?? [],
+			'errors'              => $snapshot['errors'] ?? [],
+		] );
+	}
+
+	/**
+	 * Po dokončení Stripe Connect KYC překlopí vendora
+	 * approved_awaiting_kyc → active přes core StatusService. Bez core
+	 * (standalone adapter) je no-op.
+	 */
+	private function maybe_activate_after_kyc( int $vendor_id ): void {
+		if ( ! class_exists( \NKZMP\Vendor\StatusService::class ) ) {
+			return;
+		}
+		$current = (string) get_post_meta( $vendor_id, '_nkzmp_vendor_status', true );
+		if ( \NKZMP\Vendor\Status::APPROVED_AWAITING_KYC->value !== $current ) {
+			return; // aktivujeme jen z čekání na KYC; ostatní stavy neřešíme
+		}
+		try {
+			( new \NKZMP\Vendor\StatusService() )->transition(
+				$vendor_id,
+				\NKZMP\Vendor\Status::ACTIVE,
+				[ 'source' => 'stripe_connect_kyc' ]
+			);
+			Logger::info( 'Vendor aktivován po dokončení Stripe KYC', [ 'vendor' => $vendor_id ] );
+		} catch ( \Throwable $e ) {
+			Logger::error( 'Auto-aktivace po KYC selhala', [ 'vendor' => $vendor_id, 'err' => $e->getMessage() ] );
+		}
 	}
 }
