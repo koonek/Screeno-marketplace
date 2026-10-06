@@ -457,7 +457,10 @@ final class Transfer_Service {
 		}
 		foreach ( $records as $r ) {
 			if ( (int) $r['vendor_id'] === $vendor_id && in_array( $r['status'] ?? '', [ 'processing', 'failed' ], true ) && isset( $r['debt_deducted_minor'] ) ) {
-				return min( $amount_minor, max( 0, (int) $r['debt_deducted_minor'] ) );
+				$frozen = min( $amount_minor, max( 0, (int) $r['debt_deducted_minor'] ) );
+				// Převod mohl na Stripe projít (processing) → beze změny. Po
+				// selhání nikdy víc, než je dluh teď (mohl být mezitím odpuštěn).
+				return 'processing' === $r['status'] ? $frozen : min( $frozen, Vendor_Debt::outstanding( $vendor_id ) );
 			}
 		}
 		return min( $amount_minor, Vendor_Debt::outstanding( $vendor_id ) );

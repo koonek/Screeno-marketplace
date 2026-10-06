@@ -209,9 +209,11 @@ final class ShopLoop {
 			);
 		} );
 
-		// Invalidace cache počtu aktivních vendorů.
+		// Invalidace seznamu prodávajících prodejců (počty, filtr, seznam prodejců).
 		add_action( 'save_post_nkzmp_vendor', [ __CLASS__, 'forget_count' ] );
+		add_action( 'save_post_nkv_vendor', [ __CLASS__, 'forget_count' ] );
 		add_action( 'deleted_post', [ __CLASS__, 'forget_count' ] );
+		add_action( 'added_post_meta', [ __CLASS__, 'maybe_forget_count' ], 10, 3 );
 		add_action( 'updated_post_meta', [ __CLASS__, 'maybe_forget_count' ], 10, 3 );
 	}
 
@@ -233,7 +235,8 @@ final class ShopLoop {
 		}
 		global $wp_query;
 		$total       = isset( $wp_query->found_posts ) ? (int) $wp_query->found_posts : 0;
-		$vendor_n    = self::active_vendor_count();
+		// Stejné číslo jako filtr „Prodejce": jen prodejci se zveřejněnými produkty.
+		$vendor_n    = count( ShopFilters::product_vendors() );
 
 		echo '<div class="nkzmp-shop-intro">';
 		echo '<div class="nkzmp-shop-intro__left">';
@@ -397,36 +400,14 @@ final class ShopLoop {
 		echo '</aside>';
 	}
 
-	/** Počet vendorů s status=active (cached 1 h). */
-	private static function active_vendor_count(): int {
-		$cached = get_transient( self::COUNT_CACHE_KEY );
-		if ( is_numeric( $cached ) ) {
-			return (int) $cached;
-		}
-		$q = new \WP_Query( [
-			'post_type'      => [ 'nkzmp_vendor', 'nkv_vendor' ],
-			'post_status'    => 'publish',
-			'fields'         => 'ids',
-			'posts_per_page' => -1,
-			'no_found_rows'  => true,
-			'meta_query'     => [
-				'relation' => 'OR',
-				[ 'key' => '_nkzmp_vendor_status', 'value' => 'active', 'compare' => '=' ],
-				[ 'key' => '_nkv_vendor_status', 'value' => 'active', 'compare' => '=' ],
-			],
-		] );
-		$count = (int) $q->post_count;
-		set_transient( self::COUNT_CACHE_KEY, $count, self::COUNT_CACHE_TTL );
-		return $count;
-	}
-
 	public static function forget_count(): void {
 		delete_transient( self::COUNT_CACHE_KEY );
+		ShopFilters::forget_cache();
 	}
 
 	/** Invalidace pouze když se mění status meta. */
 	public static function maybe_forget_count( $meta_id, $post_id, $meta_key ): void {
-		if ( $meta_key === '_nkzmp_vendor_status' || $meta_key === '_nkv_vendor_status' ) {
+		if ( in_array( $meta_key, [ '_nkzmp_vendor_status', '_nkv_vendor_status', '_nkzmp_billing_status' ], true ) ) {
 			self::forget_count();
 		}
 	}

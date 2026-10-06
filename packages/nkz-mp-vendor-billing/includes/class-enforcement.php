@@ -30,6 +30,13 @@ final class Enforcement {
 		add_filter( 'woocommerce_is_purchasable', [ $this, 'is_purchasable' ], 10, 2 );
 		add_filter( 'woocommerce_get_availability', [ $this, 'availability' ], 10, 2 );
 		add_action( 'woocommerce_single_product_summary', [ $this, 'badge' ], 11 );
+		// Nezaplacený / suspendovaný prodejce se v obchodě nepočítá ani nenabízí ve filtru.
+		add_filter(
+			'nkzmp/v1/storefront/vendor_visible',
+			fn( $visible, $vid ) => $visible && ! $this->is_vendor_blocked( (int) $vid ),
+			10,
+			2
+		);
 	}
 
 	public function is_purchasable( $purchasable, $product ) {
@@ -78,7 +85,14 @@ final class Enforcement {
 		if ( $vid <= 0 ) {
 			return false;
 		}
+		return $this->is_vendor_blocked( $vid, $product );
+	}
 
+	/**
+	 * Prodejce nesmí prodávat (suspendovaný / bez zaplaceného členství).
+	 * Veřejné – obchod podle toho skrývá prodejce ve filtru a počtech.
+	 */
+	public function is_vendor_blocked( int $vid, $product = null ): bool {
 		if ( isset( $this->vendor_block_cache[ $vid ] ) ) {
 			return $this->vendor_block_cache[ $vid ];
 		}

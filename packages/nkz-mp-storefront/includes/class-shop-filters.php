@@ -89,7 +89,7 @@ final class ShopFilters {
 
 		// Mobilní toggle (skrytý na desktopu přes CSS).
 		echo '<button type="button" class="nkzmp-shop-filters-toggle" aria-expanded="false">'
-			. '<span>' . esc_html__( 'Filtry', 'nkz-mp-storefront' ) . '</span>'
+			. '<span>' . esc_html( apply_filters( 'nkzmp/v1/storefront/filters_toggle_label', __( 'Kategorie, značky, cena', 'nkz-mp-storefront' ) ) ) . '</span>'
 			. '</button>';
 
 		echo '<aside class="nkzmp-shop-filters" id="nkzmp-shop-filters">';
@@ -639,7 +639,7 @@ final class ShopFilters {
 				continue;
 			}
 			$post = get_post( $vid );
-			if ( $post && $post->post_status === 'publish' ) {
+			if ( $post && $post->post_status === 'publish' && self::vendor_visible( $vid ) ) {
 				$out[ $vid ] = [
 					'name'  => $post->post_title,
 					'count' => $counts[ $vid ] ?? 0,
@@ -659,6 +659,19 @@ final class ShopFilters {
 			}
 		}
 		return home_url( '/' );
+	}
+
+	/**
+	 * Prodejce, který v obchodě reálně prodává: schválený (ne pozastavený /
+	 * čekající) a – je-li zapnuté členství – se zaplaceným členstvím.
+	 */
+	private static function vendor_visible( int $vid ): bool {
+		$status = (string) get_post_meta( $vid, '_nkzmp_vendor_status', true );
+		if ( '' === $status ) {
+			$status = (string) get_post_meta( $vid, '_nkv_vendor_status', true );
+		}
+		$visible = '' === $status || 'active' === $status;
+		return (bool) apply_filters( 'nkzmp/v1/storefront/vendor_visible', $visible, $vid );
 	}
 
 	/** Invalidace cache (volat při změně produktů). */

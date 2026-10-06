@@ -77,7 +77,15 @@ final class Order_Meta_Box {
 				echo '<td>' . esc_html( nkvsvs_from_minor_display( (int) $v['platform_fee_minor'], $currency ) ) . '</td>';
 				echo '<td>' . esc_html( $stripe_fee_minor > 0 ? nkvsvs_from_minor_display( $stripe_fee_minor, $currency ) : '—' ) . '</td>';
 				$vendor_amt_minor = $rec ? (int) $rec['amount_minor'] : (int) $v['transfer_amount_minor'];
-				echo '<td>' . esc_html( nkvsvs_from_minor_display( $vendor_amt_minor, $currency ) ) . '</td>';
+				echo '<td>' . esc_html( nkvsvs_from_minor_display( $vendor_amt_minor, $currency ) );
+				if ( $rec && (int) ( $rec['debt_deducted_minor'] ?? 0 ) > 0 ) {
+					echo '<br/><small>' . esc_html( sprintf(
+						/* translators: %s: částka */
+						__( 'po stržení dluhu %s (provize z vráceného zboží)', 'nkz-woo-stripe-vendor-split' ),
+						nkvsvs_from_minor_display( (int) $rec['debt_deducted_minor'], $currency )
+					) ) . '</small>';
+				}
+				echo '</td>';
 				echo '<td>';
 				if ( $rec ) {
 					printf( '<span class="nkv-svs-status nkv-svs-status-%s">%s</span>', esc_attr( $rec['status'] ), esc_html( $rec['status'] ) );

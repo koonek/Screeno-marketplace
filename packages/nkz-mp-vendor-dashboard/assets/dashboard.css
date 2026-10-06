@@ -1327,3 +1327,6 @@ body.nkzmp-account .lost_password a:hover {
 	color: #0060FF !important;
 	border-color: #0060FF !important;
 }
+
+.nkzmp-vd-subhead { font-size: 18px; font-weight: 500; margin: 8px 0 12px; }
+.nkzmp-vd-subhead + .nkzmp-vd-table { margin-bottom: 32px; }

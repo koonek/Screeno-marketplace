@@ -73,6 +73,48 @@ final class PayoutsView {
 				</div></div>
 			<?php endif; ?>
 
+			<?php
+			$debts = class_exists( \NKVSVS\Vendor_Debt::class ) ? \NKVSVS\Vendor_Debt::entries( $vendor_id ) : [];
+			if ( $debts ) :
+				?>
+				<h2 class="nkzmp-vd-subhead"><?php esc_html_e( 'Srážky za vrácené zboží', 'nkz-mp-vendor-dashboard' ); ?></h2>
+				<table class="nkzmp-vd-table">
+					<thead>
+						<tr>
+							<th><?php esc_html_e( 'Kdy', 'nkz-mp-vendor-dashboard' ); ?></th>
+							<th><?php esc_html_e( 'Vrácená objednávka', 'nkz-mp-vendor-dashboard' ); ?></th>
+							<th class="col-num"><?php esc_html_e( 'Provize', 'nkz-mp-vendor-dashboard' ); ?></th>
+							<th><?php esc_html_e( 'Stav', 'nkz-mp-vendor-dashboard' ); ?></th>
+						</tr>
+					</thead>
+					<tbody>
+						<?php foreach ( array_reverse( $debts ) as $d ) : ?>
+							<?php
+							$open = (int) $d['amount_minor'] - (int) ( $d['settled_minor'] ?? 0 );
+							$from = array_map( static fn( $st ) => '#' . (int) $st['order_id'], (array) ( $d['settlements'] ?? [] ) );
+							if ( ! empty( $d['forgiven'] ) ) {
+								$state = __( 'Odpuštěno', 'nkz-mp-vendor-dashboard' );
+							} elseif ( $open <= 0 ) {
+								/* translators: %s: čísla objednávek */
+								$state = sprintf( __( 'Strženo z výplaty za %s', 'nkz-mp-vendor-dashboard' ), implode( ', ', array_unique( $from ) ) );
+							} elseif ( $from ) {
+								/* translators: %s: částka */
+								$state = sprintf( __( 'Částečně strženo, zbývá %s', 'nkz-mp-vendor-dashboard' ), Money::from_minor_display( $open, $currency ) );
+							} else {
+								$state = __( 'Strhne se z příští výplaty', 'nkz-mp-vendor-dashboard' );
+							}
+							?>
+							<tr>
+								<td><?php echo esc_html( wp_date( 'j. n. Y', (int) $d['at'] ) ); ?></td>
+								<td>#<?php echo (int) $d['order_id']; ?></td>
+								<td class="col-num"><?php echo esc_html( Money::from_minor_display( (int) $d['amount_minor'], $currency ) ); ?></td>
+								<td><?php echo esc_html( $state ); ?></td>
+							</tr>
+						<?php endforeach; ?>
+					</tbody>
+				</table>
+			<?php endif; ?>
+
 			<?php if ( empty( $entries ) ) : ?>
 				<p class="nkzmp-vd-empty-msg"><?php esc_html_e( 'Zatím žádné transfery. Až ti zákazníci nakoupí, transfery se zobrazí tady.', 'nkz-mp-vendor-dashboard' ); ?></p>
 			<?php else : ?>

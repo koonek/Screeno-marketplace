@@ -45,6 +45,12 @@ final class ArchivePage {
 			[ 'key' => '_nkv_vendor_status', 'compare' => 'NOT EXISTS' ],
 		] );
 
+		// Jen prodejci, kteří reálně něco prodávají (mají zveřejněný produkt) –
+		// stejně jako filtr v obchodě. Bez toho seznam ukazoval i neschválené
+		// a nezaplacené účty (45 vs. 29 ve filtru).
+		$live = array_keys( ShopFilters::product_vendors() );
+		$q->set( 'post__in', $live ?: [ 0 ] );
+
 		$q->is_404               = false;
 		$q->is_home              = false;
 		$q->is_archive           = true;
