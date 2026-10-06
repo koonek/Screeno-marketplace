@@ -63,6 +63,16 @@ final class PayoutsView {
 				</div>
 			</section>
 
+			<?php
+			$debt = class_exists( \NKVSVS\Vendor_Debt::class ) ? \NKVSVS\Vendor_Debt::outstanding( $vendor_id ) : 0;
+			if ( $debt > 0 ) :
+				?>
+				<div class="nkzmp-vd-flash"><div class="icon">i</div><div>
+					<strong><?php esc_html_e( 'Strhne se z příští výplaty:', 'nkz-mp-vendor-dashboard' ); ?> <?php echo esc_html( Money::from_minor_display( $debt, $currency ) ); ?></strong>
+					<p><?php esc_html_e( 'Provize platformy z vráceného zboží. Zákazník dostal zpět celou cenu, provize ale podle podmínek zůstává platformě – proto ji odečteme z tvé nejbližší výplaty.', 'nkz-mp-vendor-dashboard' ); ?></p>
+				</div></div>
+			<?php endif; ?>
+
 			<?php if ( empty( $entries ) ) : ?>
 				<p class="nkzmp-vd-empty-msg"><?php esc_html_e( 'Zatím žádné transfery. Až ti zákazníci nakoupí, transfery se zobrazí tady.', 'nkz-mp-vendor-dashboard' ); ?></p>
 			<?php else : ?>

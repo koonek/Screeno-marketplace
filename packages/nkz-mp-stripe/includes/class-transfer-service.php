@@ -166,6 +166,19 @@ final class Transfer_Service {
 					continue;
 				}
 
+				// Dluh prodejce (provize z dřív vráceného zboží) – strhnout z této výplaty.
+				$vendor_split['gross_amount_minor'] = (int) $vendor_split['transfer_amount_minor'];
+				$vendor_split['debt_deducted_minor'] = 0;
+				if ( ! $dry_run && empty( $vendor_split['reason_skipped'] ) ) {
+					$vendor_split['debt_deducted_minor'] = $this->debt_deduction( $existing, (int) $vendor_id, (int) $vendor_split['transfer_amount_minor'] );
+					$vendor_split['transfer_amount_minor'] -= $vendor_split['debt_deducted_minor'];
+					if ( $vendor_split['transfer_amount_minor'] <= 0 ) {
+						$existing = $this->record_debt_only( $order, $vendor_split, $existing );
+						$completed++;
+						continue;
+					}
+				}
+
 				// Hard skip cases (no money movement).
 				if ( $vendor_split['reason_skipped'] ) {
 					$this->record_skip( $order, $vendor_split, $vendor_split['reason_skipped'] );
@@ -359,6 +372,8 @@ final class Transfer_Service {
 			'currency'          => $currency,
 			'platform_fee_minor'=> $vendor_split['platform_fee_minor'],
 			'stripe_fee_share_minor' => (int) ( $vendor_split['stripe_fee_share_minor'] ?? 0 ),
+			'gross_amount_minor'  => (int) ( $vendor_split['gross_amount_minor'] ?? $vendor_split['transfer_amount_minor'] ),
+			'debt_deducted_minor' => (int) ( $vendor_split['debt_deducted_minor'] ?? 0 ),
 			'base_minor'        => $vendor_split['base_minor'],
 			'transfer_id'       => null,
 			'payment_intent_id' => $stripe_ids['payment_intent_id'],
@@ -416,9 +431,75 @@ final class Transfer_Service {
 			)
 		);
 
+		if ( $record['debt_deducted_minor'] > 0 ) {
+			Vendor_Debt::settle( (int) $vendor_split['vendor_id'], (int) $record['debt_deducted_minor'], $order->get_id() );
+			$order->add_order_note( sprintf(
+				/* translators: 1: prodejce, 2: částka */
+				__( 'Z výplaty prodejci %1$s stržen dluh vůči platformě %2$s (provize z vráceného zboží).', 'nkz-woo-stripe-vendor-split' ),
+				$vendor_split['vendor_name'],
+				nkvsvs_from_minor_display( (int) $record['debt_deducted_minor'], $order->get_currency() )
+			) );
+		}
+
 		do_action( 'nkv_svs_after_create_transfer', $order, $record );
 
 		return $record;
+	}
+
+	/**
+	 * Kolik dluhu strhnout z výplaty. Když už pro tohoto prodejce existuje
+	 * rozpracovaný/neúspěšný pokus, použije se stejná částka – opakovaný
+	 * požadavek se stejným idempotency klíčem musí mít stejné parametry.
+	 */
+	private function debt_deduction( array $records, int $vendor_id, int $amount_minor ): int {
+		if ( $amount_minor <= 0 || ! class_exists( Vendor_Debt::class ) ) {
+			return 0;
+		}
+		foreach ( $records as $r ) {
+			if ( (int) $r['vendor_id'] === $vendor_id && in_array( $r['status'] ?? '', [ 'processing', 'failed' ], true ) && isset( $r['debt_deducted_minor'] ) ) {
+				return min( $amount_minor, max( 0, (int) $r['debt_deducted_minor'] ) );
+			}
+		}
+		return min( $amount_minor, Vendor_Debt::outstanding( $vendor_id ) );
+	}
+
+	/**
+	 * Celá výplata padla na splacení dluhu – na Stripe nic neposíláme,
+	 * jen zapíšeme vyřízený záznam (transfer_id null, částka 0).
+	 */
+	private function record_debt_only( \WC_Order $order, array $vendor_split, array $existing ): array {
+		$record = [
+			'vendor_id'           => $vendor_split['vendor_id'],
+			'stripe_account_id'   => $vendor_split['stripe_account_id'] ?? '',
+			'amount_minor'        => 0,
+			'gross_amount_minor'  => (int) $vendor_split['gross_amount_minor'],
+			'debt_deducted_minor' => (int) $vendor_split['debt_deducted_minor'],
+			'settled_by_debt'     => true,
+			'currency'            => strtolower( $order->get_currency() ),
+			'platform_fee_minor'  => $vendor_split['platform_fee_minor'],
+			'stripe_fee_share_minor' => (int) ( $vendor_split['stripe_fee_share_minor'] ?? 0 ),
+			'base_minor'          => $vendor_split['base_minor'],
+			'transfer_id'         => null,
+			'payment_intent_id'   => null,
+			'charge_id'           => null,
+			'transfer_group'      => 'WC_ORDER_' . $order->get_id(),
+			'idempotency_key'     => $this->idempotency_key( $order, (int) $vendor_split['vendor_id'] ),
+			'status'              => 'completed',
+			'error'               => null,
+			'created_at'          => time(),
+			'reversals'           => [],
+		];
+		$existing = $this->upsert_record( $existing, $record );
+		$this->save_transfer_records( $order, $existing );
+		Vendor_Debt::settle( (int) $vendor_split['vendor_id'], (int) $vendor_split['debt_deducted_minor'], $order->get_id() );
+		$order->add_order_note( sprintf(
+			/* translators: 1: prodejce, 2: částka */
+			__( 'Výplata prodejci %1$s (%2$s) celá použita na splacení dluhu vůči platformě – nic se neposílá.', 'nkz-woo-stripe-vendor-split' ),
+			$vendor_split['vendor_name'],
+			nkvsvs_from_minor_display( (int) $vendor_split['debt_deducted_minor'], $order->get_currency() )
+		) );
+		do_action( 'nkv_svs_after_create_transfer', $order, $record );
+		return $existing;
 	}
 
 	private function record_skip( \WC_Order $order, array $vendor_split, string $reason ): void {
