@@ -62,6 +62,8 @@ final class Escrow {
 
 		// Vrácená zásilka → peníze prodejci nepatří, výplatu pozastavíme.
 		add_action( 'nkzmp/v1/packeta/packet_returned', [ $this, 'on_packet_returned' ], 10, 3 );
+		// Odstoupení od smlouvy → totéž.
+		add_action( 'nkzmp/v1/withdrawal/submitted', [ $this, 'on_withdrawal' ], 10, 3 );
 	}
 
 	/**
@@ -79,30 +81,61 @@ final class Escrow {
 		if ( ! $order instanceof \WC_Order ) {
 			return;
 		}
-		$vendor_id = (int) $vendor_id;
-		$sched     = $order->get_meta( self::META );
-		$sched     = is_array( $sched ) ? $sched : [];
+		$this->block( $order, (int) $vendor_id, __( 'zásilka se vrací', 'nkz-woo-stripe-vendor-split' ) );
+	}
+
+	/**
+	 * Zákazník odstoupil od smlouvy → pozastav výplatu prodejci.
+	 *
+	 * Podle podmínek jdou náklady vrácení za prodejcem. Dokud mu peníze
+	 * neodešly, je nejjednodušší je prostě neposlat – zpětné stahování
+	 * z jeho Stripe účtu selže, když tam v tu chvíli nic nemá.
+	 *
+	 * @param \WC_Order $order
+	 * @param int       $vendor_id
+	 * @param array     $record
+	 */
+	public function on_withdrawal( $order, $vendor_id, $record ): void {
+		if ( ! $order instanceof \WC_Order ) {
+			return;
+		}
+		$this->block( $order, (int) $vendor_id, __( 'zákazník odstoupil od smlouvy', 'nkz-woo-stripe-vendor-split' ) );
+	}
+
+	/**
+	 * Pozastaví výplatu prodejci u objednávky.
+	 *
+	 * Neuvolňujeme automaticky ani nevracíme peníze – jen zastavíme odpočet
+	 * a necháme to na adminovi. Funguje i když lhůta ještě vůbec neběží
+	 * (zásilka nepodaná): příznak `blocked` pak zabrání jejímu naplánování.
+	 */
+	public function block( \WC_Order $order, int $vendor_id, string $why ): void {
+		$sched = $order->get_meta( self::META );
+		$sched = is_array( $sched ) ? $sched : [];
 
 		if ( ! empty( $sched[ $vendor_id ]['released'] ) ) {
-			// Pozdě – lhůta doběhla dřív, než se zásilka vrátila. Aspoň to
-			// hlasitě zapíšeme, ať se to při reklamaci najde.
+			// Pozdě – výplata už odešla. Aspoň to hlasitě zapíšeme, ať se
+			// to při vyřizování najde.
 			$order->add_order_note( sprintf(
-				/* translators: %d: vendor id */
-				__( 'Escrow: zásilka prodejce #%d se vrací, ale výplata už byla uvolněna — řeš ručně.', 'nkz-woo-stripe-vendor-split' ),
-				$vendor_id
+				/* translators: 1: vendor id, 2: důvod */
+				__( 'Escrow: %2$s u prodejce #%1$d, ale výplata už byla uvolněna — peníze je potřeba vymáhat po prodejci.', 'nkz-woo-stripe-vendor-split' ),
+				$vendor_id,
+				$why
 			) );
 			$order->save();
 			return;
 		}
 
-		$sched[ $vendor_id ]             = is_array( $sched[ $vendor_id ] ?? null ) ? $sched[ $vendor_id ] : [];
-		$sched[ $vendor_id ]['blocked']  = true;
+		$sched[ $vendor_id ]               = is_array( $sched[ $vendor_id ] ?? null ) ? $sched[ $vendor_id ] : [];
+		$sched[ $vendor_id ]['blocked']    = true;
 		$sched[ $vendor_id ]['blocked_at'] = time();
+		$sched[ $vendor_id ]['blocked_why'] = $why;
 		$order->update_meta_data( self::META, $sched );
 		$order->add_order_note( sprintf(
-			/* translators: %d: vendor id */
-			__( 'Escrow: výplata prodejce #%d pozastavena — zásilka se vrací. Uvolnit lze ručně v tomto detailu.', 'nkz-woo-stripe-vendor-split' ),
-			$vendor_id
+			/* translators: 1: vendor id, 2: důvod */
+			__( 'Escrow: výplata prodejce #%1$d pozastavena — %2$s. Uvolnit lze ručně v tomto detailu.', 'nkz-woo-stripe-vendor-split' ),
+			$vendor_id,
+			$why
 		) );
 		$order->save();
 
@@ -170,6 +203,11 @@ final class Escrow {
 		$sched = is_array( $sched ) ? $sched : [];
 		if ( ! empty( $sched[ $vendor_id ]['released'] ) || ! empty( $sched[ $vendor_id ]['at'] ) ) {
 			return; // už naplánováno / uvolněno
+		}
+		if ( ! empty( $sched[ $vendor_id ]['blocked'] ) ) {
+			// Pozastaveno dřív, než zásilka odešla (typicky odstoupení před
+			// podáním). Lhůtu nespouštíme – uvolnit může jen admin ručně.
+			return;
 		}
 
 		$days = max( 0, (int) ( Plugin::settings()['escrow_hold_days'] ?? 3 ) );

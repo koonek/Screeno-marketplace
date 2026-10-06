@@ -96,6 +96,7 @@ final class VendorDetailPage {
 
 		echo '<div class="nkzmp-vd-grid">';
 		$this->panel_identity( $vendor );
+		$this->panel_consents( $vendor_id );
 		$this->panel_stripe( $vendor_id );
 		$this->panel_sender( $vendor_id );
 		$this->panel_finance( $vendor_id, $currency );
@@ -135,6 +136,44 @@ final class VendorDetailPage {
 			$rows[ __( 'WP účet', 'nkz-marketplace' ) ] = '<a href="' . esc_url( get_edit_user_link( $wp_user ) ) . '">#' . $wp_user . '</a>';
 		}
 		$this->panel( __( 'Identita', 'nkz-marketplace' ), $rows );
+	}
+
+	/**
+	 * Souhlasy z registrace – kdy, odkud a co přesně prodejce odsouhlasil.
+	 *
+	 * Ukládaly se od začátku, ale nikde se nezobrazovaly, takže v případě
+	 * sporu by je nikdo nenašel.
+	 */
+	private function panel_consents( int $vendor_id ): void {
+		$c = get_post_meta( $vendor_id, '_nkzmp_consents', true );
+		if ( ! is_array( $c ) || empty( $c['at'] ) ) {
+			$this->panel( __( 'Souhlasy z registrace', 'nkz-marketplace' ), [
+				__( 'Stav', 'nkz-marketplace' ) => '<span class="nkzmp-vd-warn">' . esc_html__( 'Nezaznamenány (prodejce registrován před zavedením evidence souhlasů)', 'nkz-marketplace' ) . '</span>',
+			] );
+			return;
+		}
+
+		$yes = static fn( $v ) => ! empty( $v ) ? '✓' : '<span class="nkzmp-vd-warn">✗</span>';
+
+		$rows = [
+			__( 'Kdy', 'nkz-marketplace' ) => esc_html( wp_date( 'j. n. Y H:i', (int) $c['at'] ) )
+				. ( ! empty( $c['ip'] ) ? ' <span style="color:#888;">(IP ' . esc_html( (string) $c['ip'] ) . ')</span>' : '' ),
+			__( 'Podmínky platformy', 'nkz-marketplace' ) => $yes( $c['terms']['accepted'] ?? false ),
+			__( 'Podmínky pro prodejce', 'nkz-marketplace' ) => $yes( $c['vendor_terms']['accepted'] ?? false ),
+			__( 'GDPR', 'nkz-marketplace' ) => $yes( $c['gdpr']['accepted'] ?? false ),
+		];
+
+		if ( isset( $c['business_declaration'] ) ) {
+			$bd = (array) $c['business_declaration'];
+			$rows[ __( 'Prohlášení o podnikateli', 'nkz-marketplace' ) ] = $yes( $bd['accepted'] ?? false )
+				. ( ! empty( $bd['text'] )
+					? '<br><span style="color:#666;font-size:12px;">„' . esc_html( (string) $bd['text'] ) . '"</span>'
+					: '' );
+		} else {
+			$rows[ __( 'Prohlášení o podnikateli', 'nkz-marketplace' ) ] = '<span class="nkzmp-vd-warn">' . esc_html__( 'neudělil (registrace před zavedením)', 'nkz-marketplace' ) . '</span>';
+		}
+
+		$this->panel( __( 'Souhlasy z registrace', 'nkz-marketplace' ), $rows );
 	}
 
 	private function panel_stripe( int $vendor_id ): void {

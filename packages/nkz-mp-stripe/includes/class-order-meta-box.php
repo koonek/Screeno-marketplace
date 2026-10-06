@@ -125,7 +125,11 @@ final class Order_Meta_Box {
 							'<li style="margin:4px 0;">%1$s: %2$s <strong>%3$s</strong> <button type="submit" form="%4$s" name="nkv_action_escrow_release" value="%5$d" class="button button-small">%6$s</button></li>',
 							esc_html( $vname ),
 							$blocked
-								? '<span style="color:#b32d2e;font-weight:600;">' . esc_html__( 'pozastaveno — zásilka se vrací', 'nkz-woo-stripe-vendor-split' ) . '</span>'
+								? '<span style="color:#b32d2e;font-weight:600;">' . esc_html( sprintf(
+									/* translators: %s: důvod pozastavení */
+									__( 'pozastaveno — %s', 'nkz-woo-stripe-vendor-split' ),
+									(string) ( $info['blocked_why'] ?? __( 'zásilka se vrací', 'nkz-woo-stripe-vendor-split' ) )
+								) ) . '</span>'
 								: esc_html__( 'uvolní se', 'nkz-woo-stripe-vendor-split' ),
 							$blocked ? '' : esc_html( $at ),
 							esc_attr( $form_id ),

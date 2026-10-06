@@ -542,6 +542,23 @@ final class EmailSettings {
 				],
 			],
 			[
+				'label' => __( 'Odstoupení od smlouvy', 'nkz-marketplace' ),
+				'items' => [
+					[ 'label' => __( 'Zákazník: potvrzení přijetí odstoupení', 'nkz-marketplace' ),
+					  'hint'  => __( 'Posílá se zákazníkovi hned po odeslání formuláře. Zákon vyžaduje potvrzení na trvalém nosiči – tenhle e-mail to je. Musí obsahovat datum a čas a co přesně zákazník vrací.', 'nkz-marketplace' ),
+					  'subject' => 'email_withdrawal_customer_subject', 'body' => 'email_withdrawal_customer_body',
+					  'placeholders' => [ 'name', 'order_number', 'vendor_name', 'items', 'submitted_at', 'reason', 'vendor_email', 'site_name' ] ],
+					[ 'label' => __( 'Prodejce: zákazník odstoupil od smlouvy', 'nkz-marketplace' ),
+					  'hint'  => __( 'Posílá se prodejci, jehož zboží zákazník vrací. Výplata za tuto objednávku je pozastavená, dokud se vrácení nevyřeší.', 'nkz-marketplace' ),
+					  'subject' => 'email_withdrawal_vendor_subject', 'body' => 'email_withdrawal_vendor_body',
+					  'placeholders' => [ 'name', 'order_number', 'customer_name', 'customer_email', 'items', 'submitted_at', 'reason', 'orders_url', 'site_name' ] ],
+					[ 'label' => __( 'Admin: nové odstoupení od smlouvy', 'nkz-marketplace' ),
+					  'hint'  => __( 'Kopie pro provozovatele s odkazem na objednávku.', 'nkz-marketplace' ),
+					  'subject' => 'email_withdrawal_admin_subject', 'body' => 'email_withdrawal_admin_body',
+					  'placeholders' => [ 'order_number', 'vendor_name', 'customer_name', 'customer_email', 'items', 'submitted_at', 'reason', 'order_admin_url', 'site_name' ] ],
+				],
+			],
+			[
 				'label' => __( 'Provoz / monitoring', 'nkz-marketplace' ),
 				'items' => [
 					[ 'label' => __( 'Admin: reconciliation drift alert', 'nkz-marketplace' ),
@@ -698,6 +715,43 @@ final class EmailSettings {
 "Jakmile členství obnovíš, produkty se vrátí do prodeje automaticky:\n{billing_url}\n\n" .
 "Kdyby něco nebylo jasné, ozvi se nám.\n\n" .
 "Tým {site_name}",
+
+			// === Odstoupení od smlouvy ===
+			'email_withdrawal_customer_subject' => 'Potvrzení odstoupení od smlouvy — objednávka #{order_number}',
+			'email_withdrawal_customer_body'    =>
+"Dobrý den {name},\n\n" .
+"potvrzujeme, že jsme přijali Vaše odstoupení od smlouvy.\n\n" .
+"Objednávka: #{order_number}\n" .
+"Prodejce: {vendor_name}\n" .
+"Datum a čas odstoupení: {submitted_at}\n\n" .
+"Zboží, které vracíte:\n{items}\n\n" .
+"Důvod (nepovinný): {reason}\n\n" .
+"Co dál: zboží prosím zašlete zpět prodejci do 14 dnů od odstoupení. Peníze Vám vrátíme do 14 dnů od odstoupení, nejdříve však poté, co prodejce zboží obdrží nebo nám prokážete jeho odeslání. Kontakt na prodejce: {vendor_email}\n\n" .
+"Tento e-mail si prosím uschovejte jako doklad o odstoupení.\n\n" .
+"{site_name}",
+
+			'email_withdrawal_vendor_subject' => 'Zákazník odstoupil od smlouvy — objednávka #{order_number}',
+			'email_withdrawal_vendor_body'    =>
+"Ahoj {name},\n\n" .
+"zákazník {customer_name} ({customer_email}) odstoupil od smlouvy u objednávky #{order_number}.\n\n" .
+"Datum a čas: {submitted_at}\n\n" .
+"Vrací:\n{items}\n\n" .
+"Důvod (nepovinný): {reason}\n\n" .
+"Zákazník ti zboží pošle zpět. Až ho obdržíš, dej nám prosím vědět, abychom mohli vrátit peníze. Výplata za tuto objednávku je do té doby pozastavená.\n\n" .
+"Přehled objednávek:\n{orders_url}\n\n" .
+"Tým {site_name}",
+
+			'email_withdrawal_admin_subject' => '[{site_name}] Odstoupení od smlouvy — #{order_number} ({vendor_name})',
+			'email_withdrawal_admin_body'    =>
+"Zákazník odstoupil od smlouvy.\n\n" .
+"Objednávka: #{order_number}\n" .
+"Prodejce: {vendor_name}\n" .
+"Zákazník: {customer_name} ({customer_email})\n" .
+"Kdy: {submitted_at}\n\n" .
+"Vrací:\n{items}\n\n" .
+"Důvod: {reason}\n\n" .
+"Výplata prodejci je pozastavená. Peníze zákazníkovi vrať přes Refundovat v objednávce, až prodejce potvrdí, že zboží dorazilo.\n\n" .
+"{order_admin_url}\n",
 
 			// === Provoz ===
 			'email_drift_admin_subject' => '[{site_name}] Reconciliation drift: {count}',

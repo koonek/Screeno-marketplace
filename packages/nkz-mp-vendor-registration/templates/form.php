@@ -171,6 +171,17 @@ defined( 'ABSPATH' ) || exit;
 						</span>
 					</label>
 				<?php endif; ?>
+				<?php
+				// Prohlášení o podnikatelském postavení – text je v nastavení
+				// Registrace (může ho upravit právník). Prázdné = nezobrazí se.
+				$business_declaration = trim( (string) ( \NKZMP\Registration\Settings::get()['business_declaration'] ?? '' ) );
+				if ( $business_declaration !== '' ) :
+					?>
+					<label class="nkzmp-reg-check">
+						<input type="checkbox" name="business_declaration" value="1" required />
+						<span><?php echo esc_html( $business_declaration ); ?></span>
+					</label>
+				<?php endif; ?>
 				<label class="nkzmp-reg-check">
 					<input type="checkbox" name="gdpr" value="1" required />
 					<span><?php esc_html_e( 'Souhlasím se zpracováním osobních údajů za účelem vyřízení této přihlášky.', 'nkz-mp-vendor-registration' ); ?></span>

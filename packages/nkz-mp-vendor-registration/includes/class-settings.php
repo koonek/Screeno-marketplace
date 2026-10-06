@@ -35,6 +35,11 @@ final class Settings {
 			'status_page_url'          => '',
 			'from_name'                => 'Art of život',
 
+			// Prohlášení o podnikatelském postavení (povinný checkbox). Podle
+			// podmínek musí být prodejce podnikatel – IČO ale povinné není,
+			// takže to prodejce potvrzuje prohlášením. Prázdné = nezobrazí se.
+			'business_declaration'     => 'Prohlašuji, že tuto platformu využívám k nabídce a prodeji svých výrobků výhradně v rámci své nezávislé podnikatelské činnosti. Beru na vědomí, že zde nevystupuji v postavení spotřebitele, a tudíž se na mě nevztahují právní předpisy na ochranu spotřebitele.',
+
 			// Form copy.
 			'form_lead'    => __( 'Prodávat umění, vlastní tvorbu, je v pořádku. A představit ji osobně ještě víc. Vyplň přihlášku — projdeme si ji a ozveme se.', 'nkz-mp-vendor-registration' ),
 			'form_success' => __( 'Tvoje přihláška dorazila. Otevíráme ji v týmu Art of život. Ozveme se ti e-mailem na adresu, kterou jsi uvedl(a).', 'nkz-mp-vendor-registration' ),
@@ -153,6 +158,7 @@ final class Settings {
 					<?php
 					$this->textarea_row( $s, 'form_lead', __( 'Úvodní text nad formulářem', 'nkz-mp-vendor-registration' ), 3 );
 					$this->textarea_row( $s, 'form_success', __( 'Zpráva po odeslání', 'nkz-mp-vendor-registration' ), 3 );
+					$this->textarea_row( $s, 'business_declaration', __( 'Prohlášení o podnikateli (povinný checkbox, prázdné = skrýt)', 'nkz-mp-vendor-registration' ), 4 );
 					?>
 				</table>
 

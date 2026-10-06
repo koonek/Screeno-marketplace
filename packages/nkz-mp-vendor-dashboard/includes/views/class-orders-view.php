@@ -52,6 +52,26 @@ final class OrdersView {
 								<span class="nkzmp-vd-order-status nkzmp-vd-ostatus--<?php echo esc_attr( $o['status'] ); ?>"><?php echo esc_html( $o['status_label'] ); ?></span>
 							</header>
 
+							<?php if ( ! empty( $o['withdrawal'] ) ) :
+								$wd       = (array) $o['withdrawal'];
+								$resolved = ( $wd['status'] ?? 'open' ) === 'resolved';
+								?>
+								<div style="margin:10px 0;padding:10px 12px;border-radius:8px;font-size:13px;background:<?php echo $resolved ? '#f0f0f1' : '#fdecec'; ?>;color:<?php echo $resolved ? '#50575e' : '#b00020'; ?>;">
+									<strong><?php esc_html_e( 'Zákazník odstoupil od smlouvy', 'nkz-mp-vendor-dashboard' ); ?></strong>
+									<?php echo esc_html( sprintf( /* translators: %s: datum */ __( '(%s)', 'nkz-mp-vendor-dashboard' ), wp_date( 'j. n. Y H:i', (int) ( $wd['at'] ?? 0 ) ) ) ); ?>
+									<br>
+									<?php
+									echo esc_html(
+										$resolved
+											? __( 'Vyřízeno.', 'nkz-mp-vendor-dashboard' )
+											: __( 'Zákazník ti zboží pošle zpět. Až dorazí, dej nám vědět. Výplata za tuto objednávku je do té doby pozastavená.', 'nkz-mp-vendor-dashboard' )
+									);
+									?>
+									<?php if ( ! empty( $wd['reason'] ) ) : ?>
+										<br><span style="opacity:.8;"><?php echo esc_html( __( 'Důvod:', 'nkz-mp-vendor-dashboard' ) . ' ' . (string) $wd['reason'] ); ?></span>
+									<?php endif; ?>
+								</div>
+							<?php endif; ?>
 							<?php if ( ! empty( $o['ship'] ) ) :
 								$ship = $o['ship'];
 								if ( $ship['state'] === 'done' ) : ?>
@@ -273,6 +293,13 @@ final class OrdersView {
 			return null;
 		}
 		$packeta = self::packeta_action( $order, $vendor_id );
+
+		// Odstoupení od smlouvy u tohoto prodejce (vrácení řeší on).
+		$withdrawal = null;
+		if ( class_exists( \NKZMP\Storefront\Withdrawal::class ) ) {
+			$withdrawal = \NKZMP\Storefront\Withdrawal::record( $order, $vendor_id );
+		}
+
 		return [
 			'number'       => $order->get_order_number(),
 			'date'         => $order->get_date_created() ? $order->get_date_created()->date_i18n( 'j. n. Y' ) : '',
@@ -282,6 +309,7 @@ final class OrdersView {
 			'vendor_total' => wc_price( $subtotal, [ 'currency' => $order->get_currency() ] ),
 			'packeta'      => $packeta,
 			'ship'         => self::ship_deadline( $order, $packeta, $needs_shipping, $vendor_id ),
+			'withdrawal'   => $withdrawal,
 		];
 	}
 

@@ -59,6 +59,11 @@ final class FormHandler {
 		$vendor_terms_url = (string) ( Settings::get()['vendor_terms_url'] ?? '' );
 		$vendor_terms_ok  = $vendor_terms_url === '' || ! empty( $_POST['vendor_terms'] );
 
+		// Prohlášení o podnikateli – povinné, když je text nastavený. Kontrola
+		// i na serveru, `required` v prohlížeči jde obejít.
+		$business_declaration    = trim( (string) ( Settings::get()['business_declaration'] ?? '' ) );
+		$business_declaration_ok = $business_declaration === '' || ! empty( $_POST['business_declaration'] );
+
 		// Země podnikání – validujeme proti allowlistu Stripe modulu (fallback CZ).
 		$allowed_countries = class_exists( \NKVSVS\Onboarding_Controller::class )
 			? array_keys( \NKVSVS\Onboarding_Controller::allowed_countries() )
@@ -70,7 +75,7 @@ final class FormHandler {
 
 		// IČO je nepovinné – prodávat může i nepodnikající tvůrce. Stripe si
 		// identifikaci vyžádá sám při ověření pro výplaty.
-		if ( $name === '' || ! is_email( $email ) || $bio === '' || ! $terms || ! $gdpr || ! $vendor_terms_ok ) {
+		if ( $name === '' || ! is_email( $email ) || $bio === '' || ! $terms || ! $gdpr || ! $vendor_terms_ok || ! $business_declaration_ok ) {
 			$this->redirect_error( __( 'Vyplň prosím všechna povinná pole a odsouhlas všechny souhlasy.', 'nkz-mp-vendor-registration' ) );
 		}
 
@@ -121,6 +126,13 @@ final class FormHandler {
 			'terms'        => [ 'accepted' => true, 'url' => (string) ( Settings::get()['terms_url'] ?? '' ) ],
 			'vendor_terms' => [ 'accepted' => (bool) ! empty( $_POST['vendor_terms'] ), 'url' => $vendor_terms_url ],
 			'gdpr'         => [ 'accepted' => true ],
+			// Prohlášení ukládáme i s přesným zněním. Text se dá v nastavení
+			// změnit, a v případném sporu je potřeba doložit, co přesně
+			// prodejce v den registrace potvrdil.
+			'business_declaration' => [
+				'accepted' => $business_declaration !== '' && ! empty( $_POST['business_declaration'] ),
+				'text'     => $business_declaration,
+			],
 			'at'           => time(),
 			'ip'           => isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '',
 		] );

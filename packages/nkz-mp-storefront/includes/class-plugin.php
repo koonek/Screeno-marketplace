@@ -32,6 +32,7 @@ final class Plugin {
 		ThankYou::instance()->init();
 		ShopLoop::instance()->init();
 		TicketPicker::instance()->init();
+		Withdrawal::instance()->init();
 		ShopFilters::instance()->init();
 		Shortcodes::instance()->init();
 		ProductReadmore::instance()->init();
