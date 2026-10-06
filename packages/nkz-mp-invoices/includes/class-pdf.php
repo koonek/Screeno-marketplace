@@ -155,10 +155,14 @@ final class Pdf {
 		$credit = ( $d['type'] ?? '' ) === 'credit';
 		$cur    = (string) ( $d['currency'] ?? 'CZK' );
 
+		// Prodejce bez IČO (prodej vlastní tvorby) neprodává jako podnikatel
+		// s IČO – „Faktura" by byla zavádějící, proto neutrální název.
+		$has_ico = trim( (string) ( $d['issuer']['ico'] ?? '' ) ) !== '';
+
 		if ( $credit ) {
-			$title = $payer ? 'Opravný daňový doklad (dobropis)' : 'Dobropis';
+			$title = $payer ? 'Opravný daňový doklad (dobropis)' : ( $has_ico ? 'Dobropis' : 'Opravný doklad o prodeji' );
 		} else {
-			$title = $payer ? 'Faktura – daňový doklad' : 'Faktura';
+			$title = $payer ? 'Faktura – daňový doklad' : ( $has_ico ? 'Faktura' : 'Doklad o prodeji' );
 		}
 
 		$h  = '<h1>' . self::e( $title ) . '</h1>';

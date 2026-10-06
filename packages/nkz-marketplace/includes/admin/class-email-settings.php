@@ -509,6 +509,10 @@ final class EmailSettings {
 					  'hint'  => __( 'Posílá se zákazníkovi když prodejce podá zásilku přes Zásilkovnu (s tracking odkazem).', 'nkz-marketplace' ),
 					  'subject' => 'email_shipment_subject', 'body' => 'email_shipment_body',
 					  'placeholders' => [ 'name', 'name_vocative', 'vendor_name', 'vendor_name_vocative', 'order_number', 'tracking_code', 'tracking_url', 'pickup_point', 'site_name' ] ],
+					[ 'label' => __( 'Zákazník: zásilka odeslána (mimo Zásilkovnu)', 'nkz-marketplace' ),
+					  'hint'  => __( 'Posílá se, když prodejce potvrdí odeslání zásilky jiným dopravcem nebo domluvenou dopravou (nadrozměrné zboží). {note} = poznámka prodejce, typicky dopravce a číslo zásilky.', 'nkz-marketplace' ),
+					  'subject' => 'email_manual_shipment_subject', 'body' => 'email_manual_shipment_body',
+					  'placeholders' => [ 'name', 'vendor_name', 'order_number', 'note', 'site_name' ] ],
 				],
 			],
 			[
@@ -717,6 +721,14 @@ final class EmailSettings {
 "Tým {site_name}",
 
 			// === Odstoupení od smlouvy ===
+			'email_manual_shipment_subject' => 'Tvoje zásilka od {vendor_name} je na cestě',
+			'email_manual_shipment_body'    =>
+"Ahoj {name},\n\n" .
+"{vendor_name} právě odeslal(a) tvoji zásilku z objednávky #{order_number}.\n\n" .
+"{note}\n\n" .
+"Kdybys měl(a) k doručení dotaz, odpověz na tento e-mail.\n\n" .
+"{site_name}",
+
 			'email_withdrawal_customer_subject' => 'Potvrzení odstoupení od smlouvy — objednávka #{order_number}',
 			'email_withdrawal_customer_body'    =>
 "Dobrý den {name},\n\n" .

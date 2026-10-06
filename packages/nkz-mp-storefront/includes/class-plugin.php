@@ -33,6 +33,7 @@ final class Plugin {
 		ShopLoop::instance()->init();
 		TicketPicker::instance()->init();
 		Withdrawal::instance()->init();
+		WithdrawalRefund::instance()->init();
 		Voucher::instance()->init();
 		ShopFilters::instance()->init();
 		ShopDiscovery::instance()->init();

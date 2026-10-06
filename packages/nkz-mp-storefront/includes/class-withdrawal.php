@@ -727,7 +727,12 @@ final class Withdrawal {
 			}
 			if ( ! $resolved ) {
 				printf(
-					'<p style="margin:0 0 8px;"><a class="button button-small" href="%s">%s</a></p>',
+					'<p style="margin:0 0 8px;"><a class="button button-small button-primary" href="%s">%s</a> ',
+					esc_url( WithdrawalRefund::url( $order, (int) $vendor_id ) ),
+					esc_html__( 'Vrátit peníze…', 'nkz-mp-storefront' )
+				);
+				printf(
+					'<a class="button button-small" href="%s">%s</a></p>',
 					esc_url( wp_nonce_url(
 						add_query_arg(
 							[ 'action' => 'nkzmp_withdrawal_resolve', 'order_id' => $order->get_id(), 'vendor_id' => (int) $vendor_id ],
@@ -739,7 +744,7 @@ final class Withdrawal {
 				);
 			}
 		}
-		echo '<p style="margin:6px 0 0;color:#666;font-size:12px;">' . esc_html__( 'Výplata prodejci je pozastavená. Až zboží dorazí zpět, vrať peníze přes „Refundovat". Když vrácení padne, výplatu uvolni ručně v boxu Stripe.', 'nkz-mp-storefront' ) . '</p>';
+		echo '<p style="margin:6px 0 0;color:#666;font-size:12px;">' . esc_html__( 'Výplata prodejci je pozastavená. Až zboží dorazí zpět, klikni na „Vrátit peníze" – refundace, dobropis i vrácení poukazu se udělají naráz. „Označit jako vyřízené" použij, když se vrácení nekoná (zákazník si to rozmyslel) – výplatu prodejci pak uvolni tlačítkem „Uvolnit teď" v boxu Stripe.', 'nkz-mp-storefront' ) . '</p>';
 		echo '</div>';
 	}
 

@@ -2,7 +2,7 @@
 /**
  * Plugin Name: NKZ Marketplace AOZ
  * Description: Kompletní marketplace pro Art of život – prodejci, Stripe Connect s escrow, Zásilkovna, členství, vouchery, samofakturace, odstoupení od smlouvy.
- * Version: 1.0.1
+ * Version: 1.0.2
  * Author: NKZ
  * Requires at least: 6.2
  * Requires PHP: 8.1
@@ -18,7 +18,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'NKZMP_AOZ_BUNDLE_VERSION', '1.0.1' );
+define( 'NKZMP_AOZ_BUNDLE_VERSION', '1.0.2' );
 define( 'NKZMP_AOZ_BUNDLE_DIR', plugin_dir_path( __FILE__ ) );
 define( 'NKZMP_AOZ_BUNDLE_FILE', __FILE__ );
 

@@ -81,7 +81,10 @@ final class VendorBilling {
 	public static function missing( int $vendor_id ): array {
 		$i       = self::issuer( $vendor_id );
 		$missing = [];
-		foreach ( [ 'street' => __( 'ulice', 'nkz-mp-invoices' ), 'city' => __( 'město', 'nkz-mp-invoices' ), 'zip' => __( 'PSČ', 'nkz-mp-invoices' ), 'ico' => __( 'IČO', 'nkz-mp-invoices' ) ] as $k => $label ) {
+		// IČO záměrně NENÍ povinné – na AOZ prodávají i tvůrci bez IČO
+		// (prodej vlastní tvorby). Jejich doklad se pak jmenuje „Doklad
+		// o prodeji" a prodávajícího identifikuje jméno a adresa.
+		foreach ( [ 'street' => __( 'ulice', 'nkz-mp-invoices' ), 'city' => __( 'město', 'nkz-mp-invoices' ), 'zip' => __( 'PSČ', 'nkz-mp-invoices' ) ] as $k => $label ) {
 			if ( $i[ $k ] === '' ) {
 				$missing[] = $label;
 			}
@@ -217,9 +220,10 @@ final class VendorBilling {
 			);
 			if ( $k === self::NAME ) {
 				printf(
-					'<div class="nkzmp-vd-field"><label for="nkzmp_billing_ico">%s</label><input id="nkzmp_billing_ico" type="text" name="nkzmp_billing_ico" maxlength="12" inputmode="numeric" value="%s" /></div>',
-					esc_html__( 'IČO', 'nkz-mp-invoices' ),
-					esc_attr( $i['ico'] )
+					'<div class="nkzmp-vd-field"><label for="nkzmp_billing_ico">%s</label><input id="nkzmp_billing_ico" type="text" name="nkzmp_billing_ico" maxlength="12" inputmode="numeric" value="%s" /><small>%s</small></div>',
+					esc_html__( 'IČO (pokud máš)', 'nkz-mp-invoices' ),
+					esc_attr( $i['ico'] ),
+					esc_html__( 'Když IČO nemáš, nech prázdné – doklad pak bude vystaven na tvoje jméno a adresu.', 'nkz-mp-invoices' )
 				);
 			}
 		}

@@ -94,6 +94,91 @@ final class Voucher {
 		// Rozdělování peněz prodejcům (Stripe modul).
 		add_filter( 'nkv_svs_filter_split_non_stripe_order', [ $this, 'split_voucher_only_order' ], 10, 2 );
 		add_filter( 'nkv_svs_filter_use_source_transaction', [ $this, 'use_source_transaction' ], 10, 2 );
+
+		// Kolik peněz za poukazy musí zůstat na Stripe.
+		add_action( 'admin_notices', [ $this, 'liability_notice' ] );
+		add_filter( 'nkzmp/v1/admin/health_checks', [ $this, 'health_row' ] );
+	}
+
+	/**
+	 * Nevyčerpané platné poukazy – závazek platformy.
+	 *
+	 * Peníze za prodané poukazy leží na Stripe účtu a platí se z nich
+	 * prodejcům, když zákazník poukaz uplatní. Když je automatické výplaty
+	 * Stripe pošlou na banku, převody prodejcům selžou. Tohle číslo říká,
+	 * kolik tam musí zůstat. Propadlé poukazy se nepočítají – ty peníze
+	 * už platformě patří.
+	 *
+	 * @return array{count:int,total:float}
+	 */
+	public static function liability(): array {
+		$ids = get_posts( [
+			'post_type'      => self::CPT,
+			'post_status'    => 'any',
+			'posts_per_page' => -1,
+			'fields'         => 'ids',
+			'meta_query'     => [ [ 'key' => '_status', 'value' => [ self::STATUS_ACTIVE, self::STATUS_RESERVED ], 'compare' => 'IN' ] ],
+		] );
+		$count = 0;
+		$total = 0.0;
+		$now   = time();
+		foreach ( $ids as $id ) {
+			$status = (string) ( get_post_meta( (int) $id, '_status', true ) ?: self::STATUS_ACTIVE );
+			if ( ! in_array( $status, [ self::STATUS_ACTIVE, self::STATUS_RESERVED ], true ) ) {
+				continue; // použitý / zneplatněný
+			}
+			$exp = (int) get_post_meta( (int) $id, '_expires', true );
+			if ( $exp > 0 && $exp < $now ) {
+				continue; // propadlý
+			}
+			++$count;
+			$total += (float) get_post_meta( (int) $id, '_value', true );
+		}
+		return [ 'count' => $count, 'total' => $total ];
+	}
+
+	public function liability_notice(): void {
+		if ( ! current_user_can( 'manage_woocommerce' ) ) {
+			return;
+		}
+		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+		if ( ! $screen || $screen->id !== 'edit-' . self::CPT ) {
+			return; // jen na seznamu poukazů
+		}
+		$l = self::liability();
+		printf(
+			'<div class="notice notice-info"><p><strong>%s</strong> %s<br>%s</p></div>',
+			esc_html( sprintf(
+				/* translators: 1: počet, 2: částka */
+				__( 'Nevyčerpané poukazy: %1$d ks, celkem %2$s.', 'nkz-mp-storefront' ),
+				$l['count'],
+				wp_strip_all_tags( wc_price( $l['total'] ) )
+			) ),
+			esc_html__( 'Tolik musí zůstat na Stripe účtu – z těchto peněz se platí prodejcům, když zákazník poukaz uplatní.', 'nkz-mp-storefront' ),
+			esc_html__( 'Pokud máš ve Stripe automatické výplaty na banku, přepni je na ruční, nebo tam drž rezervu alespoň v této výši. Propadlé poukazy se nepočítají.', 'nkz-mp-storefront' )
+		);
+	}
+
+	/**
+	 * @param array<int,array{label:string,state:string,detail:string}> $rows
+	 */
+	public function health_row( $rows ): array {
+		$rows = (array) $rows;
+		$l    = self::liability();
+		if ( $l['count'] === 0 ) {
+			return $rows;
+		}
+		$rows[] = [
+			'label'  => __( 'Nevyčerpané dárkové poukazy', 'nkz-mp-storefront' ),
+			'state'  => 'warn',
+			'detail' => sprintf(
+				/* translators: 1: počet, 2: částka */
+				__( '%1$d ks za %2$s – tolik musí zůstat na Stripe účtu', 'nkz-mp-storefront' ),
+				$l['count'],
+				wp_strip_all_tags( wc_price( $l['total'] ) )
+			),
+		];
+		return $rows;
 	}
 
 	/* ================================================================ data */
@@ -548,6 +633,58 @@ final class Voucher {
 				) );
 			}
 		}
+	}
+
+	/**
+	 * Vrácení peněz poukazem – část objednávky zaplacená poukazem.
+	 *
+	 * Spotřebitel dostává peníze zpět stejným prostředkem, jakým platil.
+	 * Nový poukaz má platnost původního (když ho známe a ještě neprošel),
+	 * jinak standardních 12 měsíců. Zákazníkovi přijde kód e-mailem.
+	 *
+	 * @return string vydaný kód ('' při chybě)
+	 */
+	public static function issue_credit( \WC_Order $order, float $amount ): string {
+		if ( $amount <= 0 ) {
+			return '';
+		}
+		$exp  = strtotime( '+' . (int) apply_filters( 'nkzmp/v1/voucher/valid_months', 12 ) . ' months' );
+		$orig = (string) $order->get_meta( self::ORDER_CODE_META );
+		if ( $orig !== '' && ( $ov = self::find( $orig ) ) ) {
+			$oe = self::data( $ov )['expires'];
+			if ( $oe > time() ) {
+				$exp = $oe;
+			}
+		}
+		$code = self::generate_code();
+		$id   = wp_insert_post( [ 'post_type' => self::CPT, 'post_status' => 'publish', 'post_title' => $code ] );
+		if ( ! $id || is_wp_error( $id ) ) {
+			return '';
+		}
+		update_post_meta( $id, '_value', round( $amount, wc_get_price_decimals() ) );
+		update_post_meta( $id, '_expires', $exp );
+		update_post_meta( $id, '_status', self::STATUS_ACTIVE );
+		update_post_meta( $id, '_credit_for_order', $order->get_id() );
+		update_post_meta( $id, '_buyer_email', (string) $order->get_billing_email() );
+
+		$to = (string) $order->get_billing_email();
+		if ( is_email( $to ) ) {
+			$subject = sprintf( __( 'Vrácení peněz poukazem – objednávka #%s', 'nkz-mp-storefront' ), $order->get_order_number() );
+			$body    = sprintf(
+				/* translators: 1: částka, 2: kód, 3: datum, 4: web */
+				__( "Dobrý den,\n\nčást objednávky jste platili dárkovým poukazem, proto vám tuto část vracíme stejnou cestou – novým poukazem.\n\nHodnota: %1\$s\nKód: %2\$s\nPlatí do: %3\$s\n\nKód zadáte v košíku do pole „Máte dárkový poukaz?\".\n\n%4\$s", 'nkz-mp-storefront' ),
+				wp_strip_all_tags( wc_price( $amount ) ),
+				$code,
+				wp_date( 'j. n. Y', $exp ),
+				(string) get_bloginfo( 'name' )
+			);
+			if ( class_exists( \NKZMP\Registration\EmailService::class ) ) {
+				\NKZMP\Registration\EmailService::send_raw( $to, $subject, $body );
+			} else {
+				wp_mail( $to, $subject, $body, [ 'Content-Type: text/plain; charset=UTF-8' ] );
+			}
+		}
+		return $code;
 	}
 
 	/** Zrušená / neúspěšná objednávka → uvolni rezervovaný poukaz. */

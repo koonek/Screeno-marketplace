@@ -133,7 +133,51 @@ final class ManualShipment {
 		 */
 		do_action( 'nkzmp/v1/shipment/dispatched', $order, $vendor_id, $record );
 
+		// Zákazník u Zásilkovny dostane e-mail s trackingem. U zásilky
+		// odeslané jinak by se jinak nedozvěděl nic.
+		try {
+			self::notify_customer( $order, $vendor_id, $note );
+		} catch ( \Throwable $e ) {
+			error_log( '[NKZMP] manual shipment e-mail failed: ' . $e->getMessage() );
+		}
+
 		wp_safe_redirect( add_query_arg( 'nkzmp_msg', 'shipped', $back ) );
 		exit;
+	}
+
+	private static function notify_customer( \WC_Order $order, int $vendor_id, string $note ): void {
+		$to = (string) $order->get_billing_email();
+		if ( ! is_email( $to ) ) {
+			return;
+		}
+		$vendor_name = get_the_title( $vendor_id ) ?: ( '#' . $vendor_id );
+		$vars        = [
+			'name'         => $order->get_billing_first_name() ?: __( 'zákazníku', 'nkz-mp-vendor-dashboard' ),
+			'vendor_name'  => $vendor_name,
+			'order_number' => (string) $order->get_order_number(),
+			'note'         => $note !== ''
+				/* translators: %s: poznámka prodejce */
+				? sprintf( __( 'Poznámka od prodejce: %s', 'nkz-mp-vendor-dashboard' ), $note )
+				: '',
+			'site_name'    => (string) get_bloginfo( 'name' ),
+		];
+
+		$subject = $body = '';
+		if ( class_exists( \NKZMP\Admin\EmailSettings::class ) ) {
+			$subject = \NKZMP\Admin\EmailSettings::interpolate( \NKZMP\Admin\EmailSettings::raw( 'email_manual_shipment_subject' ), $vars );
+			$body    = \NKZMP\Admin\EmailSettings::interpolate( \NKZMP\Admin\EmailSettings::raw( 'email_manual_shipment_body' ), $vars );
+		}
+		if ( $subject === '' || $body === '' ) {
+			$subject = sprintf( __( 'Tvoje zásilka od %s je na cestě', 'nkz-mp-vendor-dashboard' ), $vendor_name );
+			$body    = sprintf( "Ahoj %s,\n\n%s právě odeslal(a) tvoji zásilku z objednávky #%s.\n\n%s\n\n%s", $vars['name'], $vendor_name, $vars['order_number'], $vars['note'], $vars['site_name'] );
+		}
+		// Prázdná poznámka by v e-mailu nechala dvojitý odstavec.
+		$body = (string) preg_replace( "/\n{3,}/", "\n\n", $body );
+
+		if ( class_exists( \NKZMP\Registration\EmailService::class ) ) {
+			\NKZMP\Registration\EmailService::send_raw( $to, $subject, $body );
+			return;
+		}
+		wp_mail( $to, $subject, $body, [ 'Content-Type: text/plain; charset=UTF-8' ] );
 	}
 }
