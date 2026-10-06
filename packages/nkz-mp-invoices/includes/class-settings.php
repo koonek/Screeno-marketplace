@@ -48,6 +48,8 @@ final class Settings {
 			'prefix_vendor'   => 'P{vendor}-',
 			'prefix_credit'   => 'D',
 			'attach_email'    => 'yes',
+			// Doklady k jedné objednávce na jedné stránce (jako GoOut).
+			'combined'        => 'yes',
 			// Faktury Art of život prodejcům za členství (místo faktur ze Stripe).
 			'membership'      => 'yes',
 		];
@@ -91,7 +93,7 @@ final class Settings {
 		foreach ( [ 'name', 'street', 'city', 'zip', 'country', 'ico', 'dic', 'registry', 'prefix_platform', 'prefix_vendor', 'prefix_credit' ] as $k ) {
 			$out[ $k ] = sanitize_text_field( wp_unslash( (string) ( $in[ $k ] ?? '' ) ) );
 		}
-		foreach ( [ 'enabled', 'vat_payer', 'attach_email', 'membership' ] as $k ) {
+		foreach ( [ 'enabled', 'vat_payer', 'attach_email', 'combined', 'membership' ] as $k ) {
 			$out[ $k ] = ! empty( $in[ $k ] ) ? 'yes' : 'no';
 		}
 		$out['vat_rate'] = max( 0, min( 100, (int) ( $in['vat_rate'] ?? 21 ) ) );
@@ -172,6 +174,11 @@ final class Settings {
 		$row( __( 'Prefix dokladů prodejců', 'nkz-mp-invoices' ), $text( 'prefix_vendor', '', '160px' ), __( '{vendor} se nahradí číslem prodejce, např. P3613-2026-00001. Každý prodejce má vlastní řadu.', 'nkz-mp-invoices' ) );
 		$row( __( 'Označení dobropisů', 'nkz-mp-invoices' ), $text( 'prefix_credit', '', '80px' ), __( 'Vkládá se do čísla dobropisu, např. AOZ-D-2026-00001.', 'nkz-mp-invoices' ) );
 		$row( __( 'E-mail', 'nkz-mp-invoices' ), $check( 'attach_email', __( 'přiložit PDF k potvrzení objednávky', 'nkz-mp-invoices' ) ) );
+		$row(
+			__( 'Podoba PDF', 'nkz-mp-invoices' ),
+			$check( 'combined', __( 'doklady k jedné objednávce spojit do jednoho přehledu (jako GoOut)', 'nkz-mp-invoices' ) ),
+			__( 'Zákazník dostane jednu stránku: každý dodavatel (prodejci, Art of život) má svůj blok se svým číslem dokladu, dole celková částka. Po vypnutí má každý doklad vlastní stránku.', 'nkz-mp-invoices' )
+		);
 		$row(
 			__( 'Faktury za členství', 'nkz-mp-invoices' ),
 			$check( 'membership', __( 'vystavovat prodejcům faktury za členství (stejná řada a podoba jako ostatní doklady)', 'nkz-mp-invoices' ) ),
