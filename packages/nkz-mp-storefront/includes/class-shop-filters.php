@@ -227,26 +227,110 @@ final class ShopFilters {
 			esc_html__( 'Prodejce', 'nkz-mp-storefront' ),
 			count( $vendors )
 		);
-		// is-scrollable → CSS přidá dole fade, aby bylo poznat, že seznam
-		// pokračuje (uživatelé si jinak nevšimnou prodejců pod ohybem).
-		echo '<div class="nkzmp-filters__scrollwrap' . ( count( $vendors ) > 8 ? ' is-scrollable' : '' ) . '">';
-		echo '<ul class="nkzmp-filters__list nkzmp-filters__list--vendors">';
+		// Seznam BEZ vlastního posouvání. Dřív měl max-height + scroll a na
+		// mobilu byl uvnitř spodního panelu, který se posouvá taky – dvě
+		// vnořená posouvání se pralo a řádky se ořezávaly pod přechodem.
+		// Teď se ukáže prvních N prodejců, zbytek rozbalí tlačítko a při
+		// větším počtu je nahoře políčko na hledání.
+		$visible = (int) apply_filters( 'nkzmp/v1/storefront/filter_vendors_visible', 8 );
+		$total   = count( $vendors );
+		echo '<div class="nkzmp-filters__vendorwrap" data-nkzmp-vendorwrap>';
+		if ( $total > $visible ) {
+			printf(
+				'<input type="search" class="nkzmp-filters__vendorsearch" placeholder="%s" aria-label="%s" data-nkzmp-vendorsearch autocomplete="off">',
+				esc_attr__( 'Najít prodejce…', 'nkz-mp-storefront' ),
+				esc_attr__( 'Najít prodejce', 'nkz-mp-storefront' )
+			);
+		}
+		echo '<ul class="nkzmp-filters__list nkzmp-filters__list--vendors" style="max-height:none!important;overflow:visible!important;">';
+		$i = 0;
 		foreach ( $vendors as $vid => $v ) {
 			$id    = 'nkzmp-vendor-' . $vid;
 			$name  = is_array( $v ) ? (string) $v['name'] : (string) $v;
 			$count = is_array( $v ) ? (int) $v['count'] : 0;
+			$on    = in_array( (int) $vid, $selected, true );
+			// Zaškrtnuté prodejce nikdy neschováváme – uživatel by nevěděl,
+			// proč se mu filtruje.
+			$hidden = $i >= $visible && ! $on;
 			printf(
-				'<li><label for="%1$s"><input type="checkbox" id="%1$s" name="vendor[]" value="%2$d"%3$s> <span>%4$s</span>%5$s</label></li>',
+				'<li data-nkzmp-vendor-name="%6$s"%7$s><label for="%1$s"><input type="checkbox" id="%1$s" name="vendor[]" value="%2$d"%3$s> <span>%4$s</span>%5$s</label></li>',
 				esc_attr( $id ),
 				(int) $vid,
-				in_array( (int) $vid, $selected, true ) ? ' checked' : '',
+				$on ? ' checked' : '',
 				esc_html( $name ),
-				$count > 0 ? ' <em>' . (int) $count . '</em>' : ''
+				$count > 0 ? ' <em>' . (int) $count . '</em>' : '',
+				esc_attr( self::fold( $name ) ),
+				$hidden ? ' hidden data-nkzmp-vendor-extra' : ''
 			);
+			++$i;
 		}
 		echo '</ul>';
+		if ( $total > $visible ) {
+			printf(
+				'<button type="button" class="nkzmp-filters__more" data-nkzmp-vendormore>%s</button>',
+				esc_html( sprintf( /* translators: %d: počet prodejců */ __( 'Zobrazit všech %d', 'nkz-mp-storefront' ), $total ) )
+			);
+		}
 		echo '</div>';
 		echo '</fieldset>';
+		$this->vendor_list_script();
+	}
+
+	/** Bez diakritiky a malými písmeny – ať „sperky" najde „Šperky". */
+	public static function fold( string $s ): string {
+		$s = function_exists( 'remove_accents' ) ? remove_accents( $s ) : $s;
+		return function_exists( 'mb_strtolower' ) ? mb_strtolower( $s ) : strtolower( $s );
+	}
+
+	private function vendor_list_script(): void {
+		static $printed = false;
+		if ( $printed ) {
+			return;
+		}
+		$printed = true;
+		?>
+		<style>
+		.nkzmp-filters__vendorsearch{width:100%;margin:0 0 10px;padding:8px 12px;border:1px solid #d9dce3;border-radius:999px;font-size:14px;box-sizing:border-box}
+		.nkzmp-filters__more{background:none;border:0;padding:8px 0 0;color:#0060FF;font-weight:600;cursor:pointer;font-size:14px}
+		.nkzmp-filters__more:hover{text-decoration:underline}
+		</style>
+		<script>
+		(function () {
+			function fold(s) {
+				return (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+			}
+			document.querySelectorAll('[data-nkzmp-vendorwrap]').forEach(function (wrap) {
+				var more = wrap.querySelector('[data-nkzmp-vendormore]');
+				var search = wrap.querySelector('[data-nkzmp-vendorsearch]');
+				var items = Array.prototype.slice.call(wrap.querySelectorAll('li[data-nkzmp-vendor-name]'));
+				var expanded = false;
+
+				function apply() {
+					var q = search ? fold(search.value.trim()) : '';
+					items.forEach(function (li) {
+						var checked = li.querySelector('input:checked');
+						if (q) {
+							li.hidden = li.dataset.nkzmpVendorName.indexOf(q) === -1 && !checked;
+						} else {
+							li.hidden = !expanded && li.hasAttribute('data-nkzmp-vendor-extra') && !checked;
+						}
+					});
+					// Při hledání je tlačítko zbytečné – výsledky jsou vidět všechny.
+					if (more) { more.hidden = !!q || expanded; }
+				}
+
+				if (more) {
+					more.addEventListener('click', function () { expanded = true; apply(); });
+				}
+				if (search) {
+					search.addEventListener('input', apply);
+					// Enter v hledání nesmí odeslat filtr celého obchodu.
+					search.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); } });
+				}
+			});
+		})();
+		</script>
+		<?php
 	}
 
 	private function render_stock( bool $on ): void {
@@ -520,7 +604,7 @@ final class ShopFilters {
 	 *
 	 * @return array<int,string> id => name
 	 */
-	private static function product_vendors(): array {
+	public static function product_vendors(): array {
 		$cached = get_transient( 'nkzmp_shop_product_vendors' );
 		if ( is_array( $cached ) ) {
 			return $cached;

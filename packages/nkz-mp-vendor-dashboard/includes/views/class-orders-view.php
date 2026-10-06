@@ -137,6 +137,42 @@ final class OrdersView {
 									<?php endif; ?>
 								</div>
 							<?php endif; ?>
+
+							<?php if ( ! empty( $o['manual'] ) ) :
+								$m = $o['manual'];
+								?>
+								<div class="nkzmp-vd-order-manual" style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(0,0,0,.1);font-size:13px;">
+									<?php if ( ! empty( $m['oversized'] ) ) : ?>
+										<p style="margin:0 0 8px;"><strong><?php esc_html_e( 'Doprava dohodou', 'nkz-mp-vendor-dashboard' ); ?></strong> — <?php esc_html_e( 'zboží je nadrozměrné. Ozvi se prosím zákazníkovi a domluvte se na způsobu a ceně dopravy (platí ji přímo tobě).', 'nkz-mp-vendor-dashboard' ); ?></p>
+										<p style="margin:0 0 8px;line-height:1.6;">
+											<?php echo esc_html( $m['contact']['name'] ); ?><?php echo $m['contact']['city'] !== '' ? ', ' . esc_html( $m['contact']['city'] ) : ''; ?><br>
+											<?php if ( $m['contact']['email'] !== '' ) : ?>
+												<a href="mailto:<?php echo esc_attr( $m['contact']['email'] ); ?>"><?php echo esc_html( $m['contact']['email'] ); ?></a>
+											<?php endif; ?>
+											<?php if ( $m['contact']['phone'] !== '' ) : ?>
+												· <a href="tel:<?php echo esc_attr( preg_replace( '/\s+/', '', $m['contact']['phone'] ) ); ?>"><?php echo esc_html( $m['contact']['phone'] ); ?></a>
+											<?php endif; ?>
+										</p>
+									<?php else : ?>
+										<p style="margin:0 0 8px;"><?php esc_html_e( 'Zákazník nevybral Zásilkovnu, zásilku pošli jiným dopravcem.', 'nkz-mp-vendor-dashboard' ); ?></p>
+									<?php endif; ?>
+
+									<?php if ( ! empty( $m['record'] ) ) : ?>
+										<span style="color:#1b5e20;font-weight:500;">✓ <?php echo esc_html( sprintf( /* translators: %s: datum */ __( 'Odeslání potvrzeno %s', 'nkz-mp-vendor-dashboard' ), wp_date( 'j. n. Y H:i', (int) ( $m['record']['at'] ?? 0 ) ) ) ); ?></span>
+										<?php if ( ! empty( $m['record']['note'] ) ) : ?>
+											<span style="opacity:.7;">— <?php echo esc_html( (string) $m['record']['note'] ); ?></span>
+										<?php endif; ?>
+									<?php elseif ( ! in_array( $o['status'], [ 'completed', 'cancelled', 'refunded' ], true ) ) : ?>
+										<form method="post" action="<?php echo esc_url( \NKZMP\Dashboard\ManualShipment::url() ); ?>" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
+											<input type="hidden" name="action" value="nkzmp_vd_mark_shipped" />
+											<input type="hidden" name="order_id" value="<?php echo (int) $o['order_id']; ?>" />
+											<?php wp_nonce_field( 'nkzmp_vd_mark_shipped_' . (int) $o['order_id'] ); ?>
+											<input type="text" name="shipment_note" placeholder="<?php esc_attr_e( 'např. Česká pošta, podací číslo… (nepovinné)', 'nkz-mp-vendor-dashboard' ); ?>" style="flex:1 1 220px;min-width:0;" />
+											<button type="submit" class="nkzmp-vd-cta" onclick="return confirm('<?php echo esc_js( __( 'Potvrzuješ, že jsi zásilku odeslal/a? Od teď poběží ochranná lhůta na výplatu.', 'nkz-mp-vendor-dashboard' ) ); ?>');"><?php esc_html_e( 'Označit jako odesláno', 'nkz-mp-vendor-dashboard' ); ?></button>
+										</form>
+									<?php endif; ?>
+								</div>
+							<?php endif; ?>
 						</article>
 					<?php endforeach; ?>
 				</div>
@@ -294,6 +330,24 @@ final class OrdersView {
 		}
 		$packeta = self::packeta_action( $order, $vendor_id );
 
+		// Zásilka mimo Zásilkovnu (nadrozměr / jiná doprava) – štítek
+		// Zásilkovny tu nedává smysl, prodejce odeslání potvrdí ručně.
+		$manual = null;
+		if ( \NKZMP\Dashboard\ManualShipment::needs_manual( $order, $vendor_id ) ) {
+			$packeta = null;
+			$manual  = [
+				'record'    => \NKZMP\Dashboard\ManualShipment::record( $order, $vendor_id ),
+				'oversized' => \NKZMP\Dashboard\ManualShipment::all_oversized( $order, $vendor_id ),
+				// U dopravy dohodou se prodejce musí zákazníkovi ozvat sám.
+				'contact'   => [
+					'name'  => trim( $order->get_shipping_first_name() . ' ' . $order->get_shipping_last_name() ) ?: trim( $order->get_billing_first_name() . ' ' . $order->get_billing_last_name() ),
+					'email' => (string) $order->get_billing_email(),
+					'phone' => (string) $order->get_billing_phone(),
+					'city'  => trim( $order->get_shipping_city() ?: $order->get_billing_city() ),
+				],
+			];
+		}
+
 		// Odstoupení od smlouvy u tohoto prodejce (vrácení řeší on).
 		$withdrawal = null;
 		if ( class_exists( \NKZMP\Storefront\Withdrawal::class ) ) {
@@ -310,6 +364,8 @@ final class OrdersView {
 			'packeta'      => $packeta,
 			'ship'         => self::ship_deadline( $order, $packeta, $needs_shipping, $vendor_id ),
 			'withdrawal'   => $withdrawal,
+			'manual'       => $manual,
+			'order_id'     => $order->get_id(),
 		];
 	}
 

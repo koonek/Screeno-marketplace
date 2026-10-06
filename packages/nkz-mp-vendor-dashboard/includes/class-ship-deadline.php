@@ -206,6 +206,10 @@ final class ShipDeadline {
 	 * dávno v pořádku. StatusSync jim stav doplní při nejbližším běhu.
 	 */
 	public static function is_vendor_dispatched( \WC_Order $order, int $vendor_id ): bool {
+		// Ručně potvrzené odeslání mimo Zásilkovnu (nadrozměr, jiný dopravce).
+		if ( ManualShipment::record( $order, $vendor_id ) ) {
+			return true;
+		}
 		if ( ! class_exists( \NKZMP\Packeta\LabelService::class ) ) {
 			return false;
 		}

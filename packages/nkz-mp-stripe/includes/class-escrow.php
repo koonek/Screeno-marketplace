@@ -64,6 +64,9 @@ final class Escrow {
 		add_action( 'nkzmp/v1/packeta/packet_returned', [ $this, 'on_packet_returned' ], 10, 3 );
 		// Odstoupení od smlouvy → totéž.
 		add_action( 'nkzmp/v1/withdrawal/submitted', [ $this, 'on_withdrawal' ], 10, 3 );
+		// Zásilka odeslaná mimo Zásilkovnu (nadrozměr, jiný dopravce) –
+		// jediný signál odeslání, který u ní máme. Platí v obou režimech.
+		add_action( 'nkzmp/v1/shipment/dispatched', [ $this, 'on_packet_created' ], 10, 3 );
 	}
 
 	/**

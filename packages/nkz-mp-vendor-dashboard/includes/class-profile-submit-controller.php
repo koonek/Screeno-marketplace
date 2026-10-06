@@ -120,6 +120,13 @@ final class ProfileSubmitController {
 			);
 		}
 
+		/**
+		 * Profil uložen – jiné moduly si uloží svá pole (fakturační údaje…).
+		 *
+		 * @param int $vendor_id
+		 */
+		do_action( 'nkzmp/v1/dashboard/profile_saved', $vendor_id );
+
 		// Pročistit cache – nový avatar/cover by se jinak neprojevil.
 		CacheFlush::purge();
 

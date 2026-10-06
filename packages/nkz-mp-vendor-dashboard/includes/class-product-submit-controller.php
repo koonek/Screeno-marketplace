@@ -238,6 +238,8 @@ final class ProductSubmitController {
 
 		// Shipping flag. Digital = virtual (WC nepožaduje dopravu).
 		update_post_meta( $product_id, '_nkzmp_requires_shipping', $requires_shipping ? 'yes' : 'no' );
+		// Nadrozměr → v košíku „Doprava dohodou" místo Zásilkovny.
+		update_post_meta( $product_id, '_nkzmp_oversized', ( $requires_shipping && ! empty( $_POST['oversized'] ) ) ? 'yes' : 'no' );
 		// Lhůta „na objednávku" – prázdné meta = skladová položka (5 dní).
 		if ( $preorder_days > 0 ) {
 			update_post_meta( $product_id, ShipDeadline::PREORDER_META, $preorder_days );

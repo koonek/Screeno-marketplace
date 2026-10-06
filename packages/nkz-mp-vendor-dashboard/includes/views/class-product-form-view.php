@@ -266,6 +266,15 @@ final class ProductFormView {
 						<small><?php esc_html_e( 'Odškrtni u digitálních produktů (e-booky, návody, vouchery). Pak se za ně neúčtuje doprava.', 'nkz-mp-vendor-dashboard' ); ?></small>
 					</div>
 
+					<?php $oversized = $product && get_post_meta( $product->get_id(), '_nkzmp_oversized', true ) === 'yes'; ?>
+					<div class="nkzmp-vd-field">
+						<label class="nkzmp-vd-check">
+							<input type="checkbox" name="oversized" value="1" <?php checked( $oversized ); ?> />
+							<span><?php esc_html_e( 'Nadrozměrné zboží – nevejde se do Zásilkovny', 'nkz-mp-vendor-dashboard' ); ?></span>
+						</label>
+						<small><?php esc_html_e( 'Zaškrtni u obrazů a velkých kusů. Zákazník v košíku uvidí „Doprava dohodou" a ty se s ním po objednávce domluvíš na způsobu a ceně dopravy. Kontakt na zákazníka najdeš u objednávky.', 'nkz-mp-vendor-dashboard' ); ?></small>
+					</div>
+
 					<?php
 					$ship_override = $product ? get_post_meta( $product->get_id(), '_nkzmp_shipping_override', true ) : '';
 					$ship_min      = class_exists( \NKZMP\Shipping\Rate::class ) ? (float) \NKZMP\Shipping\Rate::min_flat() : 0.0;
@@ -281,6 +290,16 @@ final class ProductFormView {
 							<?php endif; ?>
 						</small>
 					</div>
+
+					<?php
+					/**
+					 * Další pole produktu z jiných modulů (např. sazba DPH u plátce).
+					 *
+					 * @param \WC_Product|null $product
+					 * @param int              $vendor_id
+					 */
+					do_action( 'nkzmp/v1/dashboard/product_form_fields', $product, $vendor_id );
+					?>
 				</section>
 
 				<section class="nkzmp-vd-form-section" data-nkzmp-variations>

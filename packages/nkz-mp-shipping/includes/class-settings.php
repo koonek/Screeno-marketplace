@@ -29,6 +29,9 @@ final class Settings {
 			'default_flat' => 79,
 			// Spodní hranice poštovného, které si prodejce může nastavit.
 			'min_flat'     => 99,
+			// Příplatek, když zásilka jde do jiné země, než odkud prodejce
+			// posílá (CZ → SK a naopak). Mezinárodní poštovné je dražší.
+			'cross_border_surcharge' => 50,
 		];
 		$saved = get_option( self::OPTION, [] );
 		return array_merge( $defaults, is_array( $saved ) ? $saved : [] );
@@ -64,6 +67,10 @@ final class Settings {
 		echo '<th><label for="min_flat">' . esc_html__( 'Minimální poštovné (Kč)', 'nkz-mp-shipping' ) . '</label></th>';
 		echo '<td><input id="min_flat" type="number" min="0" step="1" name="' . esc_attr( self::OPTION ) . '[min_flat]" value="' . esc_attr( (string) $s['min_flat'] ) . '" />';
 		echo '<p class="description">' . esc_html__( 'Nejnižší částka, kterou si prodejce může nastavit (u sebe i u produktu). Nižší hodnota se automaticky zvedne na tuto. 0 = bez omezení.', 'nkz-mp-shipping' ) . '</p></td>';
+		echo '</tr><tr>';
+		echo '<th><label for="cross_border_surcharge">' . esc_html__( 'Příplatek za dopravu do zahraničí (Kč)', 'nkz-mp-shipping' ) . '</label></th>';
+		echo '<td><input id="cross_border_surcharge" type="number" min="0" step="1" name="' . esc_attr( self::OPTION ) . '[cross_border_surcharge]" value="' . esc_attr( (string) $s['cross_border_surcharge'] ) . '" />';
+		echo '<p class="description">' . esc_html__( 'Přičte se k poštovnému prodejce, když zásilka jde do jiné země, než ze které prodejce posílá – typicky český prodejce a doručení na Slovensko. Platí za každý balík zvlášť. 0 = bez příplatku.', 'nkz-mp-shipping' ) . '</p></td>';
 		echo '</tr></table>';
 		submit_button();
 		echo '</form></div>';

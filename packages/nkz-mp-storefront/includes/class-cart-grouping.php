@@ -84,6 +84,7 @@ final class CartGrouping {
 		// Mapa vendorId → název + fyzické produkty per vendor (pro výpočet dopravy).
 		$names           = [ '0' => (string) apply_filters( 'nkzmp/v1/storefront/platform_label', __( 'Obchod', 'nkz-mp-storefront' ) ) ];
 		$vendor_products = [];
+		$oversized_vendors = [];
 		$has_shipping_mod = class_exists( \NKZMP\Shipping\Rate::class );
 		foreach ( WC()->cart->get_cart() as $item ) {
 			$vid = self::item_vendor_id( $item );
@@ -96,6 +97,12 @@ final class CartGrouping {
 				continue;
 			}
 			$needs = $has_shipping_mod ? \NKZMP\Shipping\Rate::product_requires_shipping( $product ) : true;
+			// Nadrozměr jde mimo Zásilkovnu („Doprava dohodou"), takže do
+			// paušálu prodejce nepatří.
+			if ( $needs && class_exists( \NKZMP\Shipping\Oversized::class ) && \NKZMP\Shipping\Oversized::is_oversized( $product ) ) {
+				$oversized_vendors[ (string) $vid ] = true;
+				$needs = false;
+			}
 			if ( $needs ) {
 				$vendor_products[ (string) $vid ][] = $product;
 			}
@@ -109,12 +116,27 @@ final class CartGrouping {
 		// Vypnutí: add_filter( 'nkzmp/v1/cart/show_per_vendor_shipping', '__return_false' );
 		$shipping = [];
 		if ( $has_shipping_mod && apply_filters( 'nkzmp/v1/cart/show_per_vendor_shipping', true ) ) {
+			// Cílová země kvůli příplatku do zahraničí – musí sedět s tím,
+			// co spočítá doprava v souhrnu, jinak se karty a celkem rozjedou.
+			$pseudo_package = [
+				'destination' => [
+					'country' => WC()->customer ? (string) WC()->customer->get_shipping_country() : '',
+				],
+			];
 			foreach ( $vendor_products as $vid_str => $products ) {
-				$cost = \NKZMP\Shipping\Rate::vendor_package_cost( (int) $vid_str, $products );
+				$cost = method_exists( \NKZMP\Shipping\Rate::class, 'vendor_cost_for_package' )
+					? \NKZMP\Shipping\Rate::vendor_cost_for_package( (int) $vid_str, $products, $pseudo_package )
+					: \NKZMP\Shipping\Rate::vendor_package_cost( (int) $vid_str, $products );
 				if ( $cost > 0 ) {
 					$shipping[ $vid_str ] = trim( html_entity_decode( wp_strip_all_tags( wc_price( $cost ) ), ENT_QUOTES, 'UTF-8' ) );
 				} else {
 					$shipping[ $vid_str ] = (string) __( 'zdarma', 'nkz-mp-storefront' );
+				}
+			}
+			// Prodejci, kteří mají v košíku jen nadrozměr.
+			foreach ( array_keys( $oversized_vendors ) as $vid_str ) {
+				if ( ! isset( $shipping[ $vid_str ] ) ) {
+					$shipping[ $vid_str ] = (string) __( 'dohodou s prodejcem', 'nkz-mp-storefront' );
 				}
 			}
 		}

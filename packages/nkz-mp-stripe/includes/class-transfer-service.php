@@ -68,8 +68,15 @@ final class Transfer_Service {
 		}
 
 		if ( ! $this->is_stripe_payment( $order ) ) {
-			Logger::debug( 'Skipping non-Stripe order', [ 'order_id' => $order_id, 'method' => $order->get_payment_method() ] );
-			return;
+			/**
+			 * Objednávka, kterou je přesto potřeba rozdělit, i když neprošla
+			 * Stripem – typicky celá zaplacená voucherem (0 Kč, bez platební
+			 * metody). Peníze na ni leží na účtu platformy z prodeje voucheru.
+			 */
+			if ( ! apply_filters( 'nkv_svs_filter_split_non_stripe_order', false, $order ) ) {
+				Logger::debug( 'Skipping non-Stripe order', [ 'order_id' => $order_id, 'method' => $order->get_payment_method() ] );
+				return;
+			}
 		}
 
 		if ( ! $order->is_paid() ) {
@@ -380,7 +387,13 @@ final class Transfer_Service {
 			],
 		];
 		// Tying transfer to charge mitigates negative-balance windows.
-		if ( ! empty( $stripe_ids['charge_id'] ) ) {
+		//
+		// Výjimka: když zákazník část zaplatil voucherem, prodejci posíláme
+		// víc, než platba kartou přinesla (zbytek leží na účtu platformy
+		// z prodeje voucheru). Stripe převod vázaný na platbu nad její
+		// částku odmítne, proto se u takové objednávky posílá ze zůstatku.
+		$use_source = (bool) apply_filters( 'nkv_svs_filter_use_source_transaction', true, $order, $vendor_split );
+		if ( $use_source && ! empty( $stripe_ids['charge_id'] ) ) {
 			$params['source_transaction'] = $stripe_ids['charge_id'];
 		}
 

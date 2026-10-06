@@ -22,6 +22,7 @@ final class Plugin {
 		VendorRateAdmin::instance()->init();
 		ProductShippingAdmin::instance()->init();
 		Settings::instance()->init();
+		Oversized::instance()->init();
 
 		// AOZ jede pouze Zásilkovnu – per-vendor metoda se v praxi nepoužívá.
 		// Filter je proto defaultně VYPNUTÝ. Pokud někdo do zóny per-vendor
@@ -79,7 +80,7 @@ final class Plugin {
 
 		$total = 0.0;
 		foreach ( $by_vendor as $vid => $products ) {
-			$total += Rate::vendor_package_cost( (int) $vid, $products );
+			$total += Rate::vendor_cost_for_package( (int) $vid, $products, $package );
 		}
 
 		foreach ( $rates as $id => $rate ) {

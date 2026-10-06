@@ -41,6 +41,16 @@ final class DashboardView {
 
 			<?php self::render_onboarding( $vendor_id, $status ); ?>
 
+			<?php
+			/**
+			 * Upozornění pro prodejce z jiných modulů (např. chybějící
+			 * fakturační údaje).
+			 *
+			 * @param int $vendor_id
+			 */
+			do_action( 'nkzmp/v1/dashboard/notices', $vendor_id );
+			?>
+
 			<section class="nkzmp-vd-stats">
 				<?php foreach ( $stats as $s ) : ?>
 					<div class="nkzmp-vd-stat">

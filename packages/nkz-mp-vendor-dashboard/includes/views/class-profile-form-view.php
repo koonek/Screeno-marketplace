@@ -195,6 +195,15 @@ final class ProfileFormView {
 					</section>
 				<?php endif; ?>
 
+				<?php
+				/**
+				 * Další sekce profilu z jiných modulů (např. fakturační údaje).
+				 *
+				 * @param int $vendor_id
+				 */
+				do_action( 'nkzmp/v1/dashboard/profile_form_sections', $vendor_id );
+				?>
+
 				<div class="nkzmp-vd-form-foot">
 					<button type="submit" class="nkzmp-vd-submit" style="background:#0060FF !important;background-color:#0060FF !important;color:#fff !important;border:0 !important;border-radius:0 !important;padding:16px 32px !important;font-weight:500 !important;font-size:15px !important;display:inline-flex !important;align-items:center !important;gap:12px !important;cursor:pointer !important;">
 						<span style="color:#fff !important;"><?php esc_html_e( 'Uložit profil', 'nkz-mp-vendor-dashboard' ); ?></span>

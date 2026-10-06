@@ -134,6 +134,51 @@ final class Rate {
 	 * @param int                        $vendor_id
 	 * @param array<int,\WC_Product>     $products fyzické produkty vendora
 	 */
+	/**
+	 * Země, ze které prodejce posílá. Bereme zemi Stripe účtu (zvolená při
+	 * registraci, CZ / SK), výchozí CZ.
+	 */
+	public static function vendor_country( int $vendor_id ): string {
+		if ( $vendor_id <= 0 ) {
+			return 'CZ';
+		}
+		$c = strtoupper( (string) get_post_meta( $vendor_id, '_nkv_stripe_country', true ) );
+		return $c !== '' ? $c : 'CZ';
+	}
+
+	/**
+	 * Příplatek za balík jdoucí do jiné země, než odkud prodejce posílá.
+	 *
+	 * Mezinárodní poštovné je dražší (CZ → SK typicky o 10–50 Kč) a pevná
+	 * sazba prodejce to nepokryje. Prázdná cílová země (košík ještě
+	 * nezná adresu) = bez příplatku.
+	 */
+	public static function cross_border_surcharge( int $vendor_id, string $destination_country ): float {
+		$dest = strtoupper( trim( $destination_country ) );
+		if ( $dest === '' || $dest === self::vendor_country( $vendor_id ) ) {
+			return 0.0;
+		}
+		$amount = (float) ( Settings::get()['cross_border_surcharge'] ?? 0 );
+		return max( 0.0, (float) apply_filters( 'nkzmp/v1/shipping/cross_border_surcharge', $amount, $vendor_id, $dest ) );
+	}
+
+	/**
+	 * Cena balíku jednoho prodejce do cílové země z WC packagi.
+	 * Jediné místo, kde se skládá výsledná cena – Zásilkovna i vlastní
+	 * metoda dopravy volají tohle, aby si nikdy nemohly protiřečit.
+	 *
+	 * @param \WC_Product[] $products
+	 * @param array         $package  WC shipping package
+	 */
+	public static function vendor_cost_for_package( int $vendor_id, array $products, array $package ): float {
+		$cost = self::vendor_package_cost( $vendor_id, $products );
+		if ( $cost <= 0 ) {
+			return $cost; // doprava zdarma zůstává zdarma i do zahraničí
+		}
+		$country = (string) ( $package['destination']['country'] ?? '' );
+		return $cost + self::cross_border_surcharge( $vendor_id, $country );
+	}
+
 	public static function vendor_package_cost( int $vendor_id, array $products ): float {
 		$candidates    = [];
 		$needs_flat    = false;

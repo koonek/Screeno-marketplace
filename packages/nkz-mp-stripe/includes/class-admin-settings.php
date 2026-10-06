@@ -89,7 +89,10 @@ final class Admin_Settings {
 			[ 'type' => 'password', 'id' => 'nkv_svs_webhook_secret', 'title' => __( 'Stripe webhook secret (whsec_…)', 'nkz-woo-stripe-vendor-split' ), 'autoload' => false, 'desc_tip' => __( 'Zkopíruj ze Stripe Dashboard po vytvoření webhooku na URL níže.', 'nkz-woo-stripe-vendor-split' ) ],
 			[ 'type' => 'number', 'id' => 'nkv_svs__default_fee_percent', 'title' => __( 'Výchozí provize platformy (%)', 'nkz-woo-stripe-vendor-split' ), 'custom_attributes' => [ 'step' => '0.01', 'min' => '0', 'max' => '100' ] ],
 			[ 'type' => 'checkbox', 'id' => 'nkv_svs__split_includes_tax', 'title' => __( 'Zahrnout DPH do základu prodejce', 'nkz-woo-stripe-vendor-split' ) ],
-			[ 'type' => 'checkbox', 'id' => 'nkv_svs__split_includes_shipping', 'title' => __( 'Zahrnout dopravu do rozdělení', 'nkz-woo-stripe-vendor-split' ) ],
+			// „Zahrnout dopravu do rozdělení" odstraněno: přepínač nikdy nic
+			// nedělal (výpočet dopravu ignoruje) a poštovné je příjem Art of
+			// život – je na jejím dokladu. Zapnutí by sugerovalo, že poštovné
+			// jde prodejcům, a doklady by pak neseděly s penězi.
 			[ 'type' => 'checkbox', 'id' => 'nkv_svs__deduct_coupons_proportionally', 'title' => __( 'Odečíst slevy poměrově', 'nkz-woo-stripe-vendor-split' ) ],
 			[ 'type' => 'select', 'id' => 'nkv_svs__stripe_fee_vendor_share_percent', 'title' => __( 'Stripe poplatek — kolik nese prodejce', 'nkz-woo-stripe-vendor-split' ), 'options' => [ '0' => __( '0 % — celé platí platforma', 'nkz-woo-stripe-vendor-split' ), '50' => __( '50 % — půl na půl', 'nkz-woo-stripe-vendor-split' ), '100' => __( '100 % — celé platí prodejce', 'nkz-woo-stripe-vendor-split' ) ] ],
 			[ 'type' => 'checkbox', 'id' => 'nkv_svs__automatic_transfers', 'title' => __( 'Automatické transfery', 'nkz-woo-stripe-vendor-split' ) ],

@@ -90,7 +90,7 @@ final class Method extends \WC_Shipping_Method {
 		$breakdown = [];
 		$per_vendor = [];
 		foreach ( $vendor_products as $vendor_id => $products ) {
-			$cost = Rate::vendor_package_cost( (int) $vendor_id, $products );
+			$cost = Rate::vendor_cost_for_package( (int) $vendor_id, $products, $package );
 			$per_vendor[ (string) $vendor_id ] = (float) $cost;
 			if ( $cost <= 0 ) {
 				continue;
