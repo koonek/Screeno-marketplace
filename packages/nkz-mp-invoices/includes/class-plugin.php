@@ -19,6 +19,7 @@ final class Plugin {
 		Settings::instance()->init();
 		VendorBilling::instance()->init();
 		Documents::instance()->init();
+		MembershipInvoices::instance()->init();
 		Delivery::instance()->init();
 	}
 }

@@ -173,7 +173,7 @@ final class Documents {
 	}
 
 	/** Položka dokladu s rozpočtem DPH z ceny včetně daně. */
-	private static function line( string $name, float $qty, float $gross, ?int $rate, array $extra = [] ): array {
+	public static function line( string $name, float $qty, float $gross, ?int $rate, array $extra = [] ): array {
 		$gross = round( $gross, 2 );
 		$base  = $rate === null ? $gross : round( $gross / ( 1 + $rate / 100 ), 2 );
 		return [

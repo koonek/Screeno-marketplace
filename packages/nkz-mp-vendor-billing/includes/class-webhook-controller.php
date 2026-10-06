@@ -122,6 +122,15 @@ final class WebhookController {
 		BillingEmails::reset( $vendor_id );
 		$this->maybe_reactivate( $vendor_id );
 		$this->audit( 'billing.invoice_paid', $vendor_id, 'Invoice paid' );
+
+		/**
+		 * Zaplacená faktura za členství (Stripe invoice objekt). Fakturační
+		 * modul na to vystaví vlastní doklad Art of život prodejci.
+		 *
+		 * @param int   $vendor_id
+		 * @param array $invoice
+		 */
+		do_action( 'nkzmp/v1/billing/invoice_paid', $vendor_id, $invoice );
 	}
 
 	private function on_invoice_failed( array $invoice ): void {

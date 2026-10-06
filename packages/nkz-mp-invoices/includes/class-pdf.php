@@ -172,7 +172,12 @@ final class Pdf {
 		$h .= '<table class="meta"><tr>';
 		$h .= '<td><span class="muted">Datum vystavení</span><br>' . self::e( wp_date( 'j. n. Y', (int) $d['issued_at'] ) ) . '</td>';
 		$h .= '<td><span class="muted">' . ( $payer ? 'Datum uskut. zdanitelného plnění' : 'Datum plnění' ) . '</span><br>' . self::e( wp_date( 'j. n. Y', (int) $d['duzp'] ) ) . '</td>';
-		$h .= '<td><span class="muted">Objednávka</span><br>' . self::e( $d['order_number'] ) . '</td>';
+		if ( (string) ( $d['order_number'] ?? '' ) !== '' ) {
+			$h .= '<td><span class="muted">Objednávka</span><br>' . self::e( $d['order_number'] ) . '</td>';
+		} elseif ( ! empty( $d['subject'] ) ) {
+			// Faktura za členství – bez objednávky, s obdobím.
+			$h .= '<td><span class="muted">Období</span><br>' . self::e( $d['subject'] ) . '</td>';
+		}
 		if ( $credit && ! empty( $d['related'] ) ) {
 			$h .= '<td><span class="muted">K dokladu</span><br>' . self::e( $d['related'] ) . '</td>';
 		}
@@ -218,7 +223,9 @@ final class Pdf {
 			}
 			$h .= '<p class="note"><span class="paid">UHRAZENO</span> &nbsp;Neplaťte, částka je zaplacena.';
 			if ( $parts ) {
-				$h .= ' Objednávka ' . self::e( $d['order_number'] ) . ' uhrazena: ' . self::e( implode( ', ', $parts ) ) . '.';
+				$h .= (string) ( $d['order_number'] ?? '' ) !== ''
+					? ' Objednávka ' . self::e( $d['order_number'] ) . ' uhrazena: ' . self::e( implode( ', ', $parts ) ) . '.'
+					: ' Uhrazeno ' . self::e( implode( ', ', $parts ) ) . '.';
 			}
 			$h .= '</p>';
 		}

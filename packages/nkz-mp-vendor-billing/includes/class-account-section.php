@@ -151,6 +151,13 @@ final class AccountSection {
 			echo '<p style="margin-top:16px;color:#b00020;">' . esc_html__( 'Poslední platba neprošla. Aktualizuj platební metodu, jinak ti dočasně skryjeme produkty.', 'nkz-mp-vendor-billing' ) . '</p>';
 		}
 
+		/**
+		 * Další obsah sekce Předplatné (např. faktury za členství).
+		 *
+		 * @param int $vendor_id
+		 */
+		do_action( 'nkzmp/v1/billing/account_after', $vendor_id );
+
 		echo '</div>';
 	}
 
