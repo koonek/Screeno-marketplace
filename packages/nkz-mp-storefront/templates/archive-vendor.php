@@ -29,12 +29,12 @@ get_header();
 <div class="nkzmp-vendor-page">
 
 	<header style="margin-bottom: 24px;">
-		<h1><?php esc_html_e( 'Prodejci', 'nkz-mp-storefront' ); ?></h1>
-		<p><?php echo esc_html( sprintf( __( 'Celkem %d prodejců.', 'nkz-mp-storefront' ), $vendors['total'] ) ); ?></p>
+		<h1><?php esc_html_e( 'Značky', 'nkz-mp-storefront' ); ?></h1>
+		<p><?php echo esc_html( sprintf( __( 'Celkem %d značek.', 'nkz-mp-storefront' ), $vendors['total'] ) ); ?></p>
 	</header>
 
 	<?php if ( empty( $vendors['items'] ) ) : ?>
-		<p><em><?php esc_html_e( 'Žádní prodejci nejsou aktuálně k dispozici.', 'nkz-mp-storefront' ); ?></em></p>
+		<p><em><?php esc_html_e( 'Žádné značky nejsou aktuálně k dispozici.', 'nkz-mp-storefront' ); ?></em></p>
 	<?php else : ?>
 		<div class="nkzmp-vendor-archive">
 			<?php foreach ( $vendors['items'] as $vendor_post ) :

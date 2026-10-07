@@ -74,7 +74,7 @@ final class ArchivePage {
 
 	public function maybe_title( $title ) {
 		if ( get_query_var( 'nkzmp_vendor_archive' ) ) {
-			return __( 'Prodejci', 'nkz-mp-storefront' ) . ' – ' . get_bloginfo( 'name' );
+			return __( 'Značky', 'nkz-mp-storefront' ) . ' – ' . get_bloginfo( 'name' );
 		}
 		return $title;
 	}

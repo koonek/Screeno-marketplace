@@ -122,7 +122,7 @@ final class ShopFilters {
 		$this->render_search( $active['q'] );
 		$this->render_categories( $active['cat'] );
 		$this->render_price( $active['min_price'], $active['max_price'] );
-		$this->render_vendors( $active['vendor'] );
+		$this->render_vendors( $active['vendor'], (array) ( $active['cat'] ?? [] ) );
 		$this->render_stock( $active['instock'] );
 
 		// No-JS submit.
@@ -216,42 +216,77 @@ final class ShopFilters {
 		echo '</fieldset>';
 	}
 
-	private function render_vendors( array $selected ): void {
+	private function render_vendors( array $selected, array $cats = [] ): void {
 		$vendors = self::product_vendors();
 		if ( empty( $vendors ) ) {
 			return;
 		}
+
+		// Ve zvolené kategorii jen značky, které v ní něco mají (s počty
+		// za kategorii). Při stovkách značek je to největší úleva – v
+		// „Šperky" nemá smysl nabízet keramiku.
+		$term_ids = self::scope_term_ids( $cats );
+		if ( $term_ids ) {
+			$in_scope = self::vendor_counts_in_terms( $term_ids );
+			$scoped   = [];
+			foreach ( $vendors as $vid => $v ) {
+				if ( isset( $in_scope[ $vid ] ) ) {
+					$scoped[ $vid ] = [ 'name' => $v['name'], 'count' => $in_scope[ $vid ] ];
+				} elseif ( in_array( (int) $vid, $selected, true ) ) {
+					// Zaškrtnutou značku necháme, ať jde odškrtnout.
+					$scoped[ $vid ] = [ 'name' => $v['name'], 'count' => 0 ];
+				}
+			}
+			$vendors = $scoped;
+			if ( ! $vendors ) {
+				return;
+			}
+		}
+
 		echo '<fieldset class="nkzmp-filters__group" data-nkzmp-group="vendor">';
 		printf(
 			'<legend>%s <em class="nkzmp-filters__legend-count">%d</em></legend>',
 			esc_html__( 'Značky', 'nkz-mp-storefront' ),
 			count( $vendors )
 		);
-		// Seznam BEZ vlastního posouvání. Dřív měl max-height + scroll a na
-		// mobilu byl uvnitř spodního panelu, který se posouvá taky – dvě
-		// vnořená posouvání se pralo a řádky se ořezávaly pod přechodem.
-		// Teď se ukáže prvních N prodejců, zbytek rozbalí tlačítko a při
-		// větším počtu je nahoře políčko na hledání.
+		// Seznam BEZ vlastního posouvání (vnořené posouvání v mobilním
+		// panelu se pralo). Nahoře nejoblíbenější značky (nejvíc produktů),
+		// pod nimi všechny A–Z – ty se odkrývají po dávkách, a hledání
+		// prohledává celý seznam.
 		$visible = (int) apply_filters( 'nkzmp/v1/storefront/filter_vendors_visible', 8 );
 		$total   = count( $vendors );
+
+		$order = array_keys( $vendors ); // A–Z
+		$top   = [];
+		if ( $total > $visible ) {
+			$by_count = $vendors;
+			uasort( $by_count, static fn( $x, $y ) => [ $y['count'], $x['name'] ] <=> [ $x['count'], $y['name'] ] );
+			$top   = array_slice( array_keys( $by_count ), 0, $visible );
+			$order = array_merge( $top, array_values( array_diff( $order, $top ) ) );
+		}
+
 		echo '<div class="nkzmp-filters__vendorwrap" data-nkzmp-vendorwrap>';
 		if ( $total > $visible ) {
 			printf(
 				'<input type="search" class="nkzmp-filters__vendorsearch" placeholder="%s" aria-label="%s" data-nkzmp-vendorsearch autocomplete="off">',
-				esc_attr__( 'Najít značku…', 'nkz-mp-storefront' ),
-				esc_attr__( 'Najít prodejce', 'nkz-mp-storefront' )
+				/* translators: %d: počet značek */
+				esc_attr( sprintf( __( 'Najít značku (%d)…', 'nkz-mp-storefront' ), $total ) ),
+				esc_attr__( 'Najít značku', 'nkz-mp-storefront' )
 			);
 		}
 		echo '<ul class="nkzmp-filters__list nkzmp-filters__list--vendors" style="max-height:none!important;overflow:visible!important;">';
-		$i = 0;
-		foreach ( $vendors as $vid => $v ) {
+		foreach ( $order as $i => $vid ) {
+			$v = $vendors[ $vid ];
+			if ( $top && $i === count( $top ) ) {
+				echo '<li class="nkzmp-filters__divider" data-nkzmp-divider hidden>' . esc_html__( 'Všechny značky A–Z', 'nkz-mp-storefront' ) . '</li>';
+			}
 			$id    = 'nkzmp-vendor-' . $vid;
-			$name  = is_array( $v ) ? (string) $v['name'] : (string) $v;
-			$count = is_array( $v ) ? (int) $v['count'] : 0;
+			$name  = (string) $v['name'];
+			$count = (int) $v['count'];
 			$on    = in_array( (int) $vid, $selected, true );
-			// Zaškrtnuté prodejce nikdy neschováváme – uživatel by nevěděl,
+			$extra = $top && ! in_array( $vid, $top, true );
+			// Zaškrtnuté značky nikdy neschováváme – uživatel by nevěděl,
 			// proč se mu filtruje.
-			$hidden = $i >= $visible && ! $on;
 			printf(
 				'<li data-nkzmp-vendor-name="%6$s"%7$s><label for="%1$s"><input type="checkbox" id="%1$s" name="vendor[]" value="%2$d"%3$s> <span>%4$s</span>%5$s</label></li>',
 				esc_attr( $id ),
@@ -260,20 +295,89 @@ final class ShopFilters {
 				esc_html( $name ),
 				$count > 0 ? ' <em>' . (int) $count . '</em>' : '',
 				esc_attr( self::fold( $name ) ),
-				$hidden ? ' hidden data-nkzmp-vendor-extra' : ''
+				$extra ? ( $on ? ' data-nkzmp-vendor-extra' : ' hidden data-nkzmp-vendor-extra' ) : ''
 			);
-			++$i;
 		}
 		echo '</ul>';
-		if ( $total > $visible ) {
+		if ( $top ) {
 			printf(
-				'<button type="button" class="nkzmp-filters__more" data-nkzmp-vendormore>%s</button>',
-				esc_html( sprintf( /* translators: %d: počet prodejců */ __( 'Zobrazit všech %d', 'nkz-mp-storefront' ), $total ) )
+				'<button type="button" class="nkzmp-filters__more" data-nkzmp-vendormore data-step="%d">%s</button>',
+				(int) apply_filters( 'nkzmp/v1/storefront/filter_vendors_step', 30 ),
+				esc_html( sprintf( /* translators: %d: počet značek */ __( 'Zobrazit všechny značky (%d)', 'nkz-mp-storefront' ), $total ) )
 			);
 		}
 		echo '</div>';
 		echo '</fieldset>';
 		$this->vendor_list_script();
+	}
+
+	/**
+	 * ID kategorií (vč. podkategorií), na které je obchod právě zúžený:
+	 * archiv kategorie nebo zaškrtnuté kategorie ve filtru.
+	 *
+	 * @param string[] $slugs
+	 * @return int[]
+	 */
+	private static function scope_term_ids( array $slugs ): array {
+		$ids = [];
+		if ( function_exists( 'is_product_category' ) && is_product_category() ) {
+			$obj = get_queried_object();
+			if ( $obj instanceof \WP_Term ) {
+				$ids[] = (int) $obj->term_id;
+			}
+		}
+		foreach ( $slugs as $slug ) {
+			$t = get_term_by( 'slug', (string) $slug, 'product_cat' );
+			if ( $t instanceof \WP_Term ) {
+				$ids[] = (int) $t->term_id;
+			}
+		}
+		$all = [];
+		foreach ( array_unique( $ids ) as $id ) {
+			$all[] = $id;
+			$kids  = get_term_children( $id, 'product_cat' );
+			if ( is_array( $kids ) ) {
+				$all = array_merge( $all, array_map( 'intval', $kids ) );
+			}
+		}
+		$all = array_values( array_unique( $all ) );
+		sort( $all );
+		return $all;
+	}
+
+	/**
+	 * Počty zveřejněných produktů na značku v daných kategoriích (cache 1 h,
+	 * smaže ji každá změna produktu – forget_cache zvedne verzi).
+	 *
+	 * @param int[] $term_ids
+	 * @return array<int,int> vendor_id => počet
+	 */
+	private static function vendor_counts_in_terms( array $term_ids ): array {
+		$key    = 'nkzmp_shop_cat_vendors_' . (int) get_option( 'nkzmp_shop_cache_ver', 1 ) . '_' . md5( implode( ',', $term_ids ) );
+		$cached = get_transient( $key );
+		if ( is_array( $cached ) ) {
+			return $cached;
+		}
+		global $wpdb;
+		$in   = implode( ',', array_map( 'intval', $term_ids ) );
+		$rows = $wpdb->get_results(
+			"SELECT pm.meta_value AS vid, COUNT(DISTINCT p.ID) AS cnt
+			 FROM {$wpdb->postmeta} pm
+			 INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
+			 INNER JOIN {$wpdb->term_relationships} tr ON tr.object_id = p.ID
+			 INNER JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id
+			 WHERE pm.meta_key IN ('_nkzmp_vendor_id','_nkv_vendor_id')
+			   AND pm.meta_value != '' AND pm.meta_value != '0'
+			   AND p.post_type = 'product' AND p.post_status = 'publish'
+			   AND tt.taxonomy = 'product_cat' AND tt.term_id IN ({$in})
+			 GROUP BY pm.meta_value" // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- jen celá čísla.
+		);
+		$out = [];
+		foreach ( (array) $rows as $row ) {
+			$out[ (int) $row->vid ] = (int) $row->cnt;
+		}
+		set_transient( $key, $out, HOUR_IN_SECONDS );
+		return $out;
 	}
 
 	/** Bez diakritiky a malými písmeny – ať „sperky" najde „Šperky". */
@@ -293,6 +397,7 @@ final class ShopFilters {
 		.nkzmp-filters__vendorsearch{width:100%;margin:0 0 10px;padding:8px 12px;border:1px solid #d9dce3;border-radius:999px;font-size:14px;box-sizing:border-box}
 		.nkzmp-filters__more{background:none;border:0;padding:8px 0 0;color:#0060FF;font-weight:600;cursor:pointer;font-size:14px}
 		.nkzmp-filters__more:hover{text-decoration:underline}
+		.nkzmp-filters__divider{list-style:none;margin:12px 0 4px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#8a8f98}
 		</style>
 		<script>
 		(function () {
@@ -302,8 +407,11 @@ final class ShopFilters {
 			document.querySelectorAll('[data-nkzmp-vendorwrap]').forEach(function (wrap) {
 				var more = wrap.querySelector('[data-nkzmp-vendormore]');
 				var search = wrap.querySelector('[data-nkzmp-vendorsearch]');
+				var divider = wrap.querySelector('[data-nkzmp-divider]');
 				var items = Array.prototype.slice.call(wrap.querySelectorAll('li[data-nkzmp-vendor-name]'));
-				var expanded = false;
+				var extras = items.filter(function (li) { return li.hasAttribute('data-nkzmp-vendor-extra'); });
+				var step = more ? (parseInt(more.getAttribute('data-step'), 10) || 30) : 30;
+				var shown = 0; // kolik značek z A–Z je odkrytých
 
 				function apply() {
 					var q = search ? fold(search.value.trim()) : '';
@@ -311,16 +419,24 @@ final class ShopFilters {
 						var checked = li.querySelector('input:checked');
 						if (q) {
 							li.hidden = li.dataset.nkzmpVendorName.indexOf(q) === -1 && !checked;
+						} else if (li.hasAttribute('data-nkzmp-vendor-extra')) {
+							li.hidden = extras.indexOf(li) >= shown && !checked;
 						} else {
-							li.hidden = !expanded && li.hasAttribute('data-nkzmp-vendor-extra') && !checked;
+							li.hidden = false;
 						}
 					});
-					// Při hledání je tlačítko zbytečné – výsledky jsou vidět všechny.
-					if (more) { more.hidden = !!q || expanded; }
+					if (divider) { divider.hidden = !!q || shown === 0; }
+					if (more) {
+						var left = extras.length - shown;
+						more.hidden = !!q || left <= 0;
+						if (shown > 0 && left > 0) {
+							more.textContent = more.textContent.replace(/\(.*\)$/, '').replace(/všechny značky/i, 'další').trim() + ' (' + left + ')';
+						}
+					}
 				}
 
 				if (more) {
-					more.addEventListener('click', function () { expanded = true; apply(); });
+					more.addEventListener('click', function () { shown += step; apply(); });
 				}
 				if (search) {
 					search.addEventListener('input', apply);
@@ -678,5 +794,6 @@ final class ShopFilters {
 	public static function forget_cache(): void {
 		delete_transient( 'nkzmp_shop_price_bounds' );
 		delete_transient( 'nkzmp_shop_product_vendors' );
+		update_option( 'nkzmp_shop_cache_ver', (int) get_option( 'nkzmp_shop_cache_ver', 1 ) + 1, false );
 	}
 }
