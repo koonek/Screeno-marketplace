@@ -122,7 +122,7 @@ final class ShopDiscovery {
 				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
 			</span>
 			<input id="nkzmp-discover-q" type="search" name="s" value="<?php echo esc_attr( $query ); ?>"
-				placeholder="<?php esc_attr_e( 'Hledat produkty a prodejce…', 'nkz-mp-storefront' ); ?>"
+				placeholder="<?php esc_attr_e( 'Hledat produkty a značky…', 'nkz-mp-storefront' ); ?>"
 				autocomplete="off" data-nkzmp-discover-input />
 			<input type="hidden" name="post_type" value="product" />
 			<button type="submit"><?php esc_html_e( 'Hledat', 'nkz-mp-storefront' ); ?></button>
@@ -139,7 +139,7 @@ final class ShopDiscovery {
 			return;
 		}
 		echo '<div class="nkzmp-discover__matches">';
-		echo '<span class="nkzmp-discover__label">' . esc_html__( 'Prodejci:', 'nkz-mp-storefront' ) . '</span>';
+		echo '<span class="nkzmp-discover__label">' . esc_html__( 'Značky:', 'nkz-mp-storefront' ) . '</span>';
 		foreach ( array_slice( $found, 0, 12 ) as $v ) {
 			$this->chip( $v );
 		}
@@ -164,7 +164,7 @@ final class ShopDiscovery {
 			printf(
 				'<a href="%s">%s</a>',
 				esc_url( $archive ),
-				esc_html( sprintf( /* translators: %d: počet */ __( 'Všech %d prodejců', 'nkz-mp-storefront' ), count( $vendors ) ) )
+				esc_html( sprintf( /* translators: %d: počet */ __( 'Všech %d značek', 'nkz-mp-storefront' ), count( $vendors ) ) )
 			);
 		}
 		echo '</div>';

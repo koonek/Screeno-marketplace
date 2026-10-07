@@ -224,7 +224,7 @@ final class ShopFilters {
 		echo '<fieldset class="nkzmp-filters__group" data-nkzmp-group="vendor">';
 		printf(
 			'<legend>%s <em class="nkzmp-filters__legend-count">%d</em></legend>',
-			esc_html__( 'Prodejce', 'nkz-mp-storefront' ),
+			esc_html__( 'Značky', 'nkz-mp-storefront' ),
 			count( $vendors )
 		);
 		// Seznam BEZ vlastního posouvání. Dřív měl max-height + scroll a na
@@ -238,7 +238,7 @@ final class ShopFilters {
 		if ( $total > $visible ) {
 			printf(
 				'<input type="search" class="nkzmp-filters__vendorsearch" placeholder="%s" aria-label="%s" data-nkzmp-vendorsearch autocomplete="off">',
-				esc_attr__( 'Najít prodejce…', 'nkz-mp-storefront' ),
+				esc_attr__( 'Najít značku…', 'nkz-mp-storefront' ),
 				esc_attr__( 'Najít prodejce', 'nkz-mp-storefront' )
 			);
 		}
