@@ -159,7 +159,7 @@ final class ShopDiscovery {
 			: '';
 
 		echo '<div class="nkzmp-discover__strip-head">';
-		echo '<h2>' . esc_html__( 'Prodejci', 'nkz-mp-storefront' ) . '</h2>';
+		echo '<h2>' . esc_html__( 'Značky', 'nkz-mp-storefront' ) . '</h2>';
 		if ( $archive !== '' ) {
 			printf(
 				'<a href="%s">%s</a>',
@@ -206,10 +206,10 @@ final class ShopDiscovery {
 		.nkzmp-discover{margin:0 0 22px}
 		/* Popisek jen pro čtečky – nespoléháme na to, že ho schová šablona. */
 		.nkzmp-discover .screen-reader-text{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
-		.nkzmp-discover__search{position:relative;display:flex;align-items:center;gap:8px;background:#fff;border:2px solid #0060FF;border-radius:999px;padding:6px 6px 6px 16px;box-shadow:0 4px 18px rgba(0,96,255,.10)}
+		.nkzmp-discover__search{position:relative;display:flex;align-items:center;gap:6px;background:#fff;border:1.5px solid #0060FF;border-radius:999px;padding:3px 3px 3px 14px;box-shadow:none}
 		.nkzmp-discover__icon{color:#0060FF;display:flex;flex:0 0 auto}
-		.nkzmp-discover__search input[type=search]{flex:1 1 auto;min-width:0;border:0!important;outline:0;background:none!important;font-size:16px;padding:8px 4px!important;box-shadow:none!important}
-		.nkzmp-discover__search button{flex:0 0 auto;background:#0060FF!important;color:#fff!important;-webkit-text-fill-color:#fff!important;border:0!important;border-radius:999px!important;padding:10px 22px!important;font-weight:700;cursor:pointer}
+		.nkzmp-discover__search input[type=search]{flex:1 1 auto;min-width:0;height:auto!important;border:0!important;outline:0;background:none!important;font-size:15px;padding:6px 4px!important;box-shadow:none!important}
+		.nkzmp-discover__search button{flex:0 0 auto;background:#0060FF!important;color:#fff!important;-webkit-text-fill-color:#fff!important;border:0!important;border-radius:999px!important;padding:7px 16px!important;font-size:14px!important;font-weight:600;cursor:pointer}
 		.nkzmp-discover__suggest{position:absolute;left:0;right:0;top:calc(100% + 6px);background:#fff;border:1px solid #e6e8ee;border-radius:16px;box-shadow:0 12px 32px rgba(0,0,0,.12);padding:6px;z-index:50;max-height:60vh;overflow-y:auto}
 		.nkzmp-discover__suggest a{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;text-decoration:none;color:inherit}
 		.nkzmp-discover__suggest a:hover,.nkzmp-discover__suggest a.is-active{background:#f2f6ff}

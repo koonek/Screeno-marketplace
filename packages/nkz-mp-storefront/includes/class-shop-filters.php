@@ -41,6 +41,11 @@ final class ShopFilters {
 		// Aplikace filtrů na hlavní shop query (URL / no-JS / SEO).
 		add_action( 'woocommerce_product_query', [ $this, 'apply_to_query' ] );
 
+		// Řazení: bez „oblíbenosti" a „hodnocení" – zákazník neví, podle
+		// čeho by se řadilo (hodnocení se na webu ani nesbírá).
+		add_filter( 'woocommerce_catalog_orderby', [ $this, 'orderby_options' ], 20 );
+		add_filter( 'woocommerce_default_catalog_orderby', [ $this, 'default_orderby' ], 20 );
+
 		// Enqueue JS na shop/kategorie.
 		add_action( 'wp_enqueue_scripts', [ $this, 'enqueue' ], 20 );
 
@@ -87,7 +92,16 @@ final class ShopFilters {
 		}
 		echo '<div class="nkzmp-shop-layout">';
 
-		// Mobilní toggle (skrytý na desktopu přes CSS).
+		// Mobilní toggle (skrytý na desktopu přes CSS). Klíčový vzhled
+		// (modré tlačítko, modré řazení) i přímo ve stránce – na webu ho
+		// přebíjel styl šablony / stará CSS z mezipaměti.
+		echo '<style>
+		@media (max-width:1024px){
+		html body .nkzmp-shop-layout button.nkzmp-shop-filters-toggle,html body .nkzmp-shop-layout button.nkzmp-shop-filters-toggle:hover,html body .nkzmp-shop-layout button.nkzmp-shop-filters-toggle:focus,html body .nkzmp-shop-layout button.nkzmp-shop-filters-toggle:active{display:flex!important;width:100%!important;justify-content:center!important;align-items:center!important;gap:10px!important;margin:0 0 16px!important;padding:14px 22px!important;border:0!important;border-radius:999px!important;background:#0060FF!important;color:#fff!important;-webkit-text-fill-color:#fff!important;font-size:16px!important;font-weight:600!important;box-shadow:0 6px 18px rgba(0,96,255,.25)!important;outline:0}
+		html body .nkzmp-shop-layout button.nkzmp-shop-filters-toggle span{color:#fff!important;-webkit-text-fill-color:#fff!important}
+		}
+		html body .woocommerce .woocommerce-ordering select.orderby{border:2px solid #0060FF!important;color:#0060FF!important;-webkit-text-fill-color:#0060FF!important;background:#fff url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%230060FF\' stroke-width=\'3\' stroke-linecap=\'round\'%3E%3Cpath d=\'M6 9l6 6 6-6\'/%3E%3C/svg%3E") no-repeat right 16px center!important;border-radius:999px!important;padding:11px 42px 11px 18px!important;font-size:15px!important;font-weight:600!important;height:auto!important;-webkit-appearance:none!important;appearance:none!important;box-shadow:none!important;cursor:pointer}
+		</style>';
 		echo '<button type="button" class="nkzmp-shop-filters-toggle" aria-expanded="false">'
 			. '<span>' . esc_html( apply_filters( 'nkzmp/v1/storefront/filters_toggle_label', __( 'Kategorie, značky, cena', 'nkz-mp-storefront' ) ) ) . '</span>'
 			. '</button>';
@@ -250,23 +264,16 @@ final class ShopFilters {
 			count( $vendors )
 		);
 		// Seznam BEZ vlastního posouvání (vnořené posouvání v mobilním
-		// panelu se pralo). Nahoře nejoblíbenější značky (nejvíc produktů),
-		// pod nimi všechny A–Z – ty se odkrývají po dávkách, a hledání
-		// prohledává celý seznam.
+		// panelu se pralo). Abecedně, prvních N vidět, další se odkrývají
+		// po dávkách; hledání prohledává celý seznam.
 		$visible = (int) apply_filters( 'nkzmp/v1/storefront/filter_vendors_visible', 8 );
 		$total   = count( $vendors );
 
-		$order = array_keys( $vendors ); // A–Z
-		$top   = [];
-		if ( $total > $visible ) {
-			$by_count = $vendors;
-			uasort( $by_count, static fn( $x, $y ) => [ $y['count'], $x['name'] ] <=> [ $x['count'], $y['name'] ] );
-			$top   = array_slice( array_keys( $by_count ), 0, $visible );
-			$order = array_merge( $top, array_values( array_diff( $order, $top ) ) );
-		}
+		$order = array_keys( $vendors ); // jen abecedně (klient: řazení podle počtu produktů pryč)
+		$more  = $total > $visible;
 
 		echo '<div class="nkzmp-filters__vendorwrap" data-nkzmp-vendorwrap>';
-		if ( $total > $visible ) {
+		if ( $more ) {
 			printf(
 				'<input type="search" class="nkzmp-filters__vendorsearch" placeholder="%s" aria-label="%s" data-nkzmp-vendorsearch autocomplete="off">',
 				/* translators: %d: počet značek */
@@ -276,15 +283,12 @@ final class ShopFilters {
 		}
 		echo '<ul class="nkzmp-filters__list nkzmp-filters__list--vendors" style="max-height:none!important;overflow:visible!important;">';
 		foreach ( $order as $i => $vid ) {
-			$v = $vendors[ $vid ];
-			if ( $top && $i === count( $top ) ) {
-				echo '<li class="nkzmp-filters__divider" data-nkzmp-divider hidden>' . esc_html__( 'Všechny značky A–Z', 'nkz-mp-storefront' ) . '</li>';
-			}
+			$v     = $vendors[ $vid ];
 			$id    = 'nkzmp-vendor-' . $vid;
 			$name  = (string) $v['name'];
 			$count = (int) $v['count'];
 			$on    = in_array( (int) $vid, $selected, true );
-			$extra = $top && ! in_array( $vid, $top, true );
+			$extra = $i >= $visible;
 			// Zaškrtnuté značky nikdy neschováváme – uživatel by nevěděl,
 			// proč se mu filtruje.
 			printf(
@@ -299,7 +303,7 @@ final class ShopFilters {
 			);
 		}
 		echo '</ul>';
-		if ( $top ) {
+		if ( $more ) {
 			printf(
 				'<button type="button" class="nkzmp-filters__more" data-nkzmp-vendormore data-step="%d">%s</button>',
 				(int) apply_filters( 'nkzmp/v1/storefront/filter_vendors_step', 30 ),
@@ -380,6 +384,18 @@ final class ShopFilters {
 		return $out;
 	}
 
+	/** @param array<string,string> $options */
+	public function orderby_options( $options ): array {
+		$options = (array) $options;
+		unset( $options['popularity'], $options['rating'] );
+		return $options;
+	}
+
+	/** Výchozí řazení nesmí zůstat na odebrané volbě. */
+	public function default_orderby( $orderby ): string {
+		return in_array( (string) $orderby, [ 'popularity', 'rating' ], true ) ? 'menu_order' : (string) $orderby;
+	}
+
 	/** Bez diakritiky a malými písmeny – ať „sperky" najde „Šperky". */
 	public static function fold( string $s ): string {
 		$s = function_exists( 'remove_accents' ) ? remove_accents( $s ) : $s;
@@ -394,10 +410,11 @@ final class ShopFilters {
 		$printed = true;
 		?>
 		<style>
-		.nkzmp-filters__vendorsearch{width:100%;margin:0 0 10px;padding:8px 12px;border:1px solid #d9dce3;border-radius:999px;font-size:14px;box-sizing:border-box}
+		.nkzmp-filters .nkzmp-filters__vendorsearch,.nkzmp-filters input.nkzmp-filters__vendorsearch[type=search]{display:block;width:100%!important;height:auto!important;margin:0 0 12px!important;padding:10px 16px 10px 40px!important;border:2px solid #0060FF!important;border-radius:999px!important;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%230060FF' stroke-width='2.4' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M20 20l-3.5-3.5'/%3E%3C/svg%3E") no-repeat 15px center!important;font-size:15px!important;line-height:1.3!important;color:inherit!important;box-shadow:none!important;box-sizing:border-box;-webkit-appearance:none;appearance:none}
+		.nkzmp-filters .nkzmp-filters__vendorsearch:focus{outline:none!important;box-shadow:0 0 0 3px rgba(0,96,255,.15)!important}
 		.nkzmp-filters__more{background:none;border:0;padding:8px 0 0;color:#0060FF;font-weight:600;cursor:pointer;font-size:14px}
 		.nkzmp-filters__more:hover{text-decoration:underline}
-		.nkzmp-filters__divider{list-style:none;margin:12px 0 4px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#8a8f98}
+
 		</style>
 		<script>
 		(function () {
@@ -407,7 +424,6 @@ final class ShopFilters {
 			document.querySelectorAll('[data-nkzmp-vendorwrap]').forEach(function (wrap) {
 				var more = wrap.querySelector('[data-nkzmp-vendormore]');
 				var search = wrap.querySelector('[data-nkzmp-vendorsearch]');
-				var divider = wrap.querySelector('[data-nkzmp-divider]');
 				var items = Array.prototype.slice.call(wrap.querySelectorAll('li[data-nkzmp-vendor-name]'));
 				var extras = items.filter(function (li) { return li.hasAttribute('data-nkzmp-vendor-extra'); });
 				var step = more ? (parseInt(more.getAttribute('data-step'), 10) || 30) : 30;
@@ -425,7 +441,6 @@ final class ShopFilters {
 							li.hidden = false;
 						}
 					});
-					if (divider) { divider.hidden = !!q || shown === 0; }
 					if (more) {
 						var left = extras.length - shown;
 						more.hidden = !!q || left <= 0;
