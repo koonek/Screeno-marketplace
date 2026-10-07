@@ -173,6 +173,8 @@ final class OrdersView {
 									<?php endif; ?>
 								</div>
 							<?php endif; ?>
+
+							<?php do_action( 'nkzmp/v1/dashboard/order_after', (int) $o['order_id'], (int) $vendor['id'] ); ?>
 						</article>
 					<?php endforeach; ?>
 				</div>

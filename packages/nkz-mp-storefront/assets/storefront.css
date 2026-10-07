@@ -205,6 +205,16 @@ html body .nkzmp-vendor-header__meta {
 .nkzmp-vendor-card h2 a:hover { color: var(--nkzmp-color-accent); }
 .nkzmp-vendor-card .bio { color: var(--nkzmp-color-text-muted); font-size: var(--nkzmp-font-small); line-height: var(--nkzmp-line-height); }
 
+/* Mobil: seznam prodejců po dvou (klient). */
+@media (max-width: 640px) {
+	.nkzmp-vendor-archive { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+	.nkzmp-vendor-card { padding: 10px; border-radius: 14px; }
+	.nkzmp-vendor-card > a { margin-bottom: 8px !important; }
+	.nkzmp-vendor-card > a img { border-radius: 10px; }
+	.nkzmp-vendor-card h2 { font-size: 15px; line-height: 1.25; margin: 0 0 4px; overflow-wrap: anywhere; }
+	.nkzmp-vendor-card .bio { font-size: 12.5px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+}
+
 /* Pagination — pill akcent pro current */
 .nkzmp-pagination { margin-top: var(--nkzmp-gap-xl); text-align: center; }
 .nkzmp-pagination .page-numbers {

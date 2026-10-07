@@ -145,6 +145,8 @@ final class PayoutsView {
 				</table>
 			<?php endif; ?>
 
+			<?php do_action( 'nkzmp/v1/dashboard/payouts_after', $vendor_id, $currency ); ?>
+
 		</div>
 		<?php
 	}

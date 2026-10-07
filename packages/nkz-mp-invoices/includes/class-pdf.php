@@ -42,6 +42,10 @@ final class Pdf {
 		$opts->set( 'defaultFont', 'DejaVu Sans' );
 		$opts->set( 'isRemoteEnabled', false );
 		$opts->set( 'isHtml5ParserEnabled', true );
+		// Inter se při prvním použití „nainstaluje" do fontDir – musí být
+		// zapisovatelný (složka pluginu na serveru často není). Přibalená
+		// DejaVu se dál načítá z knihovny.
+		$opts->set( 'fontDir', $work );
 		$opts->set( 'fontCache', $work );
 		$opts->set( 'tempDir', $work );
 		$opts->set( 'chroot', [ NKZMP_INVOICES_DIR, $work ] );

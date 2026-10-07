@@ -92,6 +92,7 @@ final class Documents {
 				__( 'Vystaveny doklady: %s', 'nkz-mp-invoices' ),
 				implode( ', ', array_map( static fn( $d ) => $d['number'], array_filter( $docs, static fn( $d ) => $d['type'] === 'invoice' ) ) )
 			) );
+			do_action( 'nkzmp/v1/invoices/issued', $order, $docs );
 		}
 		return $docs;
 	}
