@@ -2,7 +2,7 @@
 /**
  * Plugin Name: NKZ Marketplace – Invoices
  * Description: Samofakturace: po zaplacení vystaví doklad za každého prodejce (jeho jménem, na základě zmocnění) a za Art of život (doprava, servisní poplatek). PDF do e-mailu, ke stažení v účtu, dobropisy při refundaci.
- * Version: 1.3.0
+ * Version: 1.4.0
  * Author: NKZ
  * Requires at least: 6.2
  * Requires PHP: 8.1
@@ -14,7 +14,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'NKZMP_INVOICES_VERSION', '1.3.0' );
+define( 'NKZMP_INVOICES_VERSION', '1.4.0' );
 define( 'NKZMP_INVOICES_FILE', __FILE__ );
 define( 'NKZMP_INVOICES_DIR', plugin_dir_path( __FILE__ ) );
 
