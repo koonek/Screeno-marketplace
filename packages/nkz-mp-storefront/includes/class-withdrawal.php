@@ -618,17 +618,29 @@ final class Withdrawal {
 	}
 
 	private function styles(): void {
+		// Styl art of život: modrá, zaoblená pole, tlačítko jako pilulka.
+		// Šablona dává tlačítkům růžovočervený rámeček – přebíjíme.
 		echo '<style>
-		.nkzmp-wd{max-width:640px}
-		.nkzmp-wd__vendor{border:1px solid #e6e8ee;border-radius:12px;padding:18px 20px;margin:0 0 16px}
-		.nkzmp-wd__vendor h3{margin:0 0 8px;font-size:18px}
-		.nkzmp-wd__items{list-style:none;margin:0 0 12px;padding:0}
-		.nkzmp-wd__items li{margin:4px 0}
-		.nkzmp-wd__form input[type=text],.nkzmp-wd__form input[type=email],.nkzmp-wd__form textarea{width:100%;max-width:420px}
+		.nkzmp-wd{max-width:560px;--wd-blue:var(--nkzmp-color-accent,#0060FF);--wd-line:#d5dcea;font-size:16px;line-height:1.55}
+		.nkzmp-wd > p:first-child{font-size:17px;margin:0 0 24px}
+		.nkzmp-wd__form p{margin:0 0 18px}
+		.nkzmp-wd__form p > label{display:block;font-size:14px;font-weight:500;color:inherit}
+		.nkzmp-wd__form p > label br{display:none}
+		.nkzmp-wd__form input[type=text],.nkzmp-wd__form input[type=email],.nkzmp-wd__form textarea{display:block;width:100%;max-width:none;box-sizing:border-box;height:auto;margin:6px 0 0;padding:13px 16px;font:inherit;font-size:16px;color:inherit;background:#fff;border:1px solid var(--wd-line);border-radius:12px;box-shadow:none;transition:border-color .15s,box-shadow .15s}
+		.nkzmp-wd__form input[type=text]:focus,.nkzmp-wd__form input[type=email]:focus,.nkzmp-wd__form textarea:focus{outline:none;border-color:var(--wd-blue);box-shadow:0 0 0 3px rgba(0,96,255,.15)}
+		.nkzmp-wd .nkzmp-wd__form button[type=submit],.nkzmp-wd .nkzmp-wd__form button[type=submit]:hover,.nkzmp-wd .nkzmp-wd__form button[type=submit]:focus,.nkzmp-wd .nkzmp-wd__form button[type=submit]:active{display:inline-flex;align-items:center;justify-content:center;min-height:50px;padding:0 28px;margin-top:4px;border:0!important;border-radius:999px!important;background:var(--wd-blue)!important;color:#fff!important;font:inherit;font-size:16px;font-weight:600;cursor:pointer;box-shadow:none!important;text-decoration:none}
+		.nkzmp-wd .nkzmp-wd__form button[type=submit]:hover{filter:brightness(.92)}
+		.nkzmp-wd .nkzmp-wd__form button[type=submit]:focus-visible{outline:2px solid var(--wd-blue)!important;outline-offset:3px}
+		.nkzmp-wd__vendor{border:1px solid var(--wd-line);border-radius:16px;padding:20px 22px;margin:0 0 18px}
+		.nkzmp-wd__vendor h3{margin:0 0 10px;font-size:19px}
+		.nkzmp-wd__items{list-style:none;margin:0 0 18px;padding:0}
+		.nkzmp-wd__items li{margin:6px 0}
+		.nkzmp-wd__items input[type=checkbox]{width:18px;height:18px;margin:0 8px 0 0;vertical-align:-3px;accent-color:var(--wd-blue)}
 		.nkzmp-wd__muted{color:#6b7280}
-		.nkzmp-wd__err{color:#b00020;font-weight:600}
+		.nkzmp-wd__err{color:#b00020;background:#fdf0f2;border-radius:12px;padding:12px 16px;font-weight:500;margin:0 0 18px}
 		.nkzmp-wd__ok{color:#1a7f37;font-weight:600}
 		.nkzmp-wd__hp{position:absolute!important;left:-9999px!important;width:1px;height:1px;opacity:0}
+		@media (max-width:600px){.nkzmp-wd .nkzmp-wd__form button[type=submit]{width:100%}}
 		</style>';
 	}
 
