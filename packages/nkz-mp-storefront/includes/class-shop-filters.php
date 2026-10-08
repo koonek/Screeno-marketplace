@@ -264,7 +264,8 @@ final class ShopFilters {
 		html body .nkzmp-shop-layout.is-bar .nkzmp-filters__group.is-open > .nkzmp-bar-panel{display:block}
 		html body .nkzmp-shop-layout.is-bar .nkzmp-filters__group:last-child .nkzmp-bar-panel{left:auto;right:0}
 		html body .nkzmp-shop-layout.is-bar .nkzmp-filters__group[data-nkzmp-group="cat"]:has(.is-multi) .nkzmp-bar-panel{width:620px}
-		html body .nkzmp-shop-layout.is-bar .nkzmp-filters .nkzmp-filters__list.nkzmp-filters__cattree.is-multi{display:grid!important;grid-template-columns:1fr 1fr;column-gap:32px;row-gap:6px;align-items:start}
+		html body .nkzmp-shop-layout.is-bar .nkzmp-filters .nkzmp-filters__list.nkzmp-filters__cattree.is-multi{display:block!important;columns:2;column-gap:32px}
+		html body .nkzmp-shop-layout.is-bar .nkzmp-filters .nkzmp-filters__cattree.is-multi > .nkzmp-filters__cat{break-inside:avoid;-webkit-column-break-inside:avoid;display:block;margin:0 0 14px!important}
 		}
 		.nkzmp-empty{margin:8px 0 24px;padding:28px 22px;border-radius:16px;background:#f7f8fb;text-align:center}
 		.nkzmp-empty h3{margin:0 0 6px;font-size:20px}
@@ -430,7 +431,8 @@ final class ShopFilters {
 		.nkzmp-filters__cathead{display:flex;align-items:center;gap:10px;padding:4px 0 2px;font-weight:600}
 		.nkzmp-filters__cathead > span{flex:1 1 auto;min-width:0}
 		.nkzmp-filters__cathead > em{font-style:normal;font-weight:400;color:#888;font-size:13px}
-		.nkzmp-filters__cattree > .nkzmp-filters__cat:not(.has-sub) > .nkzmp-filters__catrow label{font-weight:600}
+		html body .nkzmp-filters .nkzmp-filters__cattree .nkzmp-filters__cathead,html body .nkzmp-filters .nkzmp-filters__cattree > .nkzmp-filters__cat:not(.has-sub) > .nkzmp-filters__catrow label{font-size:15px!important;font-weight:600!important;line-height:1.3!important}
+		html body .nkzmp-filters .nkzmp-filters__cattree > .nkzmp-filters__cat:not(.has-sub) > .nkzmp-filters__catrow label em,html body .nkzmp-filters .nkzmp-filters__cathead em{font-size:13px!important;font-weight:400!important}
 		.nkzmp-filters__cattree .nkzmp-filters__sub{display:block!important}
 		.nkzmp-filters__sub{list-style:none;margin:2px 0 6px 26px;padding:0 0 0 10px;border-left:1px solid #e3e6ee;display:none}
 		.nkzmp-filters__cat.is-open > .nkzmp-filters__sub{display:block}
