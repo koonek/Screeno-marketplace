@@ -35,6 +35,7 @@ final class Assets {
 			|| is_product() || is_cart() || is_checkout() || is_account_page()
 			|| self::is_order_received()
 			|| ( class_exists( Favorites::class ) && is_page( (int) get_option( Favorites::PAGE_FLAG, 0 ) ) )
+			|| ( class_exists( GiftGuide::class ) && is_page( (int) get_option( GiftGuide::PAGE_FLAG, 0 ) ) )
 		);
 
 		if ( ! $on_vendor && ! $on_wc ) {

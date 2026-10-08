@@ -388,55 +388,36 @@ final class ShopFilters {
 		echo '<ul class="nkzmp-filters__list nkzmp-filters__cattree' . ( count( $parents ) > 1 ? ' is-multi' : '' ) . '">';
 		foreach ( $parents as $p ) {
 			$kids = $children[ (int) $p->term_id ] ?? [];
-			// Podkategorie vždy vidět – nic se nerozklikává.
+			// Jednotně u všech hlavních kategorií: malý nadpis, pod ním
+			// zaškrtávátka v jednom sloupci – „Vše z …" a podkategorie
+			// (vždy vidět, nic se nerozklikává).
 			echo '<li class="nkzmp-filters__cat is-open' . ( $kids ? ' has-sub' : '' ) . '" data-term="' . (int) $p->term_id . '">';
-			if ( ! $kids ) {
-				// Bez podkategorií: obyčejné zaškrtávátko.
-				echo '<div class="nkzmp-filters__catrow">' . $item( $p, $selected ) . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escapováno v $item.
-			} else {
-				// S podkategoriemi: celý řádek rozbaluje (bez zaškrtávátka –
-				// dvojí zaškrtávání hlavní i pod-kategorie mátlo). „Vše z …"
-				// je první položka uvnitř.
-				printf(
-					'<div class="nkzmp-filters__catrow nkzmp-filters__cathead"><span>%1$s</span> <em>%2$d</em></div>',
-					esc_html( $p->name ),
-					(int) $p->nkzmp_count
-				);
-				echo '<ul class="nkzmp-filters__sub">';
-				$all_id = 'nkzmp-cat-' . $p->term_id;
-				printf(
-					'<li class="nkzmp-filters__all"><label for="%1$s"><input type="checkbox" id="%1$s" name="cat[]" value="%2$s" data-nkzmp-catall%3$s> <span>%4$s</span> <em>%5$d</em></label></li>',
-					esc_attr( $all_id ),
-					esc_attr( $p->slug ),
-					in_array( $p->slug, $selected, true ) ? ' checked' : '',
-					/* translators: %s: hlavní kategorie */
-					esc_html( sprintf( __( 'Vše z %s', 'nkz-mp-storefront' ), $p->name ) ),
-					(int) $p->nkzmp_count
-				);
-				foreach ( $kids as $k ) {
-					echo '<li>' . $item( $k, $selected ) . '</li>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-				}
-				echo '</ul>';
+			printf( '<div class="nkzmp-filters__cathead">%s</div>', esc_html( $p->name ) );
+			echo '<ul class="nkzmp-filters__sub">';
+			printf(
+				'<li class="nkzmp-filters__all"><label for="%1$s"><input type="checkbox" id="%1$s" name="cat[]" value="%2$s" data-nkzmp-catall%3$s> <span>%4$s</span> <em>%5$d</em></label></li>',
+				esc_attr( 'nkzmp-cat-' . $p->term_id ),
+				esc_attr( $p->slug ),
+				in_array( $p->slug, $selected, true ) ? ' checked' : '',
+				/* translators: %s: hlavní kategorie */
+				esc_html( sprintf( __( 'Vše z %s', 'nkz-mp-storefront' ), $p->name ) ),
+				(int) $p->nkzmp_count
+			);
+			foreach ( $kids as $k ) {
+				echo '<li>' . $item( $k, $selected ) . '</li>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escapováno v $item.
 			}
+			echo '</ul>';
 			echo '</li>';
 		}
 		echo '</ul>';
 		echo '</fieldset>';
 		?>
 		<style>
-		.nkzmp-filters__cattree .nkzmp-filters__catrow{display:flex;align-items:center;gap:6px}
-		.nkzmp-filters__cattree .nkzmp-filters__catrow > label{flex:1 1 auto;min-width:0}
-		.nkzmp-filters__all{font-weight:500}
-		.nkzmp-filters__cattree > .nkzmp-filters__cat{margin:0 0 10px}
-		.nkzmp-filters__cathead{display:flex;align-items:center;gap:10px;padding:4px 0 2px;font-weight:600}
-		.nkzmp-filters__cathead > span{flex:1 1 auto;min-width:0}
-		.nkzmp-filters__cathead > em{font-style:normal;font-weight:400;color:#888;font-size:13px}
-		html body .nkzmp-filters .nkzmp-filters__cattree .nkzmp-filters__cathead,html body .nkzmp-filters .nkzmp-filters__cattree > .nkzmp-filters__cat:not(.has-sub) > .nkzmp-filters__catrow label{font-size:15px!important;font-weight:600!important;line-height:1.3!important}
-		html body .nkzmp-filters .nkzmp-filters__cattree > .nkzmp-filters__cat:not(.has-sub) > .nkzmp-filters__catrow label em,html body .nkzmp-filters .nkzmp-filters__cathead em{font-size:13px!important;font-weight:400!important}
-		.nkzmp-filters__cattree .nkzmp-filters__sub{display:block!important}
-		.nkzmp-filters__sub{list-style:none;margin:2px 0 6px 26px;padding:0 0 0 10px;border-left:1px solid #e3e6ee;display:none}
-		.nkzmp-filters__cat.is-open > .nkzmp-filters__sub{display:block}
-		.nkzmp-filters__sub li{font-size:.95em}
+		.nkzmp-filters__cattree > .nkzmp-filters__cat{margin:0 0 16px}
+		html body .nkzmp-filters .nkzmp-filters__cattree .nkzmp-filters__cathead{margin:0 0 6px;font-size:12px!important;font-weight:600!important;letter-spacing:.06em;text-transform:uppercase;color:#6b7280!important;line-height:1.3!important}
+		html body .nkzmp-filters .nkzmp-filters__cattree .nkzmp-filters__sub{display:block!important;list-style:none;margin:0!important;padding:0!important;border:0!important}
+		html body .nkzmp-filters .nkzmp-filters__cattree .nkzmp-filters__sub li{margin:0!important;padding:3px 0!important;font-size:inherit}
+		html body .nkzmp-filters .nkzmp-filters__cattree .nkzmp-filters__all{font-weight:500}
 		</style>
 		<script>
 		(function () {

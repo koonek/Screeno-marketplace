@@ -40,6 +40,7 @@ final class Plugin {
 		ShopEnhance::instance()->init();
 		Favorites::instance()->init();
 		AbandonedCart::instance()->init();
+		GiftGuide::instance()->init();
 		ShopDiscovery::instance()->init();
 		Shortcodes::instance()->init();
 		ProductReadmore::instance()->init();
