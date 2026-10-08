@@ -126,6 +126,23 @@ final class ShopFilters {
 	private function render_sidebar(): void {
 		$active = self::read_filters( $_GET ); // phpcs:ignore WordPress.Security.NonceVerification
 
+		// Vzhled přímo ve stránce (šablona jinak přebíjí tlačítka růžovou).
+		echo '<style>
+		html body .nkzmp-filters .nkzmp-filters__list.nkzmp-filters__cattree{max-height:none!important;overflow:visible!important;padding-right:0!important}
+		html body .nkzmp-filters button.nkzmp-filters__more,html body .nkzmp-filters button.nkzmp-filters__more:hover,html body .nkzmp-filters button.nkzmp-filters__more:focus,html body .nkzmp-filters button.nkzmp-filters__more:active{display:inline-flex!important;align-items:center;gap:6px;margin:6px 0 0!important;padding:8px 14px!important;background:transparent!important;border:1.5px solid #0060FF!important;border-radius:999px!important;color:#0060FF!important;-webkit-text-fill-color:#0060FF!important;font-size:14px!important;font-weight:600!important;text-decoration:none!important;box-shadow:none!important}
+		html body .nkzmp-filters button.nkzmp-filters__more:hover{background:#0060FF!important;color:#fff!important;-webkit-text-fill-color:#fff!important}
+		html body .nkzmp-filters button.nkzmp-filters__clear,html body .nkzmp-filters button.nkzmp-filters__clear:hover,html body .nkzmp-filters button.nkzmp-filters__clear:focus,html body .nkzmp-filters button.nkzmp-filters__clear:active{background:transparent!important;border:0!important;box-shadow:none!important;color:#0060FF!important;-webkit-text-fill-color:#0060FF!important;text-decoration:none!important;padding:4px 0!important}
+		html body .nkzmp-filters button.nkzmp-filters__clear:hover{text-decoration:underline!important}
+		html body .nkzmp-filters button.nkzmp-filters__caret,html body .nkzmp-filters button.nkzmp-filters__caret:focus,html body .nkzmp-filters button.nkzmp-filters__caret:active{background:transparent!important;border:0!important;box-shadow:none!important}
+		html body .nkzmp-filters button.nkzmp-filters__caret:hover{background:rgba(0,96,255,.08)!important}
+		html body .nkzmp-filters button.nkzmp-filters__done,html body .nkzmp-filters button.nkzmp-filters__done:hover,html body .nkzmp-filters button.nkzmp-filters__done:focus,html body .nkzmp-filters button.nkzmp-filters__done:active{background:#0060FF!important;color:#fff!important;-webkit-text-fill-color:#fff!important;border:0!important;border-radius:999px!important;box-shadow:none!important}
+		.nkzmp-active-chips{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 18px}
+		.nkzmp-active-chips[hidden]{display:none}
+		html body .nkzmp-active-chips button,html body .nkzmp-active-chips button:hover,html body .nkzmp-active-chips button:focus,html body .nkzmp-active-chips button:active{display:inline-flex!important;align-items:center;gap:8px;margin:0!important;padding:7px 12px 7px 14px!important;border:1.5px solid #0060FF!important;border-radius:999px!important;background:#f2f6ff!important;color:#0060FF!important;-webkit-text-fill-color:#0060FF!important;font-size:14px!important;font-weight:500!important;line-height:1.2!important;cursor:pointer;box-shadow:none!important;text-decoration:none!important}
+		html body .nkzmp-active-chips button:hover{background:#0060FF!important;color:#fff!important;-webkit-text-fill-color:#fff!important}
+		html body .nkzmp-active-chips button .x{font-size:16px;line-height:1;opacity:.8}
+		html body .nkzmp-active-chips button.is-clear,html body .nkzmp-active-chips button.is-clear:hover{border-color:transparent!important;background:transparent!important;color:#0060FF!important;-webkit-text-fill-color:#0060FF!important;text-decoration:underline!important}
+		</style>';
 		echo '<form class="nkzmp-filters" method="get" action="' . esc_url( self::base_url() ) . '">';
 
 		echo '<div class="nkzmp-filters__head">';
@@ -143,7 +160,13 @@ final class ShopFilters {
 		echo '<noscript><button type="submit" class="nkzmp-filters__submit">' . esc_html__( 'Použít filtry', 'nkz-mp-storefront' ) . '</button></noscript>';
 
 		// Mobilni "Hotovo" - viditelne jen v bottom-sheet rezimu (CSS).
-		echo '<button type="button" class="nkzmp-filters__done" data-nkzmp-done>' . esc_html__( 'Hotovo', 'nkz-mp-storefront' ) . '</button>';
+		global $wp_query;
+		$total = isset( $wp_query->found_posts ) ? (int) $wp_query->found_posts : 0;
+		printf(
+			'<button type="button" class="nkzmp-filters__done" data-nkzmp-done data-total="%d">%s</button>',
+			$total,
+			esc_html( self::show_label( $total ) )
+		);
 
 		echo '</form>';
 	}
@@ -265,6 +288,17 @@ final class ShopFilters {
 			b.addEventListener('click', function () {
 				var li = b.closest('.nkzmp-filters__cat');
 				var open = li.classList.toggle('is-open');
+				// Akordeon: otevřená jen jedna hlavní kategorie (kromě těch,
+				// kde je něco zaškrtnuté – ty zůstanou).
+				if (open) {
+					li.parentNode.querySelectorAll('.nkzmp-filters__cat.is-open').forEach(function (o) {
+						if (o !== li && !o.querySelector('input:checked')) {
+							o.classList.remove('is-open');
+							var c = o.querySelector('[data-nkzmp-caret]');
+							if (c) { c.setAttribute('aria-expanded', 'false'); }
+						}
+					});
+				}
 				b.setAttribute('aria-expanded', open ? 'true' : 'false');
 			});
 		});
@@ -461,6 +495,22 @@ final class ShopFilters {
 		}
 		set_transient( $key, $out, HOUR_IN_SECONDS );
 		return $out;
+	}
+
+	/** „Zobrazit 23 produktů" (česká množná čísla). */
+	public static function show_label( int $n ): string {
+		if ( $n === 1 ) {
+			return __( 'Zobrazit 1 produkt', 'nkz-mp-storefront' );
+		}
+		if ( $n >= 2 && $n <= 4 ) {
+			/* translators: %d: počet 2–4 */
+			return sprintf( __( 'Zobrazit %d produkty', 'nkz-mp-storefront' ), $n );
+		}
+		if ( $n === 0 ) {
+			return __( 'Žádné produkty – uprav filtr', 'nkz-mp-storefront' );
+		}
+		/* translators: %d: počet */
+		return sprintf( __( 'Zobrazit %d produktů', 'nkz-mp-storefront' ), $n );
 	}
 
 	/** @param array<string,string> $options */

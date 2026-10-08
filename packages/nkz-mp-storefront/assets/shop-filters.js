@@ -153,6 +153,8 @@
 			.then( function ( res ) {
 				if ( res && res.success && res.data && typeof res.data.html === 'string' ) {
 					results.innerHTML = res.data.html;
+					updateDone( parseInt( res.data.total, 10 ) );
+					renderChips();
 				}
 			} )
 			.catch( function ( err ) {
@@ -166,6 +168,88 @@
 				layout.classList.remove( 'is-loading' );
 				currentReq = null;
 			} );
+	}
+
+	/* ───────── Aktivní filtry jako štítky + počet na „Hotovo" ───────── */
+
+	function showLabel( n ) {
+		if ( isNaN( n ) ) { return null; }
+		if ( n === 0 ) { return 'Žádné produkty – uprav filtr'; }
+		if ( n === 1 ) { return 'Zobrazit 1 produkt'; }
+		if ( n >= 2 && n <= 4 ) { return 'Zobrazit ' + n + ' produkty'; }
+		return 'Zobrazit ' + n + ' produktů';
+	}
+
+	function updateDone( n ) {
+		var done = form.querySelector( '[data-nkzmp-done]' );
+		var label = showLabel( n );
+		if ( done && label ) { done.textContent = label; done.setAttribute( 'data-total', n ); }
+	}
+
+	function labelOf( input ) {
+		var l = input.closest( 'label' );
+		var sp = l ? l.querySelector( 'span' ) : null;
+		return sp ? sp.textContent.trim() : input.value;
+	}
+
+	function chip( text, onRemove, cls ) {
+		var b = document.createElement( 'button' );
+		b.type = 'button';
+		if ( cls ) { b.className = cls; }
+		b.appendChild( document.createTextNode( text ) );
+		if ( ! cls ) {
+			var x = document.createElement( 'span' );
+			x.className = 'x';
+			x.setAttribute( 'aria-hidden', 'true' );
+			x.textContent = '×';
+			b.appendChild( x );
+			b.setAttribute( 'aria-label', 'Zrušit filtr: ' + text );
+		}
+		b.addEventListener( 'click', onRemove );
+		return b;
+	}
+
+	function renderChips() {
+		var box = results.querySelector( '.nkzmp-active-chips' );
+		if ( ! box ) {
+			box = document.createElement( 'div' );
+			box.className = 'nkzmp-active-chips';
+			results.insertBefore( box, results.firstChild );
+		}
+		box.innerHTML = '';
+		var n = 0;
+		form.querySelectorAll( 'input[name="cat[]"]:checked, input[name="vendor[]"]:checked' ).forEach( function ( el ) {
+			n++;
+			box.appendChild( chip( labelOf( el ), function () { el.checked = false; applyReset(); } ) );
+		} );
+		var iMin = form.querySelector( '[data-nkzmp-price="min"]' );
+		var iMax = form.querySelector( '[data-nkzmp-price="max"]' );
+		if ( iMin && iMax ) {
+			var lo = iMin.getAttribute( 'min' ), hi = iMax.getAttribute( 'max' );
+			if ( ( iMin.value !== '' && iMin.value !== lo ) || ( iMax.value !== '' && iMax.value !== hi ) ) {
+				n++;
+				box.appendChild( chip( ( iMin.value || lo ) + ' – ' + ( iMax.value || hi ) + ' Kč', function () {
+					iMin.value = lo || ''; iMax.value = hi || ''; syncRangeFromInputs(); applyReset();
+				} ) );
+			}
+		}
+		var st = form.querySelector( 'input[name="instock"]' );
+		if ( st && st.checked ) {
+			n++;
+			box.appendChild( chip( 'Skladem', function () { st.checked = false; applyReset(); } ) );
+		}
+		var q = form.querySelector( '[data-nkzmp-search]' );
+		if ( q && q.value.trim() !== '' ) {
+			n++;
+			box.appendChild( chip( '„' + q.value.trim() + '“', function () { q.value = ''; applyReset(); } ) );
+		}
+		if ( n > 1 ) {
+			box.appendChild( chip( 'Vymazat vše', function () {
+				var c = form.querySelector( '[data-nkzmp-clear]' );
+				if ( c ) { c.click(); }
+			}, 'is-clear' ) );
+		}
+		box.hidden = n === 0;
 	}
 
 	function applyReset() {
@@ -369,4 +453,5 @@
 
 	// Init modrého fillu slideru podle počátečních hodnot.
 	updateRangeFill();
+	renderChips();
 } )();

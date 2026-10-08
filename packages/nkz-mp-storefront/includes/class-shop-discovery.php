@@ -151,8 +151,10 @@ final class ShopDiscovery {
 		if ( count( $vendors ) < 2 ) {
 			return;
 		}
-		// Nejdřív ti s nejvíc produkty – úvod obchodu má ukázat, co tu je.
-		usort( $vendors, static fn( $a, $b ) => $b['count'] <=> $a['count'] );
+		// Náhodné pořadí (klient) – každá značka má šanci být vidět vpředu.
+		// Míchá i prohlížeč (data-nkzmp-shuffle), protože stránku často
+		// drží mezipaměť a serverové pořadí by bylo pro všechny stejné.
+		shuffle( $vendors );
 		$s       = class_exists( Settings::class ) ? Settings::get() : [];
 		$archive = ( ( $s['enable_archive'] ?? 'yes' ) === 'yes' )
 			? home_url( '/' . trim( (string) ( $s['archive_slug'] ?? 'vendors' ), '/' ) . '/' )
@@ -168,8 +170,8 @@ final class ShopDiscovery {
 			);
 		}
 		echo '</div>';
-		echo '<div class="nkzmp-discover__strip">';
-		foreach ( array_slice( $vendors, 0, (int) apply_filters( 'nkzmp/v1/storefront/vendor_strip_count', 20 ) ) as $v ) {
+		echo '<div class="nkzmp-discover__strip" data-nkzmp-shuffle>';
+		foreach ( array_slice( $vendors, 0, (int) apply_filters( 'nkzmp/v1/storefront/vendor_strip_count', 60 ) ) as $v ) {
 			printf(
 				'<a class="nkzmp-discover__vendor" href="%1$s"><span class="nkzmp-discover__avatar"%2$s>%3$s</span><span class="nkzmp-discover__vname">%4$s</span></a>',
 				esc_url( $v['url'] ),
@@ -247,6 +249,15 @@ final class ShopDiscovery {
 		], $vendors );
 		?>
 		<script>
+		// Pás značek: zamíchat v prohlížeči (stránka bývá v mezipaměti).
+		document.querySelectorAll('[data-nkzmp-shuffle]').forEach(function (strip) {
+			var items = Array.prototype.slice.call(strip.children);
+			for (var i = items.length - 1; i > 0; i--) {
+				var j = Math.floor(Math.random() * (i + 1));
+				var t = items[i]; items[i] = items[j]; items[j] = t;
+			}
+			items.forEach(function (el) { strip.appendChild(el); });
+		});
 		(function () {
 			var input = document.querySelector('[data-nkzmp-discover-input]');
 			var box = document.querySelector('[data-nkzmp-discover-suggest]');
