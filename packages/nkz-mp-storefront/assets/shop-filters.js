@@ -224,14 +224,13 @@
 		} );
 		var iMin = form.querySelector( '[data-nkzmp-price="min"]' );
 		var iMax = form.querySelector( '[data-nkzmp-price="max"]' );
-		if ( iMin && iMax ) {
-			var lo = iMin.getAttribute( 'min' ), hi = iMax.getAttribute( 'max' );
-			if ( ( iMin.value !== '' && iMin.value !== lo ) || ( iMax.value !== '' && iMax.value !== hi ) ) {
-				n++;
-				box.appendChild( chip( ( iMin.value || lo ) + ' – ' + ( iMax.value || hi ) + ' Kč', function () {
-					iMin.value = lo || ''; iMax.value = hi || ''; syncRangeFromInputs(); applyReset();
-				} ) );
-			}
+		if ( iMin && iMax && ( iMin.value !== '' || iMax.value !== '' ) ) {
+			n++;
+			var txt = iMin.value !== '' && iMax.value !== '' ? iMin.value + ' – ' + iMax.value + ' Kč'
+				: ( iMin.value !== '' ? 'od ' + iMin.value + ' Kč' : 'do ' + iMax.value + ' Kč' );
+			box.appendChild( chip( txt, function () {
+				iMin.value = ''; iMax.value = ''; syncRangeFromInputs(); applyReset();
+			} ) );
 		}
 		var st = form.querySelector( 'input[name="instock"]' );
 		if ( st && st.checked ) {
@@ -318,31 +317,57 @@
 		debounceTimer = setTimeout( fn, ms );
 	}
 
+	/* Logaritmická stupnice posuvníku: pozice 0–1000 ↔ cena lo–hi. */
+	function priceScale() {
+		var w = form.querySelector( '.nkzmp-filters__range' );
+		if ( ! w ) { return null; }
+		var lo = parseFloat( w.getAttribute( 'data-lo' ) ), hi = parseFloat( w.getAttribute( 'data-hi' ) );
+		if ( ! ( lo > 0 ) || ! ( hi > lo ) ) { return null; }
+		return { lo: lo, hi: hi };
+	}
+	function toPos( price ) {
+		var s = priceScale(); if ( ! s ) { return 0; }
+		var p = Math.max( s.lo, Math.min( s.hi, parseFloat( price ) ) );
+		return Math.round( 1000 * Math.log( p / s.lo ) / Math.log( s.hi / s.lo ) );
+	}
+	function nice( p ) {
+		var step = p < 200 ? 10 : p < 2000 ? 50 : p < 20000 ? 500 : 1000;
+		return Math.max( step, Math.round( p / step ) * step );
+	}
+	function toPrice( pos ) {
+		var s = priceScale(); if ( ! s ) { return ''; }
+		return nice( s.lo * Math.pow( s.hi / s.lo, pos / 1000 ) );
+	}
+
 	function syncRangeFromInputs() {
 		var rMin = form.querySelector( '[data-nkzmp-range="min"]' );
 		var rMax = form.querySelector( '[data-nkzmp-range="max"]' );
 		var iMin = form.querySelector( '[data-nkzmp-price="min"]' );
 		var iMax = form.querySelector( '[data-nkzmp-price="max"]' );
-		if ( rMin && iMin && iMin.value !== '' ) { rMin.value = iMin.value; }
-		if ( rMax && iMax && iMax.value !== '' ) { rMax.value = iMax.value; }
+		if ( rMin && iMin ) { rMin.value = iMin.value === '' ? 0 : toPos( iMin.value ); }
+		if ( rMax && iMax ) { rMax.value = iMax.value === '' ? 1000 : toPos( iMax.value ); }
 		updateRangeFill();
 	}
 
-	// Modrý fill mezi thumby – levý/pravý okraj podle hodnot vůči bounds.
+	// Modrý fill mezi thumby + zvýraznění sloupců grafu ve zvoleném rozsahu.
 	function updateRangeFill() {
 		var rMin = form.querySelector( '[data-nkzmp-range="min"]' );
 		var rMax = form.querySelector( '[data-nkzmp-range="max"]' );
 		var fill = form.querySelector( '[data-nkzmp-range-fill]' );
-		if ( ! rMin || ! rMax || ! fill ) { return; }
-		var lo  = parseFloat( rMin.min );
-		var hi  = parseFloat( rMin.max );
-		var span = hi - lo;
-		if ( span <= 0 ) { return; }
-		var a = ( parseFloat( rMin.value ) - lo ) / span * 100;
-		var b = ( parseFloat( rMax.value ) - lo ) / span * 100;
+		if ( ! rMin || ! rMax ) { return; }
+		var a = parseFloat( rMin.value ) / 10, b = parseFloat( rMax.value ) / 10;
 		if ( a > b ) { var t = a; a = b; b = t; }
-		fill.style.left  = a + '%';
-		fill.style.right = ( 100 - b ) + '%';
+		if ( fill ) { fill.style.left = a + '%'; fill.style.right = ( 100 - b ) + '%'; }
+		var hist = form.querySelector( '.nkzmp-filters__hist' );
+		if ( hist ) {
+			var bars = hist.querySelectorAll( 'span' );
+			var n = bars.length, full = a <= 0 && b >= 100;
+			hist.classList.toggle( 'is-filtered', ! full );
+			Array.prototype.forEach.call( bars, function ( bar, i ) {
+				var mid = ( i + 0.5 ) / n * 100;
+				bar.classList.toggle( 'is-in', full || ( mid >= a && mid <= b ) );
+			} );
+		}
 	}
 
 	function syncInputsFromRange() {
@@ -355,8 +380,9 @@
 		var lo = parseInt( rMin.value, 10 );
 		var hi = parseInt( rMax.value, 10 );
 		if ( lo > hi ) { var tmp = lo; lo = hi; hi = tmp; }
-		iMin.value = lo;
-		iMax.value = hi;
+		// Krajní poloha = bez omezení (prázdné pole).
+		iMin.value = lo <= 0 ? '' : toPrice( lo );
+		iMax.value = hi >= 1000 ? '' : toPrice( hi );
 		updateRangeFill();
 	}
 
@@ -369,8 +395,8 @@
 		if ( searchEl ) { searchEl.value = ''; }
 		var iMin = form.querySelector( '[data-nkzmp-price="min"]' );
 		var iMax = form.querySelector( '[data-nkzmp-price="max"]' );
-		if ( iMin ) { iMin.value = iMin.getAttribute( 'min' ) || ''; }
-		if ( iMax ) { iMax.value = iMax.getAttribute( 'max' ) || ''; }
+		if ( iMin ) { iMin.value = ''; }
+		if ( iMax ) { iMax.value = ''; }
 		syncRangeFromInputs();
 		applyReset();
 	} );

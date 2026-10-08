@@ -455,40 +455,127 @@ final class ShopFilters {
 	}
 
 	private function render_price( ?int $min, ?int $max ): void {
-		$bounds = self::price_bounds();
-		if ( $bounds['max'] <= $bounds['min'] ) {
+		$data = self::price_data();
+		if ( ! $data ) {
 			return;
 		}
-		$cur_min = $min ?? $bounds['min'];
-		$cur_max = $max ?? $bounds['max'];
+		$lo     = $data['lo'];
+		$hi     = $data['hi'];   // horní mez stupnice (~95 % cen), výš = „hi+"
+		$capped = $data['capped'];
 
 		echo '<fieldset class="nkzmp-filters__group nkzmp-filters__price" data-nkzmp-group="price">';
 		echo '<legend>' . esc_html__( 'Cena', 'nkz-mp-storefront' ) . '</legend>';
-		echo '<div class="nkzmp-filters__price-inputs">';
+
+		// Graf rozložení cen posazený na osu posuvníku (vzor Airbnb) – stejná
+		// logaritmická stupnice, ať sloupce sedí nad cenami pod nimi.
+		$peak = $data['hist'] ? max( $data['hist'] ) : 0;
+		echo '<div class="nkzmp-filters__pricebox">';
+		if ( $peak > 0 ) {
+			echo '<div class="nkzmp-filters__hist" aria-hidden="true">';
+			foreach ( $data['hist'] as $c ) {
+				printf( '<span style="height:%s%%"></span>', esc_attr( (string) ( $c > 0 ? max( 5, round( $c / $peak * 100 ) ) : 0 ) ) );
+			}
+			echo '</div>';
+		}
+		$pos = static fn( int $p ): int => (int) round( 1000 * log( max( $lo, min( $hi, $p ) ) / $lo ) / log( $hi / $lo ) );
 		printf(
-			'<input type="number" name="min_price" inputmode="numeric" min="%1$d" max="%2$d" value="%3$d" data-nkzmp-price="min" aria-label="%4$s">',
-			(int) $bounds['min'],
-			(int) $bounds['max'],
-			(int) $cur_min,
-			esc_attr__( 'Cena od', 'nkz-mp-storefront' )
-		);
-		echo '<span class="nkzmp-filters__price-sep">–</span>';
-		printf(
-			'<input type="number" name="max_price" inputmode="numeric" min="%1$d" max="%2$d" value="%3$d" data-nkzmp-price="max" aria-label="%4$s">',
-			(int) $bounds['min'],
-			(int) $bounds['max'],
-			(int) $cur_max,
+			'<div class="nkzmp-filters__range" data-lo="%1$d" data-hi="%2$d"><div class="nkzmp-filters__range-bg"></div><div class="nkzmp-filters__range-fill" data-nkzmp-range-fill></div><input type="range" min="0" max="1000" step="1" value="%3$d" data-nkzmp-range="min" aria-label="%5$s"><input type="range" min="0" max="1000" step="1" value="%4$d" data-nkzmp-range="max" aria-label="%6$s"></div>',
+			$lo,
+			$hi,
+			$min !== null ? $pos( $min ) : 0,
+			$max !== null ? $pos( $max ) : 1000,
+			esc_attr__( 'Cena od', 'nkz-mp-storefront' ),
 			esc_attr__( 'Cena do', 'nkz-mp-storefront' )
 		);
 		echo '</div>';
+
+		// Prázdné pole = bez omezení; zástupný text ukazuje rozsah obchodu.
+		echo '<div class="nkzmp-filters__price-inputs">';
 		printf(
-			'<div class="nkzmp-filters__range"><div class="nkzmp-filters__range-bg"></div><div class="nkzmp-filters__range-fill" data-nkzmp-range-fill></div><input type="range" min="%1$d" max="%2$d" value="%3$d" data-nkzmp-range="min"><input type="range" min="%1$d" max="%2$d" value="%4$d" data-nkzmp-range="max"></div>',
-			(int) $bounds['min'],
-			(int) $bounds['max'],
-			(int) $cur_min,
-			(int) $cur_max
+			'<label class="nkzmp-filters__pricefield"><small>%1$s</small><span><input type="number" name="min_price" inputmode="numeric" min="%2$d" value="%3$s" placeholder="%2$d" data-nkzmp-price="min" aria-label="%4$s"><i>Kč</i></span></label>',
+			esc_html__( 'Minimum', 'nkz-mp-storefront' ),
+			$lo,
+			$min !== null ? (int) $min : '',
+			esc_attr__( 'Cena od', 'nkz-mp-storefront' )
 		);
+		printf(
+			'<label class="nkzmp-filters__pricefield is-max"><small>%1$s</small><span><input type="number" name="max_price" inputmode="numeric" min="%2$d" value="%3$s" placeholder="%4$s" data-nkzmp-price="max" aria-label="%5$s"><i>Kč</i></span></label>',
+			esc_html__( 'Maximum', 'nkz-mp-storefront' ),
+			$lo,
+			$max !== null ? (int) $max : '',
+			esc_attr( $hi . ( $capped ? '+' : '' ) ),
+			esc_attr__( 'Cena do', 'nkz-mp-storefront' )
+		);
+		echo '</div>';
+		echo '<style>
+		.nkzmp-filters__pricebox{position:relative;padding-top:6px}
+		.nkzmp-filters__hist{display:flex;align-items:flex-end;gap:2px;height:56px;margin:0 11px -12px;position:relative;pointer-events:none}
+		.nkzmp-filters__hist span{flex:1 1 0;min-width:0;background:#c9d3e6;border-radius:2px 2px 0 0;transition:background .15s}
+		.nkzmp-filters__hist.is-filtered span{background:#dfe4ee}
+		.nkzmp-filters__hist.is-filtered span.is-in,.nkzmp-filters__hist span.is-in{background:#0060FF}
+		html body .nkzmp-filters__pricebox .nkzmp-filters__range{margin-top:0!important}
+		.nkzmp-filters__price-inputs{display:flex;justify-content:space-between;gap:12px;margin-top:14px}
+		.nkzmp-filters__pricefield{display:flex;flex-direction:column;gap:4px;max-width:48%;margin:0!important}
+		.nkzmp-filters__pricefield.is-max{align-items:flex-end;text-align:right}
+		.nkzmp-filters__pricefield small{font-size:12px;color:#6b7280}
+		.nkzmp-filters__pricefield span{display:flex;align-items:center;gap:6px;border:1px solid #d9dce3;border-radius:999px;padding:0 14px;background:#fff}
+		.nkzmp-filters__pricefield span:focus-within{border-color:#0060FF;box-shadow:0 0 0 3px rgba(0,96,255,.12)}
+		html body .nkzmp-filters .nkzmp-filters__pricefield input[type=number]{width:72px!important;min-width:0;height:auto!important;padding:10px 0!important;border:0!important;background:transparent!important;box-shadow:none!important;outline:none!important;font-size:15px!important;-moz-appearance:textfield}
+		.nkzmp-filters__pricefield input::-webkit-outer-spin-button,.nkzmp-filters__pricefield input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+		.nkzmp-filters__pricefield i{font-style:normal;color:#6b7280;font-size:14px}
+		</style>';
 		echo '</fieldset>';
+	}
+
+	/**
+	 * Cenová data filtru: nejnižší cena, horní mez stupnice (95. percentil,
+	 * pěkně zaokrouhlený – drahé výjimky jsou „hi+") a 40 sloupců grafu.
+	 *
+	 * @return array{lo:int,hi:int,capped:bool,hist:int[]}|null
+	 */
+	private static function price_data(): ?array {
+		$key    = 'nkzmp_shop_price_hist';
+		$cached = get_transient( $key );
+		if ( is_array( $cached ) && isset( $cached['lo'], $cached['hi'], $cached['hist'] ) ) {
+			return $cached;
+		}
+		global $wpdb;
+		$prices = array_map( 'floatval', (array) $wpdb->get_col(
+			"SELECT MIN(CAST(pm.meta_value AS DECIMAL(10,2)))
+			 FROM {$wpdb->postmeta} pm
+			 INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
+			 WHERE pm.meta_key = '_price' AND pm.meta_value != ''
+			   AND p.post_type = 'product' AND p.post_status = 'publish'
+			 GROUP BY pm.post_id"
+		) );
+		$prices = array_values( array_filter( $prices, static fn( $p ) => $p > 0 ) );
+		if ( count( $prices ) < 2 ) {
+			return null;
+		}
+		sort( $prices );
+		$lo  = max( 1, (int) floor( $prices[0] ) );
+		$max = (int) ceil( end( $prices ) );
+		$p95 = $prices[ (int) floor( 0.95 * ( count( $prices ) - 1 ) ) ];
+		$step = $p95 < 2000 ? 50 : ( $p95 < 20000 ? 500 : 1000 );
+		$hi   = (int) ( ceil( $p95 / $step ) * $step );
+		$capped = $hi < $max;
+		if ( ! $capped ) {
+			$hi = $max;
+		}
+		if ( $hi <= $lo ) {
+			return null;
+		}
+		$buckets = 40;
+		$hist    = array_fill( 0, $buckets, 0 );
+		$den     = log( $hi / $lo );
+		foreach ( $prices as $pr ) {
+			$pr = max( $lo, min( $hi, $pr ) ); // dražší než mez → poslední sloupec
+			$i  = (int) floor( log( $pr / $lo ) / $den * $buckets );
+			++$hist[ min( $buckets - 1, max( 0, $i ) ) ];
+		}
+		$out = [ 'lo' => $lo, 'hi' => $hi, 'capped' => $capped, 'hist' => $hist ];
+		set_transient( $key, $out, HOUR_IN_SECONDS );
+		return $out;
 	}
 
 	private function render_vendors( array $selected, array $cats = [] ): void {
@@ -994,26 +1081,6 @@ final class ShopFilters {
 	}
 
 	/** Min/max cena napříč publikovanými produkty (cache 1h). */
-	private static function price_bounds(): array {
-		$cached = get_transient( 'nkzmp_shop_price_bounds' );
-		if ( is_array( $cached ) && isset( $cached['min'], $cached['max'] ) ) {
-			return $cached;
-		}
-		global $wpdb;
-		$row = $wpdb->get_row(
-			"SELECT MIN(CAST(meta_value AS DECIMAL(10,2))) AS min, MAX(CAST(meta_value AS DECIMAL(10,2))) AS max
-			 FROM {$wpdb->postmeta} pm
-			 INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
-			 WHERE pm.meta_key = '_price' AND pm.meta_value != ''
-			   AND p.post_type = 'product' AND p.post_status = 'publish'"
-		);
-		$bounds = [
-			'min' => $row ? (int) floor( (float) $row->min ) : 0,
-			'max' => $row ? (int) ceil( (float) $row->max ) : 0,
-		];
-		set_transient( 'nkzmp_shop_price_bounds', $bounds, HOUR_IN_SECONDS );
-		return $bounds;
-	}
 
 	/**
 	 * Prodejci, kteří mají aspoň jeden publikovaný produkt.
@@ -1093,6 +1160,7 @@ final class ShopFilters {
 	/** Invalidace cache (volat při změně produktů). */
 	public static function forget_cache(): void {
 		delete_transient( 'nkzmp_shop_price_bounds' );
+		delete_transient( 'nkzmp_shop_price_hist' );
 		delete_transient( 'nkzmp_shop_product_vendors' );
 		update_option( 'nkzmp_shop_cache_ver', (int) get_option( 'nkzmp_shop_cache_ver', 1 ) + 1, false );
 	}
