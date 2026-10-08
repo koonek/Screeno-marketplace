@@ -480,3 +480,17 @@ button.nkzmp-reg-submit {
 .nkzmp-step.is-done::before { color: var(--nkzmp-text); }
 .nkzmp-step.is-current      { color: var(--nkzmp-accent); font-weight: 600; }
 .nkzmp-step.is-current::before { color: var(--nkzmp-accent); }
+
+/* IČO nebo rodné číslo + prohlášení */
+.nkzmp-reg-seg { display: inline-flex; gap: 4px; padding: 4px; background: rgba(17,17,17,0.05); border-radius: 999px; align-self: flex-start; }
+.nkzmp-reg-seg label { display: inline-flex; align-items: center; margin: 0; padding: 8px 16px; border-radius: 999px; cursor: pointer; font-size: 14px; font-weight: 500; }
+.nkzmp-reg-seg input { position: absolute; opacity: 0; pointer-events: none; }
+.nkzmp-reg-seg label:has(input:checked) { background: #fff; color: var(--nkzmp-accent); box-shadow: 0 1px 4px rgba(17,17,17,0.12); }
+.nkzmp-reg-seg label:has(input:focus-visible) { outline: 2px solid var(--nkzmp-accent); outline-offset: 2px; }
+.nkzmp-reg-idpane { display: flex; flex-direction: column; gap: 8px; }
+.nkzmp-reg-idpane[hidden] { display: none; }
+.nkzmp-reg-field .nkzmp-reg-sublabel { font-size: 13px; opacity: .8; }
+.nkzmp-reg-field .nkzmp-reg-check--inline { margin-top: 6px; font-weight: 400; }
+/* Bez JS: podle zvolené volby (CSS :has) */
+.nkzmp-reg-idblock:not(:has(input[value="none"]:checked)) [data-idmode="none"] { display: none; }
+.nkzmp-reg-idblock:has(input[value="none"]:checked) [data-idmode="ico"] { display: none; }

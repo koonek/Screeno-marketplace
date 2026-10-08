@@ -126,7 +126,8 @@ final class EmailService {
 			'name_vocative'  => $name_vocative,
 			'email'       => (string) $vendor['email'],
 			// IČO je nepovinné – ať v e-mailu nesvítí „IČO:" s prázdnem za tím.
-			'ico'         => ( (string) get_post_meta( $vendor_id, '_nkv_vendor_ico', true ) ) ?: __( 'neuvedeno', 'nkz-mp-vendor-registration' ),
+			// Bez IČO: rodné číslo do e-mailu nikdy (citlivý údaj), jen informace.
+			'ico'         => ( (string) get_post_meta( $vendor_id, '_nkv_vendor_ico', true ) ) ?: ( get_post_meta( $vendor_id, '_nkzmp_birth_number', true ) ? __( 'bez IČO (rodné číslo vyplněno, je v administraci)', 'nkz-mp-vendor-registration' ) : __( 'neuvedeno', 'nkz-mp-vendor-registration' ) ),
 			'website'     => (string) get_post_meta( $vendor_id, '_nkv_vendor_website', true ),
 			'bio'         => (string) $vendor['bio'],
 			'stripe_link' => $stripe_link,

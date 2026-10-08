@@ -131,6 +131,12 @@ final class VendorDetailPage {
 			__( 'Web', 'nkz-marketplace' )       => $vendor['website'] ? '<a href="' . esc_url( $vendor['website'] ) . '" target="_blank" rel="noopener">' . esc_html( $vendor['website'] ) . '</a>' : '—',
 			__( 'Provize', 'nkz-marketplace' )   => $this->fee_label( $vendor ),
 		];
+		// Rodné číslo (prodejce bez IČO) – citlivý údaj: jen správci obchodu
+		// a skryté za rozkliknutím, ať nesvítí na obrazovce.
+		$rc = (string) get_post_meta( (int) $vendor['id'], '_nkzmp_birth_number', true );
+		if ( $rc !== '' && current_user_can( 'manage_woocommerce' ) ) {
+			$rows[ __( 'Rodné číslo', 'nkz-marketplace' ) ] = '<details><summary style="cursor:pointer;">' . esc_html( substr( $rc, 0, 2 ) . '••••/••••' ) . ' <span style="color:#888;">' . esc_html__( '(zobrazit)', 'nkz-marketplace' ) . '</span></summary><code>' . esc_html( $rc ) . '</code></details>';
+		}
 		$wp_user = (int) ( $vendor['wp_user_id'] ?? 0 );
 		if ( $wp_user > 0 ) {
 			$rows[ __( 'WP účet', 'nkz-marketplace' ) ] = '<a href="' . esc_url( get_edit_user_link( $wp_user ) ) . '">#' . $wp_user . '</a>';
@@ -165,7 +171,8 @@ final class VendorDetailPage {
 
 		if ( isset( $c['business_declaration'] ) ) {
 			$bd = (array) $c['business_declaration'];
-			$rows[ __( 'Prohlášení o podnikateli', 'nkz-marketplace' ) ] = $yes( $bd['accepted'] ?? false )
+			$has_ico = (string) get_post_meta( $vendor_id, '_nkzmp_id_mode', true ) === 'ico';
+			$rows[ __( 'Prohlášení o podnikateli', 'nkz-marketplace' ) ] = ( $has_ico && empty( $bd['accepted'] ) ? esc_html__( 'nepožaduje se (má IČO)', 'nkz-marketplace' ) : $yes( $bd['accepted'] ?? false ) )
 				. ( ! empty( $bd['text'] )
 					? '<br><span style="color:#666;font-size:12px;">„' . esc_html( (string) $bd['text'] ) . '"</span>'
 					: '' );

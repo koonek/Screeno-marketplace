@@ -58,13 +58,37 @@ defined( 'ABSPATH' ) || exit;
 				? \NKVSVS\Onboarding_Controller::allowed_countries()
 				: [ 'CZ' => 'Česko', 'SK' => 'Slovensko' ];
 			?>
-			<div class="nkzmp-reg-grid nkzmp-reg-grid--2">
-				<div class="nkzmp-reg-field">
-					<label for="nkzmp_ico"><?php esc_html_e( 'IČO (nepovinné)', 'nkz-mp-vendor-registration' ); ?></label>
-					<input id="nkzmp_ico" type="text" name="ico" maxlength="10" inputmode="numeric" pattern="[0-9]{6,10}" />
-					<small class="nkzmp-reg-ares-status" aria-live="polite"></small>
-					<small><?php esc_html_e( 'Když podnikáš, vyplň ho — české IČO se samo doplní z ARES. Bez něj to jde taky, ale Stripe si ho pak vyžádá při ověření pro výplaty.', 'nkz-mp-vendor-registration' ); ?></small>
+			<?php
+			// IČO NEBO rodné číslo + prohlášení (klient): kdo nemá IČO,
+			// vyplní rodné číslo a potvrdí, že prodává v rámci své
+			// samostatné činnosti, ne jako spotřebitel.
+			$business_declaration = trim( (string) ( \NKZMP\Registration\Settings::get()['business_declaration'] ?? '' ) );
+			?>
+			<div class="nkzmp-reg-field nkzmp-reg-idblock" data-nkzmp-idblock>
+				<label><?php esc_html_e( 'Identifikace', 'nkz-mp-vendor-registration' ); ?> <span class="req">*</span></label>
+				<div class="nkzmp-reg-seg" role="radiogroup">
+					<label><input type="radio" name="id_mode" value="ico" checked /> <span><?php esc_html_e( 'Mám IČO', 'nkz-mp-vendor-registration' ); ?></span></label>
+					<label><input type="radio" name="id_mode" value="none" /> <span><?php esc_html_e( 'Nemám IČO', 'nkz-mp-vendor-registration' ); ?></span></label>
 				</div>
+				<div class="nkzmp-reg-idpane" data-idmode="ico">
+					<label for="nkzmp_ico" class="nkzmp-reg-sublabel"><?php esc_html_e( 'IČO', 'nkz-mp-vendor-registration' ); ?></label>
+					<input id="nkzmp_ico" type="text" name="ico" maxlength="10" inputmode="numeric" pattern="[0-9 ]{6,10}" autocomplete="off" />
+					<small class="nkzmp-reg-ares-status" aria-live="polite"></small>
+					<small><?php esc_html_e( 'České IČO se samo doplní z ARES.', 'nkz-mp-vendor-registration' ); ?></small>
+				</div>
+				<div class="nkzmp-reg-idpane" data-idmode="none">
+					<label for="nkzmp_rc" class="nkzmp-reg-sublabel"><?php esc_html_e( 'Rodné číslo', 'nkz-mp-vendor-registration' ); ?></label>
+					<input id="nkzmp_rc" type="text" name="birth_number" maxlength="11" inputmode="numeric" placeholder="<?php esc_attr_e( 'např. 905123/4567', 'nkz-mp-vendor-registration' ); ?>" autocomplete="off" />
+					<small><?php esc_html_e( 'Potřebujeme ho k identifikaci prodejce a k povinnému hlášení prodejců finanční správě. Nikde se nezobrazuje, vidí ho jen správce platformy.', 'nkz-mp-vendor-registration' ); ?></small>
+					<?php if ( $business_declaration !== '' ) : ?>
+						<label class="nkzmp-reg-check nkzmp-reg-check--inline">
+							<input type="checkbox" name="business_declaration" value="1" />
+							<span><?php echo esc_html( $business_declaration ); ?></span>
+						</label>
+					<?php endif; ?>
+				</div>
+			</div>
+			<div class="nkzmp-reg-grid nkzmp-reg-grid--2">
 				<div class="nkzmp-reg-field">
 					<label for="nkzmp_country"><?php esc_html_e( 'Země podnikání', 'nkz-mp-vendor-registration' ); ?> <span class="req">*</span></label>
 					<select id="nkzmp_country" name="country" required>
@@ -171,17 +195,6 @@ defined( 'ABSPATH' ) || exit;
 						</span>
 					</label>
 				<?php endif; ?>
-				<?php
-				// Prohlášení o podnikatelském postavení – text je v nastavení
-				// Registrace (může ho upravit právník). Prázdné = nezobrazí se.
-				$business_declaration = trim( (string) ( \NKZMP\Registration\Settings::get()['business_declaration'] ?? '' ) );
-				if ( $business_declaration !== '' ) :
-					?>
-					<label class="nkzmp-reg-check">
-						<input type="checkbox" name="business_declaration" value="1" required />
-						<span><?php echo esc_html( $business_declaration ); ?></span>
-					</label>
-				<?php endif; ?>
 				<label class="nkzmp-reg-check">
 					<input type="checkbox" name="gdpr" value="1" required />
 					<span><?php esc_html_e( 'Souhlasím se zpracováním osobních údajů za účelem vyřízení této přihlášky.', 'nkz-mp-vendor-registration' ); ?></span>
@@ -244,6 +257,24 @@ defined( 'ABSPATH' ) || exit;
 		var updateCount = function(){ count.textContent = bio.value.length; };
 		bio.addEventListener('input', updateCount);
 		updateCount();
+	}
+
+	// IČO / rodné číslo: ukázat jen zvolenou část a jen ta je povinná.
+	var idblock = form.querySelector('[data-nkzmp-idblock]');
+	if (idblock) {
+		var syncId = function(){
+			var mode = (idblock.querySelector('input[name="id_mode"]:checked') || {}).value || 'ico';
+			idblock.querySelectorAll('[data-idmode]').forEach(function(pane){
+				var on = pane.getAttribute('data-idmode') === mode;
+				pane.hidden = !on;
+				pane.querySelectorAll('input').forEach(function(inp){
+					inp.disabled = !on;
+					inp.required = on;
+				});
+			});
+		};
+		idblock.querySelectorAll('input[name="id_mode"]').forEach(function(r){ r.addEventListener('change', syncId); });
+		syncId();
 	}
 
 	// ARES lookup pro IČO (8 čísel → fetch → autofill name pokud prázdné)

@@ -73,10 +73,28 @@ final class FormHandler {
 			$country = 'CZ';
 		}
 
-		// IČO je nepovinné – prodávat může i nepodnikající tvůrce. Stripe si
-		// identifikaci vyžádá sám při ověření pro výplaty.
-		if ( $name === '' || ! is_email( $email ) || $bio === '' || ! $terms || ! $gdpr || ! $vendor_terms_ok || ! $business_declaration_ok ) {
+		// Identifikace: IČO, NEBO (bez IČO) rodné číslo + prohlášení, že
+		// prodává v rámci své samostatné činnosti (ne jako spotřebitel).
+		$id_mode      = ( $_POST['id_mode'] ?? '' ) === 'none' ? 'none' : 'ico';
+		$birth_number = '';
+		if ( $name === '' || ! is_email( $email ) || $bio === '' || ! $terms || ! $gdpr || ! $vendor_terms_ok ) {
 			$this->redirect_error( __( 'Vyplň prosím všechna povinná pole a odsouhlas všechny souhlasy.', 'nkz-mp-vendor-registration' ) );
+		}
+		if ( $id_mode === 'ico' ) {
+			$ico_digits = preg_replace( '/\D/', '', $ico );
+			if ( strlen( $ico_digits ) < 6 || strlen( $ico_digits ) > 8 ) {
+				$this->redirect_error( __( 'Vyplň prosím IČO (8 číslic), nebo zvol „Nemám IČO“.', 'nkz-mp-vendor-registration' ) );
+			}
+			$ico = str_pad( $ico_digits, 8, '0', STR_PAD_LEFT );
+		} else {
+			$ico          = '';
+			$birth_number = (string) self::normalize_birth_number( (string) wp_unslash( $_POST['birth_number'] ?? '' ) );
+			if ( $birth_number === '' ) {
+				$this->redirect_error( __( 'Rodné číslo nevypadá správně. Zadej ho prosím ve tvaru 905123/4567.', 'nkz-mp-vendor-registration' ) );
+			}
+			if ( ! $business_declaration_ok ) {
+				$this->redirect_error( __( 'Bez IČO je potřeba zaškrtnout prohlášení o prodeji v rámci samostatné činnosti.', 'nkz-mp-vendor-registration' ) );
+			}
 		}
 
 		// Duplicate email check.
@@ -108,6 +126,12 @@ final class FormHandler {
 		update_post_meta( $vendor_id, '_nkzmp_vendor_email', $email );
 		update_post_meta( $vendor_id, '_nkv_vendor_ico', $ico );
 		update_post_meta( $vendor_id, '_nkzmp_vendor_ico', $ico );
+		update_post_meta( $vendor_id, '_nkzmp_id_mode', $id_mode );
+		if ( $birth_number !== '' ) {
+			// Citlivý údaj: jen pro správce (identifikace, hlášení DAC7).
+			// Nikde veřejně, ne v e-mailech, ne v exportech pro prodejce.
+			update_post_meta( $vendor_id, '_nkzmp_birth_number', $birth_number );
+		}
 		if ( $website ) {
 			update_post_meta( $vendor_id, '_nkv_vendor_website', $website );
 			update_post_meta( $vendor_id, '_nkzmp_vendor_website', $website );
@@ -130,7 +154,7 @@ final class FormHandler {
 			// změnit, a v případném sporu je potřeba doložit, co přesně
 			// prodejce v den registrace potvrdil.
 			'business_declaration' => [
-				'accepted' => $business_declaration !== '' && ! empty( $_POST['business_declaration'] ),
+				'accepted' => $id_mode === 'none' && $business_declaration !== '' && ! empty( $_POST['business_declaration'] ),
 				'text'     => $business_declaration,
 			],
 			'at'           => time(),
@@ -191,5 +215,44 @@ final class FormHandler {
 		$url    = add_query_arg( [ 'nkzmp_reg' => 'err', 'nkzmp_err' => rawurlencode( $msg ) ], $target );
 		wp_safe_redirect( $url );
 		exit;
+	}
+
+	/**
+	 * Rodné číslo (CZ/SK) → „YYMMDD/XXXX", nebo null když není platné.
+	 *
+	 * 10místné: dělitelné 11 (výjimka: zbytek 10 a poslední číslice 0).
+	 * 9místné jen pro narozené před rokem 1954. Měsíc +50 u žen, od roku
+	 * 2004 i +20 / +70.
+	 */
+	public static function normalize_birth_number( string $raw ): ?string {
+		$d = preg_replace( '/[\s\/]/', '', $raw );
+		if ( ! preg_match( '/^\d{9,10}$/', (string) $d ) ) {
+			return null;
+		}
+		$yy = (int) substr( $d, 0, 2 );
+		$mm = (int) substr( $d, 2, 2 );
+		$dd = (int) substr( $d, 4, 2 );
+		if ( $mm > 70 ) {
+			$mm -= 70;
+		} elseif ( $mm > 50 ) {
+			$mm -= 50;
+		} elseif ( $mm > 20 ) {
+			$mm -= 20;
+		}
+		if ( $mm < 1 || $mm > 12 || $dd < 1 || $dd > 31 ) {
+			return null;
+		}
+		if ( strlen( $d ) === 9 ) {
+			if ( $yy >= 54 ) {
+				return null;
+			}
+		} else {
+			$rest = (int) ( (int) substr( $d, 0, 9 ) % 11 );
+			$last = (int) substr( $d, 9, 1 );
+			if ( ! ( ( $rest === 10 && $last === 0 ) || ( $rest < 10 && $rest === $last ) ) ) {
+				return null;
+			}
+		}
+		return substr( $d, 0, 6 ) . '/' . substr( $d, 6 );
 	}
 }
