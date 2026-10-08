@@ -43,6 +43,20 @@ final class Favorites {
 		add_action( 'wp_ajax_nkzmp_fav_render', [ $this, 'ajax_render' ] );
 		add_action( 'wp_ajax_nopriv_nkzmp_fav_render', [ $this, 'ajax_render' ] );
 		add_action( 'init', [ $this, 'maybe_create_page' ], 100 );
+		// Stránka Oblíbené = karty jako v obchodě (styly cílí na body.woocommerce).
+		add_filter( 'body_class', [ $this, 'body_class' ] );
+	}
+
+	/** @param string[] $classes */
+	public function body_class( $classes ): array {
+		$classes = (array) $classes;
+		$page    = (int) get_option( self::PAGE_FLAG, 0 );
+		if ( $page > 0 && is_page( $page ) ) {
+			$classes[] = 'woocommerce';
+			$classes[] = 'woocommerce-page';
+			$classes[] = 'nkzmp-favorites-page';
+		}
+		return array_values( array_unique( $classes ) );
 	}
 
 	/* ============================================================ tlačítka */
@@ -102,6 +116,13 @@ final class Favorites {
 	}
 
 	public function shortcode(): string {
+		// Vzhled karet jako v obchodě i tam, kde je stránka jinde/v Elementoru.
+		if ( class_exists( Assets::class ) ) {
+			Assets::ensure_storefront_css();
+			if ( apply_filters( 'nkzmp/v1/storefront/style_wc', true ) ) {
+				Assets::ensure_wc_css();
+			}
+		}
 		return '<div class="nkzmp-favs woocommerce" data-nkzmp-favs><p class="nkzmp-favs__loading">' . esc_html__( 'Načítám oblíbené…', 'nkz-mp-storefront' ) . '</p></div>';
 	}
 
