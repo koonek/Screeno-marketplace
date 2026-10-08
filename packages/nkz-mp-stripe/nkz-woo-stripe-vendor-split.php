@@ -15,6 +15,26 @@
 
 defined( 'ABSPATH' ) || exit;
 
+// Modul je nainstalovaný dvakrát (samostatný plugin i uvnitř balíku) – už
+// běží jiná kopie. Druhou nespouštět: dvojí háčky by zdvojily i akce
+// (převody, e-maily) a konstanty hlásí varování.
+if ( defined( 'NKVSVS_VERSION' ) ) {
+	add_action(
+		'admin_notices',
+		static function (): void {
+			if ( ! current_user_can( 'activate_plugins' ) ) {
+				return;
+			}
+			printf(
+				'<div class="notice notice-warning"><p><strong>%s</strong> je nainstalovaný dvakrát – druhá kopie se nenačítá: <code>%s</code>. Deaktivuj a smaž ji v Pluginech (stačí jedna kopie, např. v balíku NKZ Marketplace).</p></div>',
+				esc_html( 'NKZ Woo Stripe Vendor Split' ),
+				esc_html( wp_normalize_path( __FILE__ ) )
+			);
+		}
+	);
+	return;
+}
+
 define( 'NKVSVS_VERSION', '0.15.1' );
 define( 'NKVSVS_PLUGIN_FILE', __FILE__ );
 define( 'NKVSVS_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );

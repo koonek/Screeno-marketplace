@@ -249,7 +249,7 @@ final class ShopFilters {
 					$open = true;
 				}
 			}
-			echo '<li class="nkzmp-filters__cat' . ( $kids ? ' has-sub' : '' ) . ( $open ? ' is-open' : '' ) . '">';
+			echo '<li class="nkzmp-filters__cat' . ( $kids ? ' has-sub' : '' ) . ( $open ? ' is-open' : '' ) . '" data-term="' . (int) $p->term_id . '">';
 			echo '<div class="nkzmp-filters__catrow">' . $item( $p, $selected ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escapováno v $item.
 			if ( $kids ) {
 				printf(
@@ -284,6 +284,34 @@ final class ShopFilters {
 		.nkzmp-filters__sub li{font-size:.95em}
 		</style>
 		<script>
+		(function () {
+			// Zapamatovat posledně rozbalenou kategorii (návrat z detailu
+			// produktu). Jen když není nic vybrané – výběr má přednost.
+			var KEY = 'nkzmp_cat_open';
+			var tree = document.querySelector('.nkzmp-filters__cattree');
+			if (!tree) { return; }
+			if (!tree.querySelector('.nkzmp-filters__cat.is-open')) {
+				var saved = null;
+				try { saved = localStorage.getItem(KEY); } catch (e) {}
+				var li = saved ? tree.querySelector('.nkzmp-filters__cat.has-sub[data-term="' + saved + '"]') : null;
+				if (li) {
+					li.classList.add('is-open');
+					var c = li.querySelector('[data-nkzmp-caret]');
+					if (c) { c.setAttribute('aria-expanded', 'true'); }
+				}
+			}
+			tree.addEventListener('click', function (e) {
+				var b = e.target.closest('[data-nkzmp-caret]');
+				if (!b) { return; }
+				setTimeout(function () {
+					var li = b.closest('.nkzmp-filters__cat');
+					try {
+						if (li.classList.contains('is-open')) { localStorage.setItem(KEY, li.getAttribute('data-term')); }
+						else if (localStorage.getItem(KEY) === li.getAttribute('data-term')) { localStorage.removeItem(KEY); }
+					} catch (e2) {}
+				}, 0);
+			});
+		})();
 		document.querySelectorAll('[data-nkzmp-caret]').forEach(function (b) {
 			b.addEventListener('click', function () {
 				var li = b.closest('.nkzmp-filters__cat');
@@ -516,13 +544,21 @@ final class ShopFilters {
 	/** @param array<string,string> $options */
 	public function orderby_options( $options ): array {
 		$options = (array) $options;
-		unset( $options['popularity'], $options['rating'] );
-		return $options;
+		// Bez „oblíbenosti" a „hodnocení"; výchozí jsou Novinky (obchod
+		// postupně přibývá), takže ruční „Výchozí třídění" taky pryč.
+		unset( $options['popularity'], $options['rating'], $options['menu_order'] );
+		$out = [ 'date' => __( 'Novinky', 'nkz-mp-storefront' ) ];
+		foreach ( $options as $k => $label ) {
+			if ( $k !== 'date' ) {
+				$out[ $k ] = $label;
+			}
+		}
+		return $out;
 	}
 
-	/** Výchozí řazení nesmí zůstat na odebrané volbě. */
+	/** Výchozí řazení: Novinky (nejnovější nahoře). */
 	public function default_orderby( $orderby ): string {
-		return in_array( (string) $orderby, [ 'popularity', 'rating' ], true ) ? 'menu_order' : (string) $orderby;
+		return in_array( (string) $orderby, [ 'popularity', 'rating', 'menu_order', '' ], true ) ? 'date' : (string) $orderby;
 	}
 
 	/** Bez diakritiky a malými písmeny – ať „sperky" najde „Šperky". */

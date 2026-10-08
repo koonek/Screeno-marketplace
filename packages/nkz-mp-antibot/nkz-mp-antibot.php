@@ -32,6 +32,26 @@
 
 defined( 'ABSPATH' ) || exit;
 
+// Modul je nainstalovaný dvakrát (samostatný plugin i uvnitř balíku) – už
+// běží jiná kopie. Druhou nespouštět: dvojí háčky by zdvojily i akce
+// (převody, e-maily) a konstanty hlásí varování.
+if ( defined( 'NKZMP_ANTIBOT_VERSION' ) ) {
+	add_action(
+		'admin_notices',
+		static function (): void {
+			if ( ! current_user_can( 'activate_plugins' ) ) {
+				return;
+			}
+			printf(
+				'<div class="notice notice-warning"><p><strong>%s</strong> je nainstalovaný dvakrát – druhá kopie se nenačítá: <code>%s</code>. Deaktivuj a smaž ji v Pluginech (stačí jedna kopie, např. v balíku NKZ Marketplace).</p></div>',
+				esc_html( 'NKZ Marketplace – Antibot' ),
+				esc_html( wp_normalize_path( __FILE__ ) )
+			);
+		}
+	);
+	return;
+}
+
 define( 'NKZMP_ANTIBOT_VERSION', '0.1.2' );
 define( 'NKZMP_ANTIBOT_FILE', __FILE__ );
 define( 'NKZMP_ANTIBOT_DIR', plugin_dir_path( __FILE__ ) );

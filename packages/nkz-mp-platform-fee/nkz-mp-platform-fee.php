@@ -34,6 +34,26 @@
 
 defined( 'ABSPATH' ) || exit;
 
+// Modul je nainstalovaný dvakrát (samostatný plugin i uvnitř balíku) – už
+// běží jiná kopie. Druhou nespouštět: dvojí háčky by zdvojily i akce
+// (převody, e-maily) a konstanty hlásí varování.
+if ( defined( 'NKZMP_PLATFORM_FEE_VERSION' ) ) {
+	add_action(
+		'admin_notices',
+		static function (): void {
+			if ( ! current_user_can( 'activate_plugins' ) ) {
+				return;
+			}
+			printf(
+				'<div class="notice notice-warning"><p><strong>%s</strong> je nainstalovaný dvakrát – druhá kopie se nenačítá: <code>%s</code>. Deaktivuj a smaž ji v Pluginech (stačí jedna kopie, např. v balíku NKZ Marketplace).</p></div>',
+				esc_html( 'NKZ Marketplace – Platform Fee' ),
+				esc_html( wp_normalize_path( __FILE__ ) )
+			);
+		}
+	);
+	return;
+}
+
 define( 'NKZMP_PLATFORM_FEE_VERSION', '0.3.0' );
 
 add_action( 'plugins_loaded', static function (): void {

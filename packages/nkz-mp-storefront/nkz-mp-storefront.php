@@ -2,7 +2,7 @@
 /**
  * Plugin Name: NKZ Marketplace – Storefront
  * Description: Vendor archive (`/vendors`) + single vendor pages (`/vendor/<slug>`) s product listingem. Závisí na nkz-marketplace core.
- * Version: 0.30.0
+ * Version: 0.31.0
  * Author: NKZ
  * Requires at least: 6.2
  * Requires PHP: 8.1
@@ -14,7 +14,27 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'NKZMP_STOREFRONT_VERSION', '0.30.0' );
+// Modul je nainstalovaný dvakrát (samostatný plugin i uvnitř balíku) – už
+// běží jiná kopie. Druhou nespouštět: dvojí háčky by zdvojily i akce
+// (převody, e-maily) a konstanty hlásí varování.
+if ( defined( 'NKZMP_STOREFRONT_VERSION' ) ) {
+	add_action(
+		'admin_notices',
+		static function (): void {
+			if ( ! current_user_can( 'activate_plugins' ) ) {
+				return;
+			}
+			printf(
+				'<div class="notice notice-warning"><p><strong>%s</strong> je nainstalovaný dvakrát – druhá kopie se nenačítá: <code>%s</code>. Deaktivuj a smaž ji v Pluginech (stačí jedna kopie, např. v balíku NKZ Marketplace).</p></div>',
+				esc_html( 'NKZ Marketplace – Storefront' ),
+				esc_html( wp_normalize_path( __FILE__ ) )
+			);
+		}
+	);
+	return;
+}
+
+define( 'NKZMP_STOREFRONT_VERSION', '0.31.0' );
 define( 'NKZMP_STOREFRONT_FILE', __FILE__ );
 define( 'NKZMP_STOREFRONT_DIR', plugin_dir_path( __FILE__ ) );
 define( 'NKZMP_STOREFRONT_URL', plugin_dir_url( __FILE__ ) );
