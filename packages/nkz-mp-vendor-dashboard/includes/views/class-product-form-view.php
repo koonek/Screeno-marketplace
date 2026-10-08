@@ -93,7 +93,7 @@ final class ProductFormView {
 		}
 		$has_var_checked = ! empty( $existing_variations );
 
-		$all_cats = get_terms( [ 'taxonomy' => 'product_cat', 'hide_empty' => false ] );
+		$all_cats = get_terms( [ 'taxonomy' => 'product_cat', 'hide_empty' => false, 'orderby' => 'menu_order' ] );
 
 		?>
 		<div class="nkzmp-vd nkzmp-vd-product-form">
@@ -460,12 +460,43 @@ final class ProductFormView {
 					<?php if ( empty( $all_cats ) || is_wp_error( $all_cats ) ) : ?>
 						<p class="nkzmp-vd-muted"><?php esc_html_e( 'Provozovatel ještě nenastavil kategorie.', 'nkz-mp-vendor-dashboard' ); ?></p>
 					<?php else : ?>
-						<div class="nkzmp-vd-cats">
-							<?php foreach ( $all_cats as $cat ) : ?>
-								<label class="nkzmp-vd-cat">
-									<input type="checkbox" name="categories[]" value="<?php echo (int) $cat->term_id; ?>" <?php checked( in_array( (int) $cat->term_id, (array) $current_cats, true ) ); ?> />
-									<span><?php echo esc_html( $cat->name ); ?></span>
-								</label>
+						<?php
+						// Seskupeně: hlavní kategorie a pod ní podkategorie. Bez
+						// výchozí „Nezařazené". Pořadí jako v obchodě.
+						$uncat     = (int) get_option( 'default_product_cat', 0 );
+						$cat_kids  = [];
+						$cat_roots = [];
+						foreach ( $all_cats as $cat ) {
+							if ( (int) $cat->term_id === $uncat ) {
+								continue;
+							}
+							if ( (int) $cat->parent === 0 ) {
+								$cat_roots[] = $cat;
+							} else {
+								$cat_kids[ (int) $cat->parent ][] = $cat;
+							}
+						}
+						$chip = static function ( $cat, bool $root ) use ( $current_cats ) {
+							printf(
+								'<label class="nkzmp-vd-cat%s"><input type="checkbox" name="categories[]" value="%d"%s /><span>%s</span></label>',
+								$root ? ' nkzmp-vd-cat--root' : '',
+								(int) $cat->term_id,
+								in_array( (int) $cat->term_id, (array) $current_cats, true ) ? ' checked' : '',
+								esc_html( $cat->name )
+							);
+						};
+						?>
+						<p class="nkzmp-vd-muted" style="margin:0 0 14px;"><?php esc_html_e( 'Vyber co nejpřesnější podkategorii – hlavní kategorie se přiřadí sama.', 'nkz-mp-vendor-dashboard' ); ?></p>
+						<div class="nkzmp-vd-catgroups">
+							<?php foreach ( $cat_roots as $root ) : ?>
+								<div class="nkzmp-vd-catgroup">
+									<div class="nkzmp-vd-catgroup-head"><?php $chip( $root, true ); ?></div>
+									<?php if ( ! empty( $cat_kids[ (int) $root->term_id ] ) ) : ?>
+										<div class="nkzmp-vd-cats nkzmp-vd-cats--sub">
+											<?php foreach ( $cat_kids[ (int) $root->term_id ] as $kid ) { $chip( $kid, false ); } ?>
+										</div>
+									<?php endif; ?>
+								</div>
 							<?php endforeach; ?>
 						</div>
 					<?php endif; ?>

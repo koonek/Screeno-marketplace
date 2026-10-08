@@ -85,6 +85,14 @@ final class ProductSubmitController {
 		$requires_shipping = ! empty( $_POST['requires_shipping'] );
 		$ship_override     = isset( $_POST['shipping_override'] ) && $_POST['shipping_override'] !== '' && is_numeric( $_POST['shipping_override'] ) ? (float) $_POST['shipping_override'] : null;
 		$cats       = isset( $_POST['categories'] ) ? array_map( 'intval', (array) $_POST['categories'] ) : [];
+		// Podkategorie → přiřadit i nadřazenou (produkt je pak vidět
+		// i ve výpisu a filtru hlavní kategorie).
+		foreach ( $cats as $cid ) {
+			foreach ( (array) get_ancestors( $cid, 'product_cat', 'taxonomy' ) as $anc ) {
+				$cats[] = (int) $anc;
+			}
+		}
+		$cats = array_values( array_unique( array_filter( $cats ) ) );
 
 		// ── Varianty (1 atribut + cena/sklad per volba) ──────────────────
 		$has_variations = ! empty( $_POST['has_variations'] );

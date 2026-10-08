@@ -162,35 +162,114 @@ final class ShopFilters {
 	private function render_categories( array $selected ): void {
 		$terms = get_terms( [
 			'taxonomy'   => 'product_cat',
-			'hide_empty' => true,
+			'hide_empty' => false,
+			'orderby'    => 'menu_order', // pořadí z Produkty → Kategorie (přetažením)
 		] );
 		if ( is_wp_error( $terms ) || empty( $terms ) ) {
 			return;
 		}
 		// Na stránce kategorie tu kategorii předvybereme.
-		if ( empty( $selected ) && is_product_taxonomy() ) {
+		$current_id = 0;
+		if ( is_product_taxonomy() ) {
 			$current = get_queried_object();
 			if ( $current instanceof \WP_Term ) {
-				$selected = [ $current->slug ];
+				$current_id = (int) $current->term_id;
+				if ( empty( $selected ) ) {
+					$selected = [ $current->slug ];
+				}
 			}
 		}
 
+		// Strom: hlavní kategorie → podkategorie. Počet bereme z WooCommerce
+		// včetně podkategorií (u hlavní by jinak bylo 0, když jsou produkty
+		// zařazené jen v podkategoriích). Prázdné nezobrazujeme.
+		$uncat    = (int) get_option( 'default_product_cat', 0 );
+		$children = [];
+		$parents  = [];
+		foreach ( $terms as $t ) {
+			$count = get_term_meta( $t->term_id, 'product_count_product_cat', true );
+			$t->nkzmp_count = $count !== '' ? (int) $count : (int) $t->count;
+			$picked = in_array( $t->slug, $selected, true );
+			if ( ( $t->nkzmp_count <= 0 || (int) $t->term_id === $uncat ) && ! $picked ) {
+				continue;
+			}
+			if ( (int) $t->parent === 0 ) {
+				$parents[] = $t;
+			} else {
+				$children[ (int) $t->parent ][] = $t;
+			}
+		}
+		if ( ! $parents ) {
+			return;
+		}
+
+		$item = static function ( \WP_Term $t, array $selected ): string {
+			$id = 'nkzmp-cat-' . $t->term_id;
+			return sprintf(
+				'<label for="%1$s"><input type="checkbox" id="%1$s" name="cat[]" value="%2$s"%3$s> <span>%4$s</span> <em>%5$d</em></label>',
+				esc_attr( $id ),
+				esc_attr( $t->slug ),
+				in_array( $t->slug, $selected, true ) ? ' checked' : '',
+				esc_html( $t->name ),
+				(int) $t->nkzmp_count
+			);
+		};
+
 		echo '<fieldset class="nkzmp-filters__group" data-nkzmp-group="cat">';
 		echo '<legend>' . esc_html__( 'Kategorie', 'nkz-mp-storefront' ) . '</legend>';
-		echo '<ul class="nkzmp-filters__list">';
-		foreach ( $terms as $term ) {
-			$id = 'nkzmp-cat-' . $term->term_id;
-			printf(
-				'<li><label for="%1$s"><input type="checkbox" id="%1$s" name="cat[]" value="%2$s"%3$s> <span>%4$s</span> <em>%5$d</em></label></li>',
-				esc_attr( $id ),
-				esc_attr( $term->slug ),
-				in_array( $term->slug, $selected, true ) ? ' checked' : '',
-				esc_html( $term->name ),
-				(int) $term->count
-			);
+		echo '<ul class="nkzmp-filters__list nkzmp-filters__cattree">';
+		foreach ( $parents as $p ) {
+			$kids = $children[ (int) $p->term_id ] ?? [];
+			$open = in_array( $p->slug, $selected, true ) || (int) $p->term_id === $current_id;
+			foreach ( $kids as $k ) {
+				if ( in_array( $k->slug, $selected, true ) || (int) $k->term_id === $current_id ) {
+					$open = true;
+				}
+			}
+			echo '<li class="nkzmp-filters__cat' . ( $kids ? ' has-sub' : '' ) . ( $open ? ' is-open' : '' ) . '">';
+			echo '<div class="nkzmp-filters__catrow">' . $item( $p, $selected ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escapováno v $item.
+			if ( $kids ) {
+				printf(
+					'<button type="button" class="nkzmp-filters__caret" aria-expanded="%s" aria-label="%s" data-nkzmp-caret></button>',
+					$open ? 'true' : 'false',
+					/* translators: %s: kategorie */
+					esc_attr( sprintf( __( 'Podkategorie: %s', 'nkz-mp-storefront' ), $p->name ) )
+				);
+			}
+			echo '</div>';
+			if ( $kids ) {
+				echo '<ul class="nkzmp-filters__sub">';
+				foreach ( $kids as $k ) {
+					echo '<li>' . $item( $k, $selected ) . '</li>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+				}
+				echo '</ul>';
+			}
+			echo '</li>';
 		}
 		echo '</ul>';
 		echo '</fieldset>';
+		?>
+		<style>
+		.nkzmp-filters__cattree .nkzmp-filters__catrow{display:flex;align-items:center;gap:6px}
+		.nkzmp-filters__cattree .nkzmp-filters__catrow > label{flex:1 1 auto;min-width:0}
+		.nkzmp-filters__caret{flex:0 0 auto;width:32px;height:32px;margin:0;padding:0!important;border:0!important;background:none!important;box-shadow:none!important;cursor:pointer;position:relative;border-radius:8px!important}
+		.nkzmp-filters__caret::before{content:"";position:absolute;left:50%;top:50%;width:8px;height:8px;border-right:2px solid #0060FF;border-bottom:2px solid #0060FF;transform:translate(-50%,-70%) rotate(45deg);transition:transform .15s}
+		.nkzmp-filters__cat.is-open > .nkzmp-filters__catrow .nkzmp-filters__caret::before{transform:translate(-50%,-30%) rotate(-135deg)}
+		.nkzmp-filters__caret:hover{background:rgba(0,96,255,.08)!important}
+		.nkzmp-filters__sub{list-style:none;margin:2px 0 6px 26px;padding:0 0 0 10px;border-left:1px solid #e3e6ee;display:none}
+		.nkzmp-filters__cat.is-open > .nkzmp-filters__sub{display:block}
+		.nkzmp-filters__sub li{font-size:.95em}
+		</style>
+		<script>
+		document.querySelectorAll('[data-nkzmp-caret]').forEach(function (b) {
+			b.addEventListener('click', function () {
+				var li = b.closest('.nkzmp-filters__cat');
+				var open = li.classList.toggle('is-open');
+				b.setAttribute('aria-expanded', open ? 'true' : 'false');
+			});
+		});
+		</script>
+		<?php
 	}
 
 	private function render_price( ?int $min, ?int $max ): void {

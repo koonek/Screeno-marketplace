@@ -839,6 +839,15 @@ body.nkzmp-account a.nkzmp-vd-cta-new .plus { font-size: 18px !important; line-h
 	border-color: var(--nkzmp-vd-accent);
 }
 
+/* Kategorie seskupené: hlavní → podkategorie */
+.nkzmp-vd-catgroups { display: flex; flex-direction: column; gap: 18px; }
+.nkzmp-vd-catgroup { padding-bottom: 16px; border-bottom: 1px solid var(--nkzmp-vd-line, rgba(0,0,0,.08)); }
+.nkzmp-vd-catgroup:last-child { border-bottom: 0; padding-bottom: 0; }
+.nkzmp-vd-catgroup-head { margin-bottom: 10px; }
+.nkzmp-vd-cat--root { font-weight: 600; background: transparent; }
+.nkzmp-vd-cats--sub { padding-left: 4px; }
+.nkzmp-vd-cats--sub .nkzmp-vd-cat { padding: 7px 14px; font-size: 13.5px; }
+
 .nkzmp-vd-form-foot {
 	display: flex;
 	gap: 16px;
