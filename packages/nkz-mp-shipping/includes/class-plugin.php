@@ -23,6 +23,7 @@ final class Plugin {
 		ProductShippingAdmin::instance()->init();
 		Settings::instance()->init();
 		Oversized::instance()->init();
+		FreeShippingBar::instance()->init();
 
 		// AOZ jede pouze Zásilkovnu – per-vendor metoda se v praxi nepoužívá.
 		// Filter je proto defaultně VYPNUTÝ. Pokud někdo do zóny per-vendor

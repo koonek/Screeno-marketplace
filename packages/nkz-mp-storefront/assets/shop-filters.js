@@ -46,6 +46,7 @@
 	/* ───────── Počítač: filtry jako řada tlačítek s nabídkou ───────── */
 
 	function setupBar() {
+		if ( form.getAttribute( 'data-layout' ) === 'side' ) { return; } // nastavení: filtry vlevo
 		layout.classList.add( 'is-bar' );
 		form.querySelectorAll( 'fieldset.nkzmp-filters__group' ).forEach( function ( g ) {
 			if ( g.classList.contains( 'nkzmp-filters__group--search' ) || g.classList.contains( 'nkzmp-filters__stock' ) ) { return; }
@@ -190,6 +191,48 @@
 				} )
 				.catch( function () { window.location.href = next.href; } );
 		} );
+	}
+
+	/* ───────── Počty ve filtru podle aktuálního výběru ───────── */
+
+	function updateFacets( f ) {
+		if ( ! f ) { return; }
+		// Značky: počty, nulové schovat (zaškrtnuté nechat), prvních 8 vidět.
+		var wrap = form.querySelector( '[data-nkzmp-vendorwrap]' );
+		if ( wrap && f.brands ) {
+			var visible = 8, shownN = 0, live = 0;
+			wrap.querySelectorAll( 'li[data-nkzmp-vendor-name]' ).forEach( function ( li ) {
+				var inp = li.querySelector( 'input' );
+				var n = parseInt( f.brands[ inp.value ] || 0, 10 );
+				var em = li.querySelector( 'em' );
+				if ( em ) { em.textContent = n > 0 ? n : ''; }
+				var zero = n === 0 && ! inp.checked;
+				li.classList.toggle( 'is-zero', zero );
+				if ( zero ) { li.removeAttribute( 'data-nkzmp-vendor-extra' ); return; }
+				live++;
+				if ( shownN >= visible ) { li.setAttribute( 'data-nkzmp-vendor-extra', '' ); } else { li.removeAttribute( 'data-nkzmp-vendor-extra' ); }
+				shownN++;
+			} );
+			var group = wrap.closest( '.nkzmp-filters__group' );
+			var cnt = group ? group.querySelector( '.nkzmp-filters__legend-count' ) : null;
+			if ( cnt ) { cnt.textContent = live; }
+			var vs = wrap.querySelector( '[data-nkzmp-vendorsearch]' );
+			if ( vs ) { vs.placeholder = vs.placeholder.replace( /\(\d+\)/, '(' + live + ')' ); }
+			var more = wrap.querySelector( '[data-nkzmp-vendormore]' );
+			if ( typeof wrap.nkzmpRefresh === 'function' ) {
+				wrap.nkzmpRefresh( more ? more.textContent.replace( /^.*?\(/, 'Zobrazit všechny značky (' ).replace( /\(\d+\)/, '(' + live + ')' ) : '' );
+			}
+			if ( more && live <= visible ) { more.hidden = true; }
+		}
+		// Graf cen: výšky sloupců pro aktuální výběr (stupnice zůstává).
+		var bars = form.querySelectorAll( '.nkzmp-filters__hist span' );
+		if ( bars.length && f.hist && f.hist.length === bars.length ) {
+			var peak = Math.max.apply( null, f.hist );
+			Array.prototype.forEach.call( bars, function ( b, i ) {
+				var c = f.hist[ i ];
+				b.style.height = peak > 0 && c > 0 ? Math.max( 5, Math.round( c / peak * 100 ) ) + '%' : '0%';
+			} );
+		}
 	}
 
 	function afterRender( total ) {
@@ -343,6 +386,7 @@
 					var total = parseInt( res.data.total, 10 );
 					currentPaged = data.paged || 1;
 					updateDone( total );
+					updateFacets( res.data.facets );
 					renderChips();
 					afterRender( total );
 					track( 'filter_apply', {

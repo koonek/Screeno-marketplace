@@ -213,14 +213,29 @@ final class ShopFilters {
 
 	/* ───────────────────────── Sidebar UI ───────────────────────── */
 
+	/** Počty pro aktuální výběr (značky, graf cen) – viz facets(). */
+	private static ?array $facets = null;
+
 	private function render_sidebar(): void {
 		$active = self::read_filters( $_GET ); // phpcs:ignore WordPress.Security.NonceVerification
+
+		// Počty ve filtru podle toho, co je vybrané (vč. stránky kategorie).
+		$scope = $active;
+		if ( empty( $scope['cat'] ) && function_exists( 'is_product_category' ) && is_product_category() ) {
+			$t = get_queried_object();
+			if ( $t instanceof \WP_Term ) {
+				$scope['cat'] = [ $t->slug ];
+			}
+		}
+		$any = ! empty( $scope['cat'] ) || ! empty( $scope['vendor'] ) || $scope['min_price'] !== null || $scope['max_price'] !== null || $scope['instock'] || $scope['q'] !== '';
+		self::$facets = $any ? self::facets( $scope ) : null;
 
 		// Vzhled přímo ve stránce (šablona jinak přebíjí tlačítka růžovou).
 		echo '<style>
 		html body .nkzmp-filters .nkzmp-filters__list.nkzmp-filters__cattree{max-height:none!important;overflow:visible!important;padding-right:0!important}
 		html body .nkzmp-filters button.nkzmp-filters__more,html body .nkzmp-filters button.nkzmp-filters__more:hover,html body .nkzmp-filters button.nkzmp-filters__more:focus,html body .nkzmp-filters button.nkzmp-filters__more:active{display:inline-flex!important;align-items:center;gap:6px;margin:6px 0 0!important;padding:8px 14px!important;background:transparent!important;border:1.5px solid #0060FF!important;border-radius:999px!important;color:#0060FF!important;-webkit-text-fill-color:#0060FF!important;font-size:14px!important;font-weight:600!important;text-decoration:none!important;box-shadow:none!important}
 		html body .nkzmp-filters button.nkzmp-filters__more:hover{background:#0060FF!important;color:#fff!important;-webkit-text-fill-color:#fff!important}
+		html body .nkzmp-filters button.nkzmp-filters__more[hidden],html body .nkzmp-filters .nkzmp-filters__list--vendors li.is-zero{display:none!important}
 		html body .nkzmp-filters button.nkzmp-filters__clear,html body .nkzmp-filters button.nkzmp-filters__clear:hover,html body .nkzmp-filters button.nkzmp-filters__clear:focus,html body .nkzmp-filters button.nkzmp-filters__clear:active{background:transparent!important;border:0!important;box-shadow:none!important;color:#0060FF!important;-webkit-text-fill-color:#0060FF!important;text-decoration:none!important;padding:4px 0!important}
 		html body .nkzmp-filters button.nkzmp-filters__clear:hover{text-decoration:underline!important}
 		html body .nkzmp-filters button.nkzmp-filters__caret,html body .nkzmp-filters button.nkzmp-filters__caret:focus,html body .nkzmp-filters button.nkzmp-filters__caret:active{background:transparent!important;border:0!important;box-shadow:none!important}
@@ -261,7 +276,8 @@ final class ShopFilters {
 		html body .nkzmp-load-more[disabled]{opacity:.6}
 		html body .nkzmp-active-chips button.is-clear,html body .nkzmp-active-chips button.is-clear:hover{border-color:transparent!important;background:transparent!important;color:#0060FF!important;-webkit-text-fill-color:#0060FF!important;text-decoration:underline!important}
 		</style>';
-		echo '<form class="nkzmp-filters" method="get" action="' . esc_url( self::base_url() ) . '">';
+		$layout = class_exists( Settings::class ) ? (string) ( Settings::get()['filters_layout'] ?? 'top' ) : 'top';
+		echo '<form class="nkzmp-filters" method="get" action="' . esc_url( self::base_url() ) . '" data-layout="' . esc_attr( $layout === 'side' ? 'side' : 'top' ) . '">';
 
 		echo '<div class="nkzmp-filters__head">';
 		echo '<h2 class="nkzmp-filters__title">' . esc_html__( 'Filtry', 'nkz-mp-storefront' ) . '</h2>';
@@ -497,11 +513,12 @@ final class ShopFilters {
 
 		// Graf rozložení cen posazený na osu posuvníku (vzor Airbnb) – stejná
 		// logaritmická stupnice, ať sloupce sedí nad cenami pod nimi.
-		$peak = $data['hist'] ? max( $data['hist'] ) : 0;
+		$hist = self::$facets['hist'] ?? $data['hist'];
+		$peak = $hist ? max( $hist ) : 0;
 		echo '<div class="nkzmp-filters__pricebox">';
 		if ( $peak > 0 ) {
 			echo '<div class="nkzmp-filters__hist" aria-hidden="true">';
-			foreach ( $data['hist'] as $c ) {
+			foreach ( $hist as $c ) {
 				printf( '<span style="height:%s%%"></span>', esc_attr( (string) ( $c > 0 ? max( 5, round( $c / $peak * 100 ) ) : 0 ) ) );
 			}
 			echo '</div>';
@@ -613,38 +630,32 @@ final class ShopFilters {
 			return;
 		}
 
-		// Ve zvolené kategorii jen značky, které v ní něco mají (s počty
-		// za kategorii). Při stovkách značek je to největší úleva – v
-		// „Šperky" nemá smysl nabízet keramiku.
-		$term_ids = self::scope_term_ids( $cats );
-		if ( $term_ids ) {
-			$in_scope = self::vendor_counts_in_terms( $term_ids );
-			$scoped   = [];
-			foreach ( $vendors as $vid => $v ) {
-				if ( isset( $in_scope[ $vid ] ) ) {
-					$scoped[ $vid ] = [ 'name' => $v['name'], 'count' => $in_scope[ $vid ] ];
-				} elseif ( in_array( (int) $vid, $selected, true ) ) {
-					// Zaškrtnutou značku necháme, ať jde odškrtnout.
-					$scoped[ $vid ] = [ 'name' => $v['name'], 'count' => 0 ];
-				}
-			}
-			$vendors = $scoped;
-			if ( ! $vendors ) {
-				return;
+		// Počty podle aktuálního výběru (kategorie, cena, hledání… – bez
+		// filtru značek). Značky s nulou se schovají, ale zůstávají ve
+		// stránce, ať je JS po změně filtru může zase ukázat.
+		$counts = self::$facets['brands'] ?? null;
+		$live   = 0;
+		foreach ( $vendors as $vid => $v ) {
+			$n = $counts !== null ? (int) ( $counts[ $vid ] ?? 0 ) : (int) $v['count'];
+			$vendors[ $vid ]['count'] = $n;
+			$vendors[ $vid ]['zero']  = $n === 0 && ! in_array( (int) $vid, $selected, true );
+			if ( ! $vendors[ $vid ]['zero'] ) {
+				++$live;
 			}
 		}
+		unset( $cats );
 
 		echo '<fieldset class="nkzmp-filters__group" data-nkzmp-group="vendor">';
 		printf(
 			'<legend>%s <em class="nkzmp-filters__legend-count">%d</em></legend>',
 			esc_html__( 'Značky', 'nkz-mp-storefront' ),
-			count( $vendors )
+			$live
 		);
 		// Seznam BEZ vlastního posouvání (vnořené posouvání v mobilním
 		// panelu se pralo). Abecedně, prvních N vidět, další se odkrývají
 		// po dávkách; hledání prohledává celý seznam.
 		$visible = (int) apply_filters( 'nkzmp/v1/storefront/filter_vendors_visible', 8 );
-		$total   = count( $vendors );
+		$total   = $live;
 
 		$order = array_keys( $vendors ); // jen abecedně (klient: řazení podle počtu produktů pryč)
 		$more  = $total > $visible;
@@ -659,24 +670,30 @@ final class ShopFilters {
 			);
 		}
 		echo '<ul class="nkzmp-filters__list nkzmp-filters__list--vendors" style="max-height:none!important;overflow:visible!important;">';
-		foreach ( $order as $i => $vid ) {
+		$shown = 0;
+		foreach ( $order as $vid ) {
 			$v     = $vendors[ $vid ];
 			$id    = 'nkzmp-vendor-' . $vid;
 			$name  = (string) $v['name'];
 			$count = (int) $v['count'];
 			$on    = in_array( (int) $vid, $selected, true );
-			$extra = $i >= $visible;
+			$zero  = ! empty( $v['zero'] );
+			$extra = ! $zero && $shown >= $visible;
+			if ( ! $zero ) {
+				++$shown;
+			}
 			// Zaškrtnuté značky nikdy neschováváme – uživatel by nevěděl,
 			// proč se mu filtruje.
 			printf(
-				'<li data-nkzmp-vendor-name="%6$s"%7$s><label for="%1$s"><input type="checkbox" id="%1$s" name="vendor[]" value="%2$d"%3$s> <span>%4$s</span>%5$s</label></li>',
+				'<li data-nkzmp-vendor-name="%6$s"%7$s%8$s><label for="%1$s"><input type="checkbox" id="%1$s" name="vendor[]" value="%2$d"%3$s> <span>%4$s</span><em>%5$s</em></label></li>',
 				esc_attr( $id ),
 				(int) $vid,
 				$on ? ' checked' : '',
 				esc_html( $name ),
-				$count > 0 ? ' <em>' . (int) $count . '</em>' : '',
+				$count > 0 ? (int) $count : '',
 				esc_attr( self::fold( $name ) ),
-				$extra ? ( $on ? ' data-nkzmp-vendor-extra' : ' hidden data-nkzmp-vendor-extra' ) : ''
+				$extra ? ( $on ? ' data-nkzmp-vendor-extra' : ' hidden data-nkzmp-vendor-extra' ) : '',
+				$zero ? ' class="is-zero"' : ''
 			);
 		}
 		echo '</ul>';
@@ -690,75 +707,6 @@ final class ShopFilters {
 		echo '</div>';
 		echo '</fieldset>';
 		$this->vendor_list_script();
-	}
-
-	/**
-	 * ID kategorií (vč. podkategorií), na které je obchod právě zúžený:
-	 * archiv kategorie nebo zaškrtnuté kategorie ve filtru.
-	 *
-	 * @param string[] $slugs
-	 * @return int[]
-	 */
-	private static function scope_term_ids( array $slugs ): array {
-		$ids = [];
-		if ( function_exists( 'is_product_category' ) && is_product_category() ) {
-			$obj = get_queried_object();
-			if ( $obj instanceof \WP_Term ) {
-				$ids[] = (int) $obj->term_id;
-			}
-		}
-		foreach ( $slugs as $slug ) {
-			$t = get_term_by( 'slug', (string) $slug, 'product_cat' );
-			if ( $t instanceof \WP_Term ) {
-				$ids[] = (int) $t->term_id;
-			}
-		}
-		$all = [];
-		foreach ( array_unique( $ids ) as $id ) {
-			$all[] = $id;
-			$kids  = get_term_children( $id, 'product_cat' );
-			if ( is_array( $kids ) ) {
-				$all = array_merge( $all, array_map( 'intval', $kids ) );
-			}
-		}
-		$all = array_values( array_unique( $all ) );
-		sort( $all );
-		return $all;
-	}
-
-	/**
-	 * Počty zveřejněných produktů na značku v daných kategoriích (cache 1 h,
-	 * smaže ji každá změna produktu – forget_cache zvedne verzi).
-	 *
-	 * @param int[] $term_ids
-	 * @return array<int,int> vendor_id => počet
-	 */
-	private static function vendor_counts_in_terms( array $term_ids ): array {
-		$key    = 'nkzmp_shop_cat_vendors_' . (int) get_option( 'nkzmp_shop_cache_ver', 1 ) . '_' . md5( implode( ',', $term_ids ) );
-		$cached = get_transient( $key );
-		if ( is_array( $cached ) ) {
-			return $cached;
-		}
-		global $wpdb;
-		$in   = implode( ',', array_map( 'intval', $term_ids ) );
-		$rows = $wpdb->get_results(
-			"SELECT pm.meta_value AS vid, COUNT(DISTINCT p.ID) AS cnt
-			 FROM {$wpdb->postmeta} pm
-			 INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
-			 INNER JOIN {$wpdb->term_relationships} tr ON tr.object_id = p.ID
-			 INNER JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id
-			 WHERE pm.meta_key IN ('_nkzmp_vendor_id','_nkv_vendor_id')
-			   AND pm.meta_value != '' AND pm.meta_value != '0'
-			   AND p.post_type = 'product' AND p.post_status = 'publish'
-			   AND tt.taxonomy = 'product_cat' AND tt.term_id IN ({$in})
-			 GROUP BY pm.meta_value" // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- jen celá čísla.
-		);
-		$out = [];
-		foreach ( (array) $rows as $row ) {
-			$out[ (int) $row->vid ] = (int) $row->cnt;
-		}
-		set_transient( $key, $out, HOUR_IN_SECONDS );
-		return $out;
 	}
 
 	/** „Zobrazit 23 produktů" (česká množná čísla). */
@@ -826,11 +774,12 @@ final class ShopFilters {
 				var more = wrap.querySelector('[data-nkzmp-vendormore]');
 				var search = wrap.querySelector('[data-nkzmp-vendorsearch]');
 				var items = Array.prototype.slice.call(wrap.querySelectorAll('li[data-nkzmp-vendor-name]'));
-				var extras = items.filter(function (li) { return li.hasAttribute('data-nkzmp-vendor-extra'); });
+				var extras = [];
 				var step = more ? (parseInt(more.getAttribute('data-step'), 10) || 30) : 30;
 				var shown = 0; // kolik značek z A–Z je odkrytých
 
 				function apply() {
+					extras = items.filter(function (li) { return li.hasAttribute('data-nkzmp-vendor-extra'); });
 					var q = search ? fold(search.value.trim()) : '';
 					items.forEach(function (li) {
 						var checked = li.querySelector('input:checked');
@@ -854,6 +803,12 @@ final class ShopFilters {
 				if (more) {
 					more.addEventListener('click', function () { shown += step; apply(); });
 				}
+				// Po přepočtu počtů (jiný filtr) zase od začátku.
+				wrap.nkzmpRefresh = function (label) {
+					shown = 0;
+					if (more && label) { more.textContent = label; }
+					apply();
+				};
 				if (search) {
 					search.addEventListener('input', apply);
 					// Enter v hledání nesmí odeslat filtr celého obchodu.
@@ -1010,9 +965,86 @@ final class ShopFilters {
 		$GLOBALS['post']     = $prev_post;
 
 		wp_send_json_success( [
-			'html'  => $html,
-			'total' => (int) $q->found_posts,
+			'html'   => $html,
+			'total'  => (int) $q->found_posts,
+			'facets' => self::facets( $filters ),
 		] );
+	}
+
+	/* ───────────────────────── Počty pro výběr ───────────────────────── */
+
+	/**
+	 * ID produktů odpovídajících filtru (bez stránkování).
+	 *
+	 * @return int[]
+	 */
+	private static function matching_ids( array $f ): array {
+		$c    = self::build_clauses( $f );
+		$args = [
+			'post_type'      => 'product',
+			'post_status'    => 'publish',
+			'fields'         => 'ids',
+			'posts_per_page' => -1,
+			'no_found_rows'  => true,
+			'tax_query'      => array_merge( $c['tax_query'], [ [ 'taxonomy' => 'product_visibility', 'field' => 'name', 'terms' => [ 'exclude-from-catalog' ], 'operator' => 'NOT IN' ] ] ), // phpcs:ignore WordPress.DB.SlowDBQuery
+		];
+		if ( $c['meta_query'] ) {
+			$args['meta_query'] = $c['meta_query']; // phpcs:ignore WordPress.DB.SlowDBQuery
+		}
+		if ( ! empty( $f['q'] ) ) {
+			$args['post__in'] = SearchBoost::ids( (string) $f['q'] ) ?: [ 0 ];
+		}
+		return array_map( 'intval', get_posts( $args ) );
+	}
+
+	/**
+	 * Počty ve filtru pro aktuální výběr – jako na Zalandu: u značek se
+	 * nepočítá filtr značek, u grafu cen filtr ceny (jinak by šlo jen
+	 * zužovat, nikdy rozšířit).
+	 *
+	 * @return array{brands:array<int,int>,hist:int[]}
+	 */
+	public static function facets( array $f ): array {
+		global $wpdb;
+		$out = [ 'brands' => [], 'hist' => [] ];
+
+		$ids = self::matching_ids( array_merge( $f, [ 'vendor' => [] ] ) );
+		if ( $ids ) {
+			$in   = implode( ',', $ids );
+			$rows = $wpdb->get_results(
+				"SELECT meta_value AS vid, COUNT(DISTINCT post_id) AS n FROM {$wpdb->postmeta}
+				 WHERE post_id IN ({$in}) AND meta_key IN ('_nkzmp_vendor_id','_nkv_vendor_id') AND meta_value != '' AND meta_value != '0'
+				 GROUP BY meta_value" // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- jen celá čísla.
+			);
+			foreach ( (array) $rows as $r ) {
+				$out['brands'][ (int) $r->vid ] = max( $out['brands'][ (int) $r->vid ] ?? 0, (int) $r->n );
+			}
+		}
+
+		$data = self::price_data();
+		if ( $data ) {
+			$ids  = self::matching_ids( array_merge( $f, [ 'min_price' => null, 'max_price' => null ] ) );
+			$hist = array_fill( 0, count( $data['hist'] ), 0 );
+			if ( $ids ) {
+				$in     = implode( ',', $ids );
+				$prices = (array) $wpdb->get_col(
+					"SELECT MIN(CAST(meta_value AS DECIMAL(10,2))) FROM {$wpdb->postmeta}
+					 WHERE post_id IN ({$in}) AND meta_key = '_price' AND meta_value != '' GROUP BY post_id" // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				);
+				$n   = count( $hist );
+				$den = log( $data['hi'] / $data['lo'] );
+				foreach ( $prices as $pr ) {
+					$pr = max( $data['lo'], min( $data['hi'], (float) $pr ) );
+					if ( $pr <= 0 ) {
+						continue;
+					}
+					$i = (int) floor( log( $pr / $data['lo'] ) / $den * $n );
+					++$hist[ min( $n - 1, max( 0, $i ) ) ];
+				}
+			}
+			$out['hist'] = $hist;
+		}
+		return $out;
 	}
 
 	/* ───────────────────────── Helpers ───────────────────────── */
@@ -1110,7 +1142,7 @@ final class ShopFilters {
 
 	/** Řazení – mapuje WC orderby na WP_Query args. */
 	private static function ordering_args( string $orderby ): array {
-		$orderby = $orderby !== '' ? $orderby : (string) get_option( 'woocommerce_default_catalog_orderby', 'menu_order' );
+		$orderby = $orderby !== '' ? $orderby : (string) apply_filters( 'woocommerce_default_catalog_orderby', get_option( 'woocommerce_default_catalog_orderby', 'menu_order' ) );
 		switch ( $orderby ) {
 			case 'price':
 				return [ 'orderby' => 'meta_value_num', 'meta_key' => '_price', 'order' => 'ASC' ];
@@ -1211,6 +1243,5 @@ final class ShopFilters {
 		delete_transient( 'nkzmp_shop_price_hist' );
 		SearchBoost::forget();
 		delete_transient( 'nkzmp_shop_product_vendors' );
-		update_option( 'nkzmp_shop_cache_ver', (int) get_option( 'nkzmp_shop_cache_ver', 1 ) + 1, false );
 	}
 }

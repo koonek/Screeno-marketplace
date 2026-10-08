@@ -38,6 +38,8 @@ final class Plugin {
 		ShopFilters::instance()->init();
 		CategorySeed::instance()->init();
 		ShopEnhance::instance()->init();
+		Favorites::instance()->init();
+		AbandonedCart::instance()->init();
 		ShopDiscovery::instance()->init();
 		Shortcodes::instance()->init();
 		ProductReadmore::instance()->init();

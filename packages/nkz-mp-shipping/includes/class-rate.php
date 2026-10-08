@@ -175,8 +175,46 @@ final class Rate {
 		if ( $cost <= 0 ) {
 			return $cost; // doprava zdarma zůstává zdarma i do zahraničí
 		}
+		// Doprava zdarma od částky (za zboží jednoho prodejce = jeden balík).
+		// Příplatek do zahraničí zůstává.
+		$free_from = self::free_from( $vendor_id );
+		if ( $free_from > 0 && self::vendor_subtotal( $vendor_id, $package ) >= $free_from ) {
+			$cost = 0.0;
+		}
 		$country = (string) ( $package['destination']['country'] ?? '' );
 		return $cost + self::cross_border_surcharge( $vendor_id, $country );
+	}
+
+	/** Práh dopravy zdarma v Kč (0 = vypnuto). */
+	public static function free_from( int $vendor_id = 0 ): float {
+		$v = (float) ( Settings::get()['free_from'] ?? 0 );
+		return max( 0.0, (float) apply_filters( 'nkzmp/v1/shipping/free_from', $v, $vendor_id ) );
+	}
+
+	/**
+	 * Hodnota zboží prodejce v balíku/košíku (s DPH, po slevách) – jen
+	 * fyzické zboží, které se posílá.
+	 *
+	 * @param array $package WC shipping package (nebo [ 'contents' => cart ])
+	 */
+	public static function vendor_subtotal( int $vendor_id, array $package ): float {
+		$sum = 0.0;
+		foreach ( (array) ( $package['contents'] ?? [] ) as $item ) {
+			$product = $item['data'] ?? null;
+			if ( ! $product instanceof \WC_Product || ! self::product_requires_shipping( $product ) ) {
+				continue;
+			}
+			$pid = $product->get_parent_id() ?: $product->get_id();
+			$vid = self::product_vendor_id( $pid );
+			if ( $vid <= 0 ) {
+				$vid = self::product_vendor_id( $product->get_id() );
+			}
+			if ( max( 0, $vid ) !== $vendor_id ) {
+				continue;
+			}
+			$sum += (float) ( $item['line_total'] ?? 0 ) + (float) ( $item['line_tax'] ?? 0 );
+		}
+		return $sum;
 	}
 
 	public static function vendor_package_cost( int $vendor_id, array $products ): float {

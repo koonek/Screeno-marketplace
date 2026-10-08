@@ -222,7 +222,9 @@ final class ShopEnhance {
 		}
 		$items[] = [ 'lock', __( 'Bezpečná platba kartou přes Stripe', 'nkz-mp-storefront' ) ];
 		$vid = self::vendor_of( $pid );
-		if ( $vid > 0 && get_post( $vid ) ) {
+		// „Ručně od tvůrce" jen u fyzického zboží – u vstupenek a poukazů
+		// (prodává je přímo platforma) by to nedávalo smysl.
+		if ( $ship && $vid > 0 && get_post( $vid ) ) {
 			/* translators: %s: značka */
 			$items[] = [ 'hand', sprintf( __( 'Ručně od značky %s – peníze jdou přímo tvůrci', 'nkz-mp-storefront' ), get_the_title( $vid ) ) ];
 		}
@@ -286,7 +288,7 @@ final class ShopEnhance {
 		/* translators: %s: značka */
 		echo '<h2 style="margin:0;">' . esc_html( sprintf( __( 'Další od %s', 'nkz-mp-storefront' ), $name ) ) . '</h2>';
 		if ( $url !== '' ) {
-			echo '<a href="' . esc_url( $url ) . '" style="white-space:nowrap;color:' . esc_attr( self::BLUE ) . ';font-weight:600;text-decoration:none;">' . esc_html__( 'Celá značka →', 'nkz-mp-storefront' ) . '</a>';
+			echo '<a href="' . esc_url( $url ) . '" style="white-space:nowrap;color:' . esc_attr( self::BLUE ) . ';font-weight:600;text-decoration:none;">' . esc_html__( 'Vše od značky →', 'nkz-mp-storefront' ) . '</a>';
 		}
 		echo '</div>';
 		$prev = $GLOBALS['product'] ?? null;

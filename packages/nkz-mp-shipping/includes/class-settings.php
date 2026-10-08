@@ -32,6 +32,9 @@ final class Settings {
 			// Příplatek, když zásilka jde do jiné země, než odkud prodejce
 			// posílá (CZ → SK a naopak). Mezinárodní poštovné je dražší.
 			'cross_border_surcharge' => 50,
+			// Doprava zdarma, když zboží od jednoho prodejce stojí aspoň
+			// tolik (Kč s DPH). 0 = vypnuto. Poštovné pak nese platforma.
+			'free_from'    => 0,
 		];
 		$saved = get_option( self::OPTION, [] );
 		return array_merge( $defaults, is_array( $saved ) ? $saved : [] );
@@ -71,6 +74,10 @@ final class Settings {
 		echo '<th><label for="cross_border_surcharge">' . esc_html__( 'Příplatek za dopravu do zahraničí (Kč)', 'nkz-mp-shipping' ) . '</label></th>';
 		echo '<td><input id="cross_border_surcharge" type="number" min="0" step="1" name="' . esc_attr( self::OPTION ) . '[cross_border_surcharge]" value="' . esc_attr( (string) $s['cross_border_surcharge'] ) . '" />';
 		echo '<p class="description">' . esc_html__( 'Přičte se k poštovnému prodejce, když zásilka jde do jiné země, než ze které prodejce posílá – typicky český prodejce a doručení na Slovensko. Platí za každý balík zvlášť. 0 = bez příplatku.', 'nkz-mp-shipping' ) . '</p></td>';
+		echo '</tr><tr>';
+		echo '<th><label for="free_from">' . esc_html__( 'Doprava zdarma od (Kč)', 'nkz-mp-shipping' ) . '</label></th>';
+		echo '<td><input id="free_from" type="number" min="0" step="1" name="' . esc_attr( self::OPTION ) . '[free_from]" value="' . esc_attr( (string) $s['free_from'] ) . '" />';
+		echo '<p class="description">' . esc_html__( 'Když zboží od jednoho prodejce (jeden balík) stojí aspoň tolik, poštovné za ten balík je zdarma. Zákazník v košíku vidí, kolik mu chybí. Poštovné pak platí platforma (dodavatel dopravy). Příplatek do zahraničí zůstává. 0 = vypnuto.', 'nkz-mp-shipping' ) . '</p></td>';
 		echo '</tr></table>';
 		submit_button();
 		echo '</form></div>';

@@ -31,6 +31,11 @@ final class Settings {
 			'archive_slug'        => 'vendors',
 			'single_slug'         => 'vendor',
 			'per_page'            => 24,
+			// Filtry obchodu na počítači: nahoře (řada tlačítek) / vlevo (sloupec).
+			'filters_layout'      => 'top',
+			// Připomínka opuštěného košíku e-mailem (jednou).
+			'abandoned_cart'      => 'yes',
+			'abandoned_delay'     => 2,
 		];
 		$saved = get_option( self::OPTION, [] );
 		return array_merge( $defaults, is_array( $saved ) ? $saved : [] );
@@ -47,6 +52,9 @@ final class Settings {
 			'archive_slug'        => __( 'Archive base slug', 'nkz-mp-storefront' ),
 			'single_slug'         => __( 'Single base slug', 'nkz-mp-storefront' ),
 			'per_page'            => __( 'Produkty na vendor page', 'nkz-mp-storefront' ),
+			'filters_layout'      => __( 'Filtry obchodu na počítači', 'nkz-mp-storefront' ),
+			'abandoned_cart'      => __( 'Připomínka opuštěného košíku', 'nkz-mp-storefront' ),
+			'abandoned_delay'     => __( 'Poslat připomínku po (hodinách)', 'nkz-mp-storefront' ),
 		];
 		foreach ( $fields as $key => $label ) {
 			add_settings_field(
@@ -87,7 +95,19 @@ final class Settings {
 		$value = self::get()[ $key ];
 		$name  = self::OPTION . '[' . $key . ']';
 
-		if ( in_array( $key, [ 'enable_archive', 'enable_single', 'enable_product_link' ], true ) ) {
+		if ( 'filters_layout' === $key ) {
+			echo '<select name="' . esc_attr( $name ) . '">';
+			echo '<option value="top"' . selected( $value, 'top', false ) . '>' . esc_html__( 'Nahoře – řada tlačítek s nabídkou (jako Vinted/Zalando)', 'nkz-mp-storefront' ) . '</option>';
+			echo '<option value="side"' . selected( $value, 'side', false ) . '>' . esc_html__( 'Vlevo – sloupec vedle produktů', 'nkz-mp-storefront' ) . '</option>';
+			echo '</select><p class="description">' . esc_html__( 'Na mobilu jsou filtry vždy pod tlačítkem „Kategorie, značky, cena“.', 'nkz-mp-storefront' ) . '</p>';
+			return;
+		}
+		if ( 'abandoned_delay' === $key ) {
+			echo '<input type="number" name="' . esc_attr( $name ) . '" value="' . esc_attr( (string) $value ) . '" min="1" max="72" /> ';
+			echo '<p class="description">' . esc_html__( 'Za kolik hodin od poslední změny košíku poslat zákazníkovi jednu připomínku. Posílá se jen jednou a jen na e-mail, který zákazník sám zadal v pokladně (nebo je přihlášený).', 'nkz-mp-storefront' ) . '</p>';
+			return;
+		}
+		if ( in_array( $key, [ 'enable_archive', 'enable_single', 'enable_product_link', 'abandoned_cart' ], true ) ) {
 			echo '<select name="' . esc_attr( $name ) . '">';
 			echo '<option value="yes"' . selected( $value, 'yes', false ) . '>' . esc_html__( 'Ano', 'nkz-mp-storefront' ) . '</option>';
 			echo '<option value="no"' . selected( $value, 'no', false ) . '>' . esc_html__( 'Ne', 'nkz-mp-storefront' ) . '</option>';
