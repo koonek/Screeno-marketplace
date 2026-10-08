@@ -32,13 +32,14 @@ final class Settings {
 	public static function defaults(): array {
 		return [
 			'enabled'         => 'yes',
-			// Art of život jako dodavatel dopravy a servisního poplatku.
-			'name'            => 'Art of život',
-			'street'          => '',
-			'city'            => '',
-			'zip'             => '',
+			// Art of život jako dodavatel dopravy, servisního poplatku a členství
+			// (údaje potvrdila účetní).
+			'name'            => 'art of život space z.s.',
+			'street'          => 'Emy Destinové 208, Místek',
+			'city'            => 'Frýdek-Místek',
+			'zip'             => '738 01',
 			'country'         => 'Česká republika',
-			'ico'             => '',
+			'ico'             => '23034831',
 			'dic'             => '',
 			'vat_payer'       => 'no',
 			'vat_rate'        => 21,
@@ -59,7 +60,15 @@ final class Settings {
 
 	public static function get(): array {
 		$saved = get_option( self::OPTION, [] );
-		return array_merge( self::defaults(), is_array( $saved ) ? $saved : [] );
+		$out   = array_merge( self::defaults(), is_array( $saved ) ? $saved : [] );
+		// Prázdné údaje dodavatele (nastavení uložené dřív bez nich) doplnit
+		// výchozími – doklad bez IČO a adresy není platný.
+		foreach ( [ 'name', 'street', 'city', 'zip', 'country', 'ico' ] as $k ) {
+			if ( trim( (string) $out[ $k ] ) === '' || ( $k === 'name' && $out[ $k ] === 'Art of život' ) ) {
+				$out[ $k ] = self::defaults()[ $k ];
+			}
+		}
+		return $out;
 	}
 
 	public static function enabled(): bool {
