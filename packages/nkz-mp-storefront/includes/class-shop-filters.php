@@ -34,6 +34,9 @@ final class ShopFilters {
 			return;
 		}
 
+		// Řada kategorií nad produkty (navigace jako Zalando) – před layoutem,
+		// ať je přes celou šířku a AJAX překreslení výsledků ji nesmaže.
+		add_action( 'woocommerce_before_shop_loop', [ $this, 'category_pills' ], 0 );
 		// Layout wrapper kolem výsledků (sidebar + grid sloupec).
 		add_action( 'woocommerce_before_shop_loop', [ $this, 'open_layout' ], 1 );
 		add_action( 'woocommerce_after_shop_loop', [ $this, 'close_layout' ], 50 );
@@ -111,6 +114,92 @@ final class ShopFilters {
 		echo '</aside>';
 
 		echo '<div class="nkzmp-shop-results" id="nkzmp-shop-results">';
+	}
+
+	/**
+	 * Řada kategorií jako odkazy (vzor Zalando): v obchodě hlavní
+	 * kategorie, v kategorii „Vše" + podkategorie, v podkategorii její
+	 * sourozenci. Navigace, ne filtr – vede na stránku kategorie.
+	 */
+	public function category_pills(): void {
+		if ( ! self::applicable() || ! taxonomy_exists( 'product_cat' ) ) {
+			return;
+		}
+		$uncat   = (int) get_option( 'default_product_cat', 0 );
+		$current = is_product_category() ? get_queried_object() : null;
+		$parent  = 0;
+		$all     = null; // [ label, url, active ]
+		if ( $current instanceof \WP_Term ) {
+			$kids_of_current = self::cat_children( (int) $current->term_id, $uncat );
+			if ( $kids_of_current ) {
+				$parent = (int) $current->term_id;
+				$all    = [ __( 'Vše', 'nkz-mp-storefront' ), get_term_link( $current ), true ];
+			} elseif ( (int) $current->parent > 0 ) {
+				$parent = (int) $current->parent;
+				$pt     = get_term( $parent, 'product_cat' );
+				if ( $pt instanceof \WP_Term ) {
+					/* translators: %s: hlavní kategorie */
+					$all = [ sprintf( __( 'Vše z %s', 'nkz-mp-storefront' ), $pt->name ), get_term_link( $pt ), false ];
+				}
+			} else {
+				return; // hlavní kategorie bez podkategorií – není co nabízet
+			}
+		} elseif ( ! is_shop() ) {
+			return;
+		}
+		$terms = self::cat_children( $parent, $uncat );
+		if ( count( $terms ) < 2 && ! $all ) {
+			return;
+		}
+		echo '<nav class="nkzmp-catpills" aria-label="' . esc_attr__( 'Kategorie', 'nkz-mp-storefront' ) . '"><ul>';
+		if ( $all && ! is_wp_error( $all[1] ) ) {
+			printf( '<li><a href="%s"%s>%s</a></li>', esc_url( $all[1] ), $all[2] ? ' class="is-active" aria-current="page"' : '', esc_html( $all[0] ) );
+		}
+		foreach ( $terms as $t ) {
+			$url = get_term_link( $t );
+			if ( is_wp_error( $url ) ) {
+				continue;
+			}
+			$active = $current instanceof \WP_Term && (int) $current->term_id === (int) $t->term_id;
+			printf( '<li><a href="%s"%s>%s</a></li>', esc_url( $url ), $active ? ' class="is-active" aria-current="page"' : '', esc_html( $t->name ) );
+		}
+		echo '</ul></nav>';
+		echo '<style>
+		.nkzmp-catpills{margin:0 0 20px}
+		.nkzmp-catpills ul{display:flex;flex-wrap:wrap;gap:10px;list-style:none;margin:0;padding:0}
+		html body .nkzmp-catpills a{display:inline-flex;align-items:center;padding:10px 18px;border-radius:999px;background:#f1f2f4;color:#111;-webkit-text-fill-color:#111;font-weight:600;font-size:15px;line-height:1.2;text-decoration:none!important;white-space:nowrap;transition:background .15s,color .15s}
+		html body .nkzmp-catpills a:hover{background:#e3e8f5;color:#0060FF;-webkit-text-fill-color:#0060FF}
+		html body .nkzmp-catpills a.is-active{background:#0060FF;color:#fff;-webkit-text-fill-color:#fff}
+		@media (max-width:767px){
+		.nkzmp-catpills{margin:0 -16px 16px}
+		.nkzmp-catpills ul{flex-wrap:nowrap;overflow-x:auto;padding:2px 16px 6px;scrollbar-width:none;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity}
+		.nkzmp-catpills ul::-webkit-scrollbar{display:none}
+		.nkzmp-catpills li{flex:0 0 auto;scroll-snap-align:start}
+		html body .nkzmp-catpills a{padding:9px 16px;font-size:14px}
+		}
+		</style>';
+		// Aktivní pilulku posunout do zorného pole (mobil).
+		echo '<script>(function(){var a=document.querySelector(".nkzmp-catpills a.is-active");if(a&&a.scrollIntoView){var u=a.closest("ul");if(u&&u.scrollWidth>u.clientWidth){u.scrollLeft=a.offsetLeft-16;}}})();</script>';
+	}
+
+	/** Neprázdné podkategorie (počty vč. vnořených), v pořadí z administrace. */
+	private static function cat_children( int $parent, int $uncat ): array {
+		$terms = get_terms( [
+			'taxonomy'   => 'product_cat',
+			'hide_empty' => false,
+			'parent'     => $parent,
+			'orderby'    => 'menu_order',
+		] );
+		if ( is_wp_error( $terms ) ) {
+			return [];
+		}
+		return array_values( array_filter( (array) $terms, static function ( $t ) use ( $uncat ) {
+			if ( (int) $t->term_id === $uncat ) {
+				return false;
+			}
+			$c = get_term_meta( $t->term_id, 'product_count_product_cat', true );
+			return ( $c !== '' ? (int) $c : (int) $t->count ) > 0;
+		} ) );
 	}
 
 	public function close_layout(): void {
@@ -250,18 +339,30 @@ final class ShopFilters {
 				}
 			}
 			echo '<li class="nkzmp-filters__cat' . ( $kids ? ' has-sub' : '' ) . ( $open ? ' is-open' : '' ) . '" data-term="' . (int) $p->term_id . '">';
-			echo '<div class="nkzmp-filters__catrow">' . $item( $p, $selected ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escapováno v $item.
-			if ( $kids ) {
+			if ( ! $kids ) {
+				// Bez podkategorií: obyčejné zaškrtávátko.
+				echo '<div class="nkzmp-filters__catrow">' . $item( $p, $selected ) . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escapováno v $item.
+			} else {
+				// S podkategoriemi: celý řádek rozbaluje (bez zaškrtávátka –
+				// dvojí zaškrtávání hlavní i pod-kategorie mátlo). „Vše z …"
+				// je první položka uvnitř.
 				printf(
-					'<button type="button" class="nkzmp-filters__caret" aria-expanded="%s" aria-label="%s" data-nkzmp-caret></button>',
+					'<button type="button" class="nkzmp-filters__catrow nkzmp-filters__cattoggle" aria-expanded="%1$s" data-nkzmp-caret><span>%2$s</span> <em>%3$d</em><i class="nkzmp-filters__chev" aria-hidden="true"></i></button>',
 					$open ? 'true' : 'false',
-					/* translators: %s: kategorie */
-					esc_attr( sprintf( __( 'Podkategorie: %s', 'nkz-mp-storefront' ), $p->name ) )
+					esc_html( $p->name ),
+					(int) $p->nkzmp_count
 				);
-			}
-			echo '</div>';
-			if ( $kids ) {
 				echo '<ul class="nkzmp-filters__sub">';
+				$all_id = 'nkzmp-cat-' . $p->term_id;
+				printf(
+					'<li class="nkzmp-filters__all"><label for="%1$s"><input type="checkbox" id="%1$s" name="cat[]" value="%2$s" data-nkzmp-catall%3$s> <span>%4$s</span> <em>%5$d</em></label></li>',
+					esc_attr( $all_id ),
+					esc_attr( $p->slug ),
+					in_array( $p->slug, $selected, true ) ? ' checked' : '',
+					/* translators: %s: hlavní kategorie */
+					esc_html( sprintf( __( 'Vše z %s', 'nkz-mp-storefront' ), $p->name ) ),
+					(int) $p->nkzmp_count
+				);
 				foreach ( $kids as $k ) {
 					echo '<li>' . $item( $k, $selected ) . '</li>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 				}
@@ -275,10 +376,15 @@ final class ShopFilters {
 		<style>
 		.nkzmp-filters__cattree .nkzmp-filters__catrow{display:flex;align-items:center;gap:6px}
 		.nkzmp-filters__cattree .nkzmp-filters__catrow > label{flex:1 1 auto;min-width:0}
-		.nkzmp-filters__caret{flex:0 0 auto;width:32px;height:32px;margin:0;padding:0!important;border:0!important;background:none!important;box-shadow:none!important;cursor:pointer;position:relative;border-radius:8px!important}
-		.nkzmp-filters__caret::before{content:"";position:absolute;left:50%;top:50%;width:8px;height:8px;border-right:2px solid #0060FF;border-bottom:2px solid #0060FF;transform:translate(-50%,-70%) rotate(45deg);transition:transform .15s}
-		.nkzmp-filters__cat.is-open > .nkzmp-filters__catrow .nkzmp-filters__caret::before{transform:translate(-50%,-30%) rotate(-135deg)}
-		.nkzmp-filters__caret:hover{background:rgba(0,96,255,.08)!important}
+		html body .nkzmp-filters button.nkzmp-filters__cattoggle,html body .nkzmp-filters button.nkzmp-filters__cattoggle:focus,html body .nkzmp-filters button.nkzmp-filters__cattoggle:active{display:flex!important;width:100%!important;align-items:center;gap:10px;margin:0!important;padding:6px 0!important;background:transparent!important;border:0!important;box-shadow:none!important;color:inherit!important;-webkit-text-fill-color:currentColor!important;font:inherit!important;text-align:left!important;cursor:pointer;border-radius:8px!important;text-transform:none!important;letter-spacing:normal!important}
+		html body .nkzmp-filters button.nkzmp-filters__cattoggle:hover{background:rgba(0,96,255,.05)!important;color:inherit!important}
+		html body .nkzmp-filters button.nkzmp-filters__cattoggle:focus-visible{outline:2px solid #0060FF!important;outline-offset:2px}
+		.nkzmp-filters__cattoggle > span{flex:1 1 auto;min-width:0}
+		.nkzmp-filters__cattoggle > em{font-style:normal;color:#888;font-size:13px}
+		.nkzmp-filters__chev{flex:0 0 auto;width:28px;height:20px;position:relative}
+		.nkzmp-filters__chev::before{content:"";position:absolute;left:50%;top:50%;width:8px;height:8px;border-right:2px solid #0060FF;border-bottom:2px solid #0060FF;transform:translate(-50%,-70%) rotate(45deg);transition:transform .15s}
+		.nkzmp-filters__cat.is-open > .nkzmp-filters__cattoggle .nkzmp-filters__chev::before{transform:translate(-50%,-30%) rotate(-135deg)}
+		.nkzmp-filters__all{font-weight:500}
 		.nkzmp-filters__sub{list-style:none;margin:2px 0 6px 26px;padding:0 0 0 10px;border-left:1px solid #e3e6ee;display:none}
 		.nkzmp-filters__cat.is-open > .nkzmp-filters__sub{display:block}
 		.nkzmp-filters__sub li{font-size:.95em}
@@ -300,6 +406,20 @@ final class ShopFilters {
 					if (c) { c.setAttribute('aria-expanded', 'true'); }
 				}
 			}
+			// „Vše z …" a podkategorie se vylučují (zachytí se dřív, než
+			// formulář pošle filtr – posluchač je blíž než formulář).
+			tree.addEventListener('change', function (e) {
+				var inp = e.target;
+				if (!inp.checked || inp.name !== 'cat[]') { return; }
+				var sub = inp.closest('.nkzmp-filters__sub');
+				if (!sub) { return; }
+				if (inp.hasAttribute('data-nkzmp-catall')) {
+					sub.querySelectorAll('input[name="cat[]"]:not([data-nkzmp-catall])').forEach(function (o) { o.checked = false; });
+				} else {
+					var all = sub.querySelector('[data-nkzmp-catall]');
+					if (all) { all.checked = false; }
+				}
+			});
 			tree.addEventListener('click', function (e) {
 				var b = e.target.closest('[data-nkzmp-caret]');
 				if (!b) { return; }
