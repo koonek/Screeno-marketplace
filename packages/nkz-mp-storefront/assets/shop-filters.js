@@ -26,6 +26,177 @@
 
 	var debounceTimer = null;
 	var currentReq    = null;
+	var lastChanged   = null; // poslední změněný filtr (pro „Zrušit poslední filtr")
+	var currentPaged  = 1;
+
+	/* Měření: dataLayer (GTM) + gtag (GA4), když jsou na webu. */
+	function track( ev, params ) {
+		try {
+			window.dataLayer = window.dataLayer || [];
+			window.dataLayer.push( Object.assign( { event: 'nkzmp_' + ev }, params || {} ) );
+			if ( typeof window.gtag === 'function' ) { window.gtag( 'event', ev, params || {} ); }
+		} catch ( e ) {}
+	}
+
+	form.addEventListener( 'change', function ( e ) { lastChanged = e.target; }, true );
+	form.addEventListener( 'input', function ( e ) {
+		if ( e.target.matches( '[data-nkzmp-price], [data-nkzmp-range], [data-nkzmp-search]' ) ) { lastChanged = e.target; }
+	}, true );
+
+	/* ───────── Počítač: filtry jako řada tlačítek s nabídkou ───────── */
+
+	function setupBar() {
+		layout.classList.add( 'is-bar' );
+		form.querySelectorAll( 'fieldset.nkzmp-filters__group' ).forEach( function ( g ) {
+			if ( g.classList.contains( 'nkzmp-filters__group--search' ) || g.classList.contains( 'nkzmp-filters__stock' ) ) { return; }
+			var legend = g.querySelector( 'legend' );
+			if ( ! legend || g.querySelector( '.nkzmp-bar-btn' ) ) { return; }
+			var label = ( legend.firstChild && legend.firstChild.nodeType === 3 ? legend.firstChild.textContent : legend.textContent ).trim();
+			var btn = document.createElement( 'button' );
+			btn.type = 'button';
+			btn.className = 'nkzmp-bar-btn';
+			btn.setAttribute( 'aria-expanded', 'false' );
+			btn.setAttribute( 'data-label', label );
+			btn.textContent = label;
+			var panel = document.createElement( 'div' );
+			panel.className = 'nkzmp-bar-panel';
+			Array.prototype.slice.call( g.childNodes ).forEach( function ( n ) {
+				if ( n !== legend ) { panel.appendChild( n ); }
+			} );
+			g.appendChild( btn );
+			g.appendChild( panel );
+			g.classList.add( 'has-panel' );
+			btn.addEventListener( 'click', function ( e ) {
+				e.stopPropagation();
+				var open = ! g.classList.contains( 'is-open' );
+				closeBar();
+				g.classList.toggle( 'is-open', open );
+				btn.setAttribute( 'aria-expanded', open ? 'true' : 'false' );
+			} );
+		} );
+		document.addEventListener( 'click', function ( e ) {
+			if ( ! e.target.closest( '.nkzmp-filters__group.is-open' ) ) { closeBar(); }
+		} );
+		document.addEventListener( 'keydown', function ( e ) { if ( e.key === 'Escape' ) { closeBar(); } } );
+	}
+
+	function closeBar() {
+		form.querySelectorAll( '.nkzmp-filters__group.is-open' ).forEach( function ( g ) {
+			g.classList.remove( 'is-open' );
+			var b = g.querySelector( '.nkzmp-bar-btn' );
+			if ( b ) { b.setAttribute( 'aria-expanded', 'false' ); }
+		} );
+	}
+
+	// Počet vybraných v tlačítku („Značky · 2") + zvýraznění aktivního.
+	function updateBarState() {
+		form.querySelectorAll( '.nkzmp-filters__group.has-panel' ).forEach( function ( g ) {
+			var btn = g.querySelector( '.nkzmp-bar-btn' );
+			var n = g.querySelectorAll( 'input[type="checkbox"]:checked' ).length;
+			if ( g.classList.contains( 'nkzmp-filters__price' ) ) {
+				var a = g.querySelector( '[data-nkzmp-price="min"]' ), b = g.querySelector( '[data-nkzmp-price="max"]' );
+				n = ( a && a.value !== '' ) || ( b && b.value !== '' ) ? 1 : 0;
+			}
+			g.classList.toggle( 'is-active', n > 0 );
+			if ( btn ) { btn.textContent = btn.getAttribute( 'data-label' ) + ( n > 1 ? ' · ' + n : '' ); }
+		} );
+	}
+
+	/* ───────── Prázdný výsledek ───────── */
+
+	function undoLast() {
+		var el = lastChanged;
+		if ( ! el ) { var c = form.querySelector( '[data-nkzmp-clear]' ); if ( c ) { c.click(); } return; }
+		if ( el.type === 'checkbox' ) {
+			el.checked = false;
+		} else if ( el.matches( '[data-nkzmp-range="min"], [data-nkzmp-price="min"]' ) ) {
+			var mi = form.querySelector( '[data-nkzmp-price="min"]' ); if ( mi ) { mi.value = ''; } syncRangeFromInputs();
+		} else if ( el.matches( '[data-nkzmp-range="max"], [data-nkzmp-price="max"]' ) ) {
+			var ma = form.querySelector( '[data-nkzmp-price="max"]' ); if ( ma ) { ma.value = ''; } syncRangeFromInputs();
+		} else if ( el.matches( '[data-nkzmp-search]' ) ) {
+			el.value = '';
+		}
+		lastChanged = null;
+		applyReset();
+	}
+
+	function renderEmpty( total ) {
+		var old = results.querySelector( '.nkzmp-empty' );
+		if ( old ) { old.remove(); }
+		if ( total !== 0 ) { return; }
+		var box = document.createElement( 'div' );
+		box.className = 'nkzmp-empty';
+		box.innerHTML = '<h3>Tady nic není</h3><p>Zkus zrušit poslední filtr nebo vybrat jinou kategorii.</p><div class="nkzmp-empty-actions"></div>';
+		var acts = box.querySelector( '.nkzmp-empty-actions' );
+		if ( lastChanged ) {
+			var u = document.createElement( 'button' );
+			u.type = 'button'; u.className = 'is-primary'; u.textContent = 'Zrušit poslední filtr';
+			u.addEventListener( 'click', undoLast );
+			acts.appendChild( u );
+		}
+		var c = document.createElement( 'button' );
+		c.type = 'button'; c.textContent = 'Vymazat všechny filtry';
+		c.addEventListener( 'click', function () { var x = form.querySelector( '[data-nkzmp-clear]' ); if ( x ) { x.click(); } } );
+		acts.appendChild( c );
+		var chips = results.querySelector( '.nkzmp-active-chips' );
+		if ( chips && chips.nextSibling ) { results.insertBefore( box, chips.nextSibling ); } else { results.insertBefore( box, results.firstChild ); }
+		var srv = results.querySelector( '.nkzmp-shop-empty' );
+		if ( srv ) { srv.style.display = 'none'; }
+	}
+
+	/* ───────── Mobil: „Načíst další" místo stránkování ───────── */
+
+	function isMobile() { return !! ( window.matchMedia && window.matchMedia( '(max-width: 767px)' ).matches ); }
+
+	function setupLoadMore() {
+		var old = results.querySelector( '.nkzmp-load-more' );
+		if ( old ) { old.remove(); }
+		if ( ! isMobile() || ! window.fetch ) { return; }
+		var pag = results.querySelector( '.woocommerce-pagination' );
+		if ( ! pag ) { return; }
+		var next = pag.querySelector( 'a.next' );
+		if ( ! next ) { return; }
+		pag.style.display = 'none';
+		var btn = document.createElement( 'button' );
+		btn.type = 'button';
+		btn.className = 'nkzmp-load-more';
+		btn.textContent = 'Načíst další produkty';
+		pag.parentNode.insertBefore( btn, pag.nextSibling );
+		btn.addEventListener( 'click', function () {
+			btn.disabled = true;
+			btn.textContent = 'Načítám…';
+			var data = collect();
+			data.paged = currentPaged + 1;
+			fetch( sameOriginAjax(), {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+				body: buildBody( data ).toString(),
+				credentials: 'same-origin'
+			} )
+				.then( function ( r ) { if ( ! r.ok ) { throw new Error( 'HTTP ' + r.status ); } return r.json(); } )
+				.then( function ( res ) {
+					var tmp = document.createElement( 'div' );
+					tmp.innerHTML = ( res && res.data && res.data.html ) || '';
+					var ul = results.querySelector( 'ul.products' );
+					tmp.querySelectorAll( 'ul.products > li' ).forEach( function ( li ) { if ( ul ) { ul.appendChild( li ); } } );
+					currentPaged = data.paged;
+					track( 'load_more', { page: currentPaged } );
+					if ( tmp.querySelector( '.woocommerce-pagination a.next' ) ) {
+						btn.disabled = false;
+						btn.textContent = 'Načíst další produkty';
+					} else {
+						btn.remove();
+					}
+				} )
+				.catch( function () { window.location.href = next.href; } );
+		} );
+	}
+
+	function afterRender( total ) {
+		updateBarState();
+		renderEmpty( total );
+		setupLoadMore();
+	}
 
 	/* ───────── Collect filter state ───────── */
 
@@ -88,9 +259,7 @@
 
 	/* ───────── Fetch + render ───────── */
 
-	function apply( data ) {
-		syncUrl( data );
-
+	function buildBody( data ) {
 		var body = new URLSearchParams();
 		body.set( 'action', cfg.action );
 		body.set( 'nonce', cfg.nonce );
@@ -102,6 +271,24 @@
 		if ( data.q ) { body.set( 'q', data.q ); }
 		if ( data.orderby ) { body.set( 'orderby', data.orderby ); }
 		body.set( 'paged', data.paged );
+		return body;
+	}
+
+	function sameOriginAjax() {
+		var ajaxUrl = cfg.ajaxUrl;
+		try {
+			var u = new URL( ajaxUrl, window.location.href );
+			if ( u.origin !== window.location.origin ) {
+				ajaxUrl = window.location.origin + u.pathname + u.search;
+			}
+		} catch ( e ) {}
+		return ajaxUrl;
+	}
+
+	function apply( data ) {
+		syncUrl( data );
+
+		var body = buildBody( data );
 
 		layout.classList.add( 'is-loading' );
 
@@ -153,8 +340,21 @@
 			.then( function ( res ) {
 				if ( res && res.success && res.data && typeof res.data.html === 'string' ) {
 					results.innerHTML = res.data.html;
-					updateDone( parseInt( res.data.total, 10 ) );
+					var total = parseInt( res.data.total, 10 );
+					currentPaged = data.paged || 1;
+					updateDone( total );
 					renderChips();
+					afterRender( total );
+					track( 'filter_apply', {
+						categories: data.cat.join( ',' ),
+						brands: data.vendor.join( ',' ),
+						min_price: data.min_price,
+						max_price: data.max_price,
+						search_term: data.q,
+						in_stock: data.instock ? 1 : 0,
+						results: total
+					} );
+					if ( total === 0 ) { track( 'empty_results', { search_term: data.q, categories: data.cat.join( ',' ) } ); }
 				}
 			} )
 			.catch( function ( err ) {
@@ -479,5 +679,9 @@
 
 	// Init modrého fillu slideru podle počátečních hodnot.
 	updateRangeFill();
+	setupBar();
 	renderChips();
+	currentPaged = pagedFromHref( window.location.href );
+	var doneBtn = form.querySelector( '[data-nkzmp-done]' );
+	afterRender( doneBtn ? parseInt( doneBtn.getAttribute( 'data-total' ), 10 ) : NaN );
 } )();

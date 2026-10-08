@@ -39,6 +39,7 @@ final class ShopFilters {
 		add_action( 'woocommerce_before_shop_loop', [ $this, 'category_pills' ], 0 );
 		// Layout wrapper kolem výsledků (sidebar + grid sloupec).
 		add_action( 'woocommerce_before_shop_loop', [ $this, 'open_layout' ], 1 );
+		add_action( 'woocommerce_before_shop_loop', [ SearchBoost::class, 'note' ], 2 );
 		add_action( 'woocommerce_after_shop_loop', [ $this, 'close_layout' ], 50 );
 
 		// Aplikace filtrů na hlavní shop query (URL / no-JS / SEO).
@@ -230,6 +231,34 @@ final class ShopFilters {
 		html body .nkzmp-active-chips button,html body .nkzmp-active-chips button:hover,html body .nkzmp-active-chips button:focus,html body .nkzmp-active-chips button:active{display:inline-flex!important;align-items:center;gap:8px;margin:0!important;padding:7px 12px 7px 14px!important;border:1.5px solid #0060FF!important;border-radius:999px!important;background:#f2f6ff!important;color:#0060FF!important;-webkit-text-fill-color:#0060FF!important;font-size:14px!important;font-weight:500!important;line-height:1.2!important;cursor:pointer;box-shadow:none!important;text-decoration:none!important}
 		html body .nkzmp-active-chips button:hover{background:#0060FF!important;color:#fff!important;-webkit-text-fill-color:#fff!important}
 		html body .nkzmp-active-chips button .x{font-size:16px;line-height:1;opacity:.8}
+		/* Počítač: filtry jako řada tlačítek nahoře (vzor Vinted/Zalando). */
+		.nkzmp-bar-btn{display:none}
+		@media (min-width:1025px){
+		html body .nkzmp-shop-layout.is-bar{display:block!important}
+		html body .nkzmp-shop-layout.is-bar .nkzmp-shop-filters{position:relative!important;top:auto!important;max-height:none!important;overflow:visible!important;width:auto!important;padding:0!important;margin:0 0 18px!important;background:none!important;border:0!important;box-shadow:none!important;z-index:20}
+		html body .nkzmp-shop-layout.is-bar .nkzmp-filters{flex-direction:row!important;flex-wrap:wrap!important;align-items:center!important;gap:10px!important}
+		html body .nkzmp-shop-layout.is-bar .nkzmp-filters__head,html body .nkzmp-shop-layout.is-bar .nkzmp-filters__done{display:none!important}
+		html body .nkzmp-shop-layout.is-bar .nkzmp-filters__group{position:relative!important}
+		html body .nkzmp-shop-layout.is-bar .nkzmp-filters__group.has-panel > legend{display:none!important}
+		html body .nkzmp-shop-layout.is-bar .nkzmp-filters__group--search > legend{display:none!important}
+		html body .nkzmp-shop-layout.is-bar .nkzmp-filters__group--search .nkzmp-filters__search{width:240px!important;border-radius:999px!important}
+		html body .nkzmp-shop-layout.is-bar .nkzmp-bar-btn,html body .nkzmp-shop-layout.is-bar .nkzmp-bar-btn:hover,html body .nkzmp-shop-layout.is-bar .nkzmp-bar-btn:focus,html body .nkzmp-shop-layout.is-bar .nkzmp-bar-btn:active{display:inline-flex!important;align-items:center;gap:8px;margin:0!important;padding:10px 16px!important;border:1.5px solid #d5dbe6!important;border-radius:999px!important;background:#fff!important;color:#111!important;-webkit-text-fill-color:#111!important;font-size:15px!important;font-weight:500!important;line-height:1.2!important;box-shadow:none!important;cursor:pointer;text-transform:none!important;letter-spacing:normal!important}
+		html body .nkzmp-shop-layout.is-bar .nkzmp-bar-btn:hover{border-color:#0060FF!important}
+		html body .nkzmp-shop-layout.is-bar .nkzmp-filters__group.is-active > .nkzmp-bar-btn{border-color:#0060FF!important;background:#f2f6ff!important;color:#0060FF!important;-webkit-text-fill-color:#0060FF!important}
+		html body .nkzmp-shop-layout.is-bar .nkzmp-bar-btn::after{content:"";width:7px;height:7px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:translateY(-2px) rotate(45deg);transition:transform .15s}
+		html body .nkzmp-shop-layout.is-bar .nkzmp-filters__group.is-open > .nkzmp-bar-btn::after{transform:translateY(2px) rotate(-135deg)}
+		html body .nkzmp-shop-layout.is-bar .nkzmp-bar-panel{display:none;position:absolute;top:calc(100% + 8px);left:0;z-index:60;width:340px;max-height:70vh;overflow:auto;padding:18px;background:#fff;border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,.14)}
+		html body .nkzmp-shop-layout.is-bar .nkzmp-filters__group.is-open > .nkzmp-bar-panel{display:block}
+		html body .nkzmp-shop-layout.is-bar .nkzmp-filters__group:last-child .nkzmp-bar-panel{left:auto;right:0}
+		}
+		.nkzmp-empty{margin:8px 0 24px;padding:28px 22px;border-radius:16px;background:#f7f8fb;text-align:center}
+		.nkzmp-empty h3{margin:0 0 6px;font-size:20px}
+		.nkzmp-empty p{margin:0 0 16px;color:#6b7280}
+		.nkzmp-empty-actions{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+		html body .nkzmp-empty-actions button,html body .nkzmp-empty-actions button:hover,html body .nkzmp-empty-actions button:focus{padding:10px 18px!important;border-radius:999px!important;border:1.5px solid #0060FF!important;background:#fff!important;color:#0060FF!important;-webkit-text-fill-color:#0060FF!important;font-weight:600!important;box-shadow:none!important;cursor:pointer}
+		html body .nkzmp-empty-actions button.is-primary{background:#0060FF!important;color:#fff!important;-webkit-text-fill-color:#fff!important}
+		html body .nkzmp-load-more,html body .nkzmp-load-more:hover,html body .nkzmp-load-more:focus{display:block!important;width:100%!important;margin:20px 0 8px!important;padding:14px 20px!important;border-radius:999px!important;border:1.5px solid #0060FF!important;background:#fff!important;color:#0060FF!important;-webkit-text-fill-color:#0060FF!important;font-size:16px!important;font-weight:600!important;box-shadow:none!important;cursor:pointer}
+		html body .nkzmp-load-more[disabled]{opacity:.6}
 		html body .nkzmp-active-chips button.is-clear,html body .nkzmp-active-chips button.is-clear:hover{border-color:transparent!important;background:transparent!important;color:#0060FF!important;-webkit-text-fill-color:#0060FF!important;text-decoration:underline!important}
 		</style>';
 		echo '<form class="nkzmp-filters" method="get" action="' . esc_url( self::base_url() ) . '">';
@@ -861,8 +890,24 @@ final class ShopFilters {
 			$existing = (array) $q->get( 'meta_query' );
 			$q->set( 'meta_query', array_merge( $existing, $clauses['meta_query'] ) );
 		}
-		if ( ! empty( $filters['q'] ) ) {
-			$q->set( 's', $filters['q'] );
+		// Hledání: text + značka + kategorie, s opravou překlepu (SearchBoost).
+		// Vlastní pole „q" i nativní WooCommerce hledání (?s=).
+		$term = ! empty( $filters['q'] ) ? (string) $filters['q'] : (string) $q->get( 's' );
+		if ( $term !== '' ) {
+			$ids = SearchBoost::ids( $term );
+			$q->set( 'post__in', $ids ?: [ 0 ] );
+			// Textovou podmínku vypnout – výběr už dělá post__in (jinak by
+			// produkty značky bez slova v názvu vypadly). „s" zůstává kvůli
+			// nadpisu výsledků hledání.
+			$q->set( 's', $term );
+			add_filter(
+				'posts_search',
+				static function ( $search, $query ) use ( $q ) {
+					return $query === $q ? '' : $search;
+				},
+				10,
+				2
+			);
 		}
 	}
 
@@ -893,7 +938,8 @@ final class ShopFilters {
 			$args['meta_query'] = $clauses['meta_query'];
 		}
 		if ( ! empty( $filters['q'] ) ) {
-			$args['s'] = $filters['q'];
+			$ids              = SearchBoost::ids( (string) $filters['q'] );
+			$args['post__in'] = $ids ?: [ 0 ];
 		}
 		$args = array_merge( $args, self::ordering_args( $orderby ) );
 
@@ -933,6 +979,8 @@ final class ShopFilters {
 		}
 
 		ob_start();
+
+		SearchBoost::note();
 
 		// Intro toolbar (počet + řazení) – reuse ShopLoop, čte global wp_query.
 		if ( class_exists( ShopLoop::class ) ) {
@@ -1161,6 +1209,7 @@ final class ShopFilters {
 	public static function forget_cache(): void {
 		delete_transient( 'nkzmp_shop_price_bounds' );
 		delete_transient( 'nkzmp_shop_price_hist' );
+		SearchBoost::forget();
 		delete_transient( 'nkzmp_shop_product_vendors' );
 		update_option( 'nkzmp_shop_cache_ver', (int) get_option( 'nkzmp_shop_cache_ver', 1 ) + 1, false );
 	}

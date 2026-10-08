@@ -269,14 +269,49 @@ final class ShopDiscovery {
 			function esc(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 			function initials(n) { return n.split(/\s+/).slice(0, 2).map(function (p) { return p.charAt(0); }).join('').toUpperCase(); }
 
+			// Naposledy hledané (jen v tomhle prohlížeči).
+			var RKEY = 'nkzmp_recent_search';
+			function recent() { try { return JSON.parse(localStorage.getItem(RKEY) || '[]'); } catch (e) { return []; } }
+			function remember(q) {
+				q = (q || '').trim();
+				if (q.length < 2) { return; }
+				var list = recent().filter(function (x) { return fold(x) !== fold(q); });
+				list.unshift(q);
+				try { localStorage.setItem(RKEY, JSON.stringify(list.slice(0, 5))); } catch (e) {}
+			}
+			function track(ev, params) {
+				try {
+					window.dataLayer = window.dataLayer || [];
+					window.dataLayer.push(Object.assign({ event: 'nkzmp_' + ev }, params || {}));
+					if (typeof window.gtag === 'function') { window.gtag('event', ev, params || {}); }
+				} catch (e) {}
+			}
+			input.form.addEventListener('submit', function () {
+				remember(input.value);
+				track('search', { search_term: input.value.trim() });
+			});
+			document.querySelectorAll('.nkzmp-discover__vendor').forEach(function (a) {
+				a.addEventListener('click', function () { track('brand_strip_click', { brand: a.textContent.trim() }); });
+			});
+
 			function render() {
 				var q = fold(input.value.trim());
 				active = -1;
-				if (q.length < 2) { box.hidden = true; box.innerHTML = ''; return; }
+				if (q.length < 2) {
+					var r = recent();
+					if (!r.length) { box.hidden = true; box.innerHTML = ''; return; }
+					var rh = '<div class="nkzmp-discover__sghead"><?php echo esc_js( __( 'Naposledy hledané', 'nkz-mp-storefront' ) ); ?></div>';
+					r.forEach(function (t) {
+						rh += '<a href="#" data-nkzmp-recent="' + esc(t) + '"><span aria-hidden="true" style="opacity:.5">↺</span>&nbsp;' + esc(t) + '</a>';
+					});
+					box.innerHTML = rh;
+					box.hidden = false;
+					return;
+				}
 				var hits = vendors.filter(function (v) { return v.k.indexOf(q) !== -1; }).slice(0, 6);
 				var html = '';
 				if (hits.length) {
-					html += '<div class="nkzmp-discover__sghead"><?php echo esc_js( __( 'Prodejci', 'nkz-mp-storefront' ) ); ?></div>';
+					html += '<div class="nkzmp-discover__sghead"><?php echo esc_js( __( 'Značky', 'nkz-mp-storefront' ) ); ?></div>';
 					hits.forEach(function (v) {
 						var av = v.i
 							? '<span class="nkzmp-discover__cavatar" style="background-image:url(' + encodeURI(v.i) + ')"></span>'
@@ -309,8 +344,17 @@ final class ShopDiscovery {
 				}
 			});
 			box.addEventListener('click', function (e) {
+				var rec = e.target.closest('[data-nkzmp-recent]');
+				if (rec) {
+					e.preventDefault();
+					input.value = rec.getAttribute('data-nkzmp-recent');
+					remember(input.value);
+					track('search', { search_term: input.value, source: 'recent' });
+					input.form.submit();
+					return;
+				}
 				var a = e.target.closest('[data-nkzmp-submit]');
-				if (a) { e.preventDefault(); input.form.submit(); }
+				if (a) { e.preventDefault(); remember(input.value); track('search', { search_term: input.value.trim() }); input.form.submit(); }
 			});
 			document.addEventListener('click', function (e) {
 				if (!input.form.contains(e.target)) { box.hidden = true; }

@@ -37,6 +37,7 @@ final class Plugin {
 		Voucher::instance()->init();
 		ShopFilters::instance()->init();
 		CategorySeed::instance()->init();
+		ShopEnhance::instance()->init();
 		ShopDiscovery::instance()->init();
 		Shortcodes::instance()->init();
 		ProductReadmore::instance()->init();
