@@ -36,6 +36,11 @@ final class Settings {
 			// Připomínka opuštěného košíku e-mailem (jednou).
 			'abandoned_cart'      => 'yes',
 			'abandoned_delay'     => 2,
+			// Štítek „Novinka" – kolik dní od přidání produktu (0 = vypnuto).
+			'new_days'            => 14,
+			// Kategorie s originály (štítek „Originál" místo „Poslední kus").
+			// null = výchozí „Umění a design".
+			'original_cats'       => null,
 		];
 		$saved = get_option( self::OPTION, [] );
 		return array_merge( $defaults, is_array( $saved ) ? $saved : [] );
@@ -55,6 +60,8 @@ final class Settings {
 			'filters_layout'      => __( 'Filtry obchodu na počítači', 'nkz-mp-storefront' ),
 			'abandoned_cart'      => __( 'Připomínka opuštěného košíku', 'nkz-mp-storefront' ),
 			'abandoned_delay'     => __( 'Poslat připomínku po (hodinách)', 'nkz-mp-storefront' ),
+			'new_days'            => __( 'Štítek „Novinka" (dní)', 'nkz-mp-storefront' ),
+			'original_cats'       => __( 'Kategorie s originály', 'nkz-mp-storefront' ),
 		];
 		foreach ( $fields as $key => $label ) {
 			add_settings_field(
@@ -100,6 +107,29 @@ final class Settings {
 			echo '<option value="top"' . selected( $value, 'top', false ) . '>' . esc_html__( 'Nahoře – řada tlačítek s nabídkou (jako Vinted/Zalando)', 'nkz-mp-storefront' ) . '</option>';
 			echo '<option value="side"' . selected( $value, 'side', false ) . '>' . esc_html__( 'Vlevo – sloupec vedle produktů', 'nkz-mp-storefront' ) . '</option>';
 			echo '</select><p class="description">' . esc_html__( 'Na mobilu jsou filtry vždy pod tlačítkem „Kategorie, značky, cena“.', 'nkz-mp-storefront' ) . '</p>';
+			return;
+		}
+		if ( 'new_days' === $key ) {
+			echo '<input type="number" name="' . esc_attr( $name ) . '" value="' . esc_attr( (string) $value ) . '" min="0" max="365" />';
+			echo '<p class="description">' . esc_html__( 'Kolik dní od přidání produktu svítí na kartě „Novinka". 0 = štítek vypnout.', 'nkz-mp-storefront' ) . '</p>';
+			return;
+		}
+		if ( 'original_cats' === $key ) {
+			$sel = is_array( $value ) ? array_map( 'intval', $value ) : ( class_exists( ShopEnhance::class ) ? ShopEnhance::original_cat_ids() : [] );
+			$terms = get_terms( [ 'taxonomy' => 'product_cat', 'hide_empty' => false, 'parent' => 0 ] );
+			echo '<input type="hidden" name="' . esc_attr( $name ) . '[]" value="0" />';
+			if ( ! is_wp_error( $terms ) ) {
+				foreach ( (array) $terms as $t ) {
+					printf(
+						'<label style="display:inline-block;margin:0 16px 6px 0;"><input type="checkbox" name="%s[]" value="%d"%s /> %s</label>',
+						esc_attr( $name ),
+						(int) $t->term_id,
+						in_array( (int) $t->term_id, $sel, true ) ? ' checked' : '',
+						esc_html( $t->name )
+					);
+				}
+			}
+			echo '<p class="description">' . esc_html__( 'Produkty v těchto kategoriích (i v jejich podkategoriích) dostanou štítek „Originál" místo „Poslední kus" – obraz je vždy jediný kus.', 'nkz-mp-storefront' ) . '</p>';
 			return;
 		}
 		if ( 'abandoned_delay' === $key ) {

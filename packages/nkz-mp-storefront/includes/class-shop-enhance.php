@@ -100,7 +100,11 @@ final class ShopEnhance {
 			if ( self::is_new( $product ) ) {
 				$out[] = [ 'is-new', __( 'Novinka', 'nkz-mp-storefront' ) ];
 			}
-			if ( self::last_piece( $product ) ) {
+			if ( self::is_original( $product ) ) {
+				// Originály (umění) jsou vždy jeden kus – „Poslední kus" by
+				// visel na všem a mátl. Místo něj „Originál".
+				$out[] = [ 'is-original', __( 'Originál', 'nkz-mp-storefront' ) ];
+			} elseif ( self::last_piece( $product ) ) {
 				$out[] = [ 'is-last', __( 'Poslední kus', 'nkz-mp-storefront' ) ];
 			}
 		}
@@ -115,8 +119,54 @@ final class ShopEnhance {
 		echo '</span>';
 	}
 
+	/** Kolik dní svítí „Novinka" (Storefront → nastavení, výchozí 14). */
+	public static function new_days(): int {
+		$d = class_exists( Settings::class ) ? (int) ( Settings::get()['new_days'] ?? 14 ) : 14;
+		return max( 0, (int) apply_filters( 'nkzmp/v1/storefront/new_days', $d ) );
+	}
+
+	/**
+	 * ID kategorií s originály (vybrané v nastavení + jejich podkategorie).
+	 * Nevybráno nic → výchozí „Umění a design".
+	 *
+	 * @return int[]
+	 */
+	public static function original_cat_ids(): array {
+		static $ids = null;
+		if ( $ids !== null ) {
+			return $ids;
+		}
+		$sel = class_exists( Settings::class ) ? Settings::get()['original_cats'] ?? null : null;
+		if ( ! is_array( $sel ) ) {
+			$t   = get_term_by( 'slug', 'umeni-a-design', 'product_cat' );
+			$sel = $t ? [ (int) $t->term_id ] : [];
+		}
+		$ids = [];
+		foreach ( array_filter( array_map( 'intval', $sel ) ) as $id ) {
+			$ids[] = $id;
+			$kids  = get_term_children( $id, 'product_cat' );
+			if ( is_array( $kids ) ) {
+				$ids = array_merge( $ids, array_map( 'intval', $kids ) );
+			}
+		}
+		$ids = array_values( array_unique( $ids ) );
+		return $ids;
+	}
+
+	public static function is_original( \WC_Product $product ): bool {
+		$cats = self::original_cat_ids();
+		if ( ! $cats ) {
+			return false;
+		}
+		$pid = $product->get_parent_id() ?: $product->get_id();
+		return (bool) array_intersect( $cats, array_map( 'intval', (array) wc_get_product_term_ids( $pid, 'product_cat' ) ) );
+	}
+
 	public static function is_new( \WC_Product $product ): bool {
-		$days    = (int) apply_filters( 'nkzmp/v1/storefront/new_days', 14 );
+		$days    = self::new_days();
+		if ( $days <= 0 ) {
+			return false;
+		}
 		$created = $product->get_date_created();
 		return $created && $created->getTimestamp() >= time() - $days * DAY_IN_SECONDS;
 	}
@@ -165,6 +215,7 @@ final class ShopEnhance {
 		.nkzmp-card-badge.is-sale{background:' . esc_attr( $blue ) . ';color:#fff;-webkit-text-fill-color:#fff}
 		.nkzmp-card-badge.is-new{background:#fff;color:' . esc_attr( $blue ) . ';-webkit-text-fill-color:' . esc_attr( $blue ) . '}
 		.nkzmp-card-badge.is-last{background:#fff4e5;color:#8a4b00;-webkit-text-fill-color:#8a4b00}
+		.nkzmp-card-badge.is-original{background:#111;color:#fff;-webkit-text-fill-color:#fff}
 		.nkzmp-card-badge.is-out{background:#f1f2f4;color:#6b7280;-webkit-text-fill-color:#6b7280}
 		html body ul.products li.product .onsale{display:none!important}
 		</style>';
