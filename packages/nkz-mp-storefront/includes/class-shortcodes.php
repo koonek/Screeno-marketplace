@@ -257,6 +257,40 @@ background:var(--nkzmp-color-accent-hover,#0047c2)!important;color:#fff!importan
 		}
 		$exclude_ids  = array_values( array_unique( array_filter( $exclude_ids ) ) );
 
+		// Seznam kategorií si sestavíme sami a WC předáme přesná ID v pořadí.
+		// WC [product_categories] počítá limit i s podkategoriemi a rodiče
+		// filtruje až potom – od zavedení podkategorií proto ukazoval míň
+		// dlaždic (a „schovával" některé hlavní kategorie).
+		if ( $a['ids'] === '' ) {
+			$terms = get_terms( [
+				'taxonomy'   => 'product_cat',
+				'hide_empty' => false,
+				'parent'     => (int) $a['parent'],
+				'exclude'    => $exclude_ids,
+				'orderby'    => (string) $a['orderby'],
+				'order'      => (string) $a['order'],
+			] );
+			$ids = [];
+			if ( ! is_wp_error( $terms ) ) {
+				foreach ( (array) $terms as $t ) {
+					if ( $hide_empty === '1' ) {
+						$c = get_term_meta( $t->term_id, 'product_count_product_cat', true ); // vč. podkategorií
+						if ( ( $c !== '' ? (int) $c : (int) $t->count ) <= 0 ) {
+							continue;
+						}
+					}
+					$ids[] = (int) $t->term_id;
+				}
+			}
+			$ids = array_slice( $ids, 0, max( 1, (int) $a['limit'] ) );
+			if ( ! $ids ) {
+				return '';
+			}
+			$a['ids']     = implode( ',', $ids );
+			$a['orderby'] = 'include';
+			$hide_empty   = '0';
+		}
+
 		$inner = sprintf(
 			'[product_categories number="%d" columns="%d" parent="%s" orderby="%s" order="%s" hide_empty="%s"%s]',
 			(int) $a['limit'],
