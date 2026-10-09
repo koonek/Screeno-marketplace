@@ -89,6 +89,7 @@ final class Refund_Service {
 			}
 			$ratio = $refunded_per_vendor[ $vendor_id ] / max( 1, (int) $record['base_minor'] );
 			$ratio = min( 1.0, $ratio );
+			// Z čisté výplaty; stržený dluh vrací Vendor_Debt (refund_offset).
 			$suggested = (int) floor( $record['amount_minor'] * $ratio );
 			$remaining = (int) $record['amount_minor'] - self::reversed_amount_minor( $record );
 			$out[ $vendor_id ] = max( 0, min( $suggested, $remaining ) );

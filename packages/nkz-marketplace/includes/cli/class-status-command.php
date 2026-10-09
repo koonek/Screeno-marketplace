@@ -55,7 +55,8 @@ final class StatusCommand {
 			'audit_count'     => 0,
 			'vendor_role'     => (bool) get_role( Capabilities::ROLE_VENDOR ),
 			'core_cpt_active' => defined( 'NKZMP_ENABLE_CORE_CPT' ) && NKZMP_ENABLE_CORE_CPT,
-			'legacy_active'   => is_plugin_active( 'nkz-woo-stripe-vendor-split/nkz-woo-stripe-vendor-split.php' ),
+			'legacy_active'   => is_plugin_active( 'nkz-woo-stripe-vendor-split/nkz-woo-stripe-vendor-split.php' ) || class_exists( \NKVSVS\Plugin::class ),
+			'bundle_active'   => defined( 'NKZMP_AOZ_BUNDLE_VERSION' ),
 			'legacy_vendors'  => post_type_exists( 'nkv_vendor' ) ? (int) wp_count_posts( 'nkv_vendor' )->publish : 0,
 		];
 		if ( $data['ledger_exists'] ) {

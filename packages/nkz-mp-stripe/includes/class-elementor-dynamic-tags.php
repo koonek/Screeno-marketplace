@@ -36,7 +36,8 @@ final class Elementor_Dynamic_Tags {
 	 * @param object $manager Elementor dynamic tags manager.
 	 */
 	public function register( $manager ): void {
-		if ( ! is_object( $manager ) ) {
+		// AOZ storefront registers its own vendor tags (group `nkzmp_vendor`).
+		if ( ! is_object( $manager ) || Vendors::storefront_owns_pages() ) {
 			return;
 		}
 

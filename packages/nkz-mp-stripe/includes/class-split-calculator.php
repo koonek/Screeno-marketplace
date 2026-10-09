@@ -16,9 +16,15 @@ final class Split_Calculator {
 	/**
 	 * Build a deterministic split calculation array for an order.
 	 *
+	 * @param bool $refund_aware Odečíst už vrácené (refundované) položky.
+	 *        Výchozí ANO: bez toho by výplata uvolněná po částečném vrácení
+	 *        zaplatila prodejci i za zboží, které zákazník vrátil a dostal
+	 *        za něj peníze zpět. NE jen pro výpočet původní provize (dluh
+	 *        prodejce za vrácené zboží).
 	 * @return array Calculation snapshot (see README data model).
 	 */
-	public static function calculate( \WC_Order $order ): array {
+	public static function calculate( \WC_Order $order, bool $refund_aware = true ): array {
+		$refund_aware = (bool) apply_filters( 'nkv_svs_filter_split_refund_aware', $refund_aware, $order );
 		$settings = Plugin::settings();
 		$currency = $order->get_currency();
 		$factor   = nkvsvs_minor_factor( $currency );
@@ -46,6 +52,24 @@ final class Split_Calculator {
 			$subtotal_minor = nkvsvs_to_minor( (float) $item->get_subtotal(), $currency );           // pre-discount net
 			$total_minor    = nkvsvs_to_minor( (float) $item->get_total(), $currency );              // post-discount net
 			$tax_minor      = nkvsvs_to_minor( (float) $item->get_total_tax(), $currency );
+			$qty            = (float) $item->get_quantity();
+
+			// Vrácené zboží odečíst – částky položky se refundací v WC nemění.
+			if ( $refund_aware ) {
+				$refunded_total = abs( (float) $order->get_total_refunded_for_item( (int) $item_id ) );
+				$refunded_qty   = abs( (float) $order->get_qty_refunded_for_item( (int) $item_id ) );
+				$line_total     = (float) $item->get_total();
+				if ( $refunded_total > 0 && $line_total > 0 ) {
+					$keep           = max( 0.0, 1 - $refunded_total / $line_total );
+					$subtotal_minor = (int) round( $subtotal_minor * $keep );
+					$total_minor    = (int) round( $total_minor * $keep );
+					$tax_minor      = (int) round( $tax_minor * $keep );
+				}
+				$qty = max( 0.0, $qty - $refunded_qty );
+				if ( $total_minor <= 0 && $subtotal_minor <= 0 ) {
+					continue; // celá položka vrácená
+				}
+			}
 
 			$total_items_subtotal_minor += $subtotal_minor;
 
@@ -59,7 +83,7 @@ final class Split_Calculator {
 				'order_item_id'       => $item_id,
 				'product_id'          => $product_id,
 				'variation_id'        => $variation_id,
-				'qty'                 => (float) $item->get_quantity(),
+				'qty'                 => $qty,
 				'line_subtotal_minor' => $subtotal_minor,
 				'line_total_minor'    => $total_minor,
 				'line_tax_minor'      => $tax_minor,
