@@ -261,6 +261,9 @@
 		form.querySelectorAll( 'input[name="cat[]"]:checked' ).forEach( function ( el ) {
 			data.cat.push( el.value );
 		} );
+		// Stránka kategorie: výsledky v ní (bez štítku – není to filtr).
+		var scopeEl = form.querySelector( '[data-nkzmp-scope]' );
+		data.scope = scopeEl ? scopeEl.value : '';
 		form.querySelectorAll( 'input[name="vendor[]"]:checked' ).forEach( function ( el ) {
 			data.vendor.push( el.value );
 		} );
@@ -313,6 +316,7 @@
 		if ( data.instock ) { body.set( 'instock', '1' ); }
 		if ( data.q ) { body.set( 'q', data.q ); }
 		if ( data.orderby ) { body.set( 'orderby', data.orderby ); }
+		if ( data.scope ) { body.set( 'cat_scope', data.scope ); }
 		body.set( 'paged', data.paged );
 		return body;
 	}

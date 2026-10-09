@@ -153,6 +153,10 @@ final class ShopFilters {
 			return;
 		}
 		echo '<nav class="nkzmp-catpills" aria-label="' . esc_attr__( 'Kategorie', 'nkz-mp-storefront' ) . '"><ul>';
+		if ( $current instanceof \WP_Term ) {
+			// Cesta zpět na všechny produkty (bez filtrů).
+			printf( '<li><a class="is-back" href="%s">← %s</a></li>', esc_url( self::base_url() ), esc_html__( 'Všechny kategorie', 'nkz-mp-storefront' ) );
+		}
 		if ( $all && ! is_wp_error( $all[1] ) ) {
 			printf( '<li><a href="%s"%s>%s</a></li>', esc_url( $all[1] ), $all[2] ? ' class="is-active" aria-current="page"' : '', esc_html( $all[0] ) );
 		}
@@ -171,6 +175,8 @@ final class ShopFilters {
 		html body .nkzmp-catpills a{display:inline-flex;align-items:center;padding:10px 18px;border-radius:999px;background:#f1f2f4;color:#111;-webkit-text-fill-color:#111;font-weight:600;font-size:15px;line-height:1.2;text-decoration:none!important;white-space:nowrap;transition:background .15s,color .15s}
 		html body .nkzmp-catpills a:hover{background:#e3e8f5;color:#0060FF;-webkit-text-fill-color:#0060FF}
 		html body .nkzmp-catpills a.is-active{background:#0060FF;color:#fff;-webkit-text-fill-color:#fff}
+		html body .nkzmp-catpills a.is-back{background:#fff;border:1.5px solid #d5dbe6;color:#111;-webkit-text-fill-color:#111}
+		html body .nkzmp-catpills a.is-back:hover{border-color:#0060FF;color:#0060FF;-webkit-text-fill-color:#0060FF}
 		@media (max-width:767px){
 		.nkzmp-catpills{margin:0 -16px 16px}
 		.nkzmp-catpills ul{flex-wrap:nowrap;overflow-x:auto;padding:2px 16px 6px;scrollbar-width:none;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity}
@@ -280,6 +286,12 @@ final class ShopFilters {
 		$layout = class_exists( Settings::class ) ? (string) ( Settings::get()['filters_layout'] ?? 'top' ) : 'top';
 		echo '<form class="nkzmp-filters" method="get" action="' . esc_url( self::base_url() ) . '" data-layout="' . esc_attr( $layout === 'side' ? 'side' : 'top' ) . '">';
 
+		if ( function_exists( 'is_product_category' ) && is_product_category() ) {
+			$t = get_queried_object();
+			if ( $t instanceof \WP_Term ) {
+				echo '<input type="hidden" name="cat_scope" value="' . esc_attr( $t->slug ) . '" data-nkzmp-scope>';
+			}
+		}
 		echo '<div class="nkzmp-filters__head">';
 		echo '<h2 class="nkzmp-filters__title">' . esc_html__( 'Filtry', 'nkz-mp-storefront' ) . '</h2>';
 		echo '<button type="button" class="nkzmp-filters__clear" data-nkzmp-clear>' . esc_html__( 'Vymazat', 'nkz-mp-storefront' ) . '</button>';
@@ -331,10 +343,10 @@ final class ShopFilters {
 		if ( is_product_taxonomy() ) {
 			$current = get_queried_object();
 			if ( $current instanceof \WP_Term ) {
+				// Stránka kategorie NENÍ filtr – nepředvybírat ji (jinak visí
+				// štítek „Vše z …" s ×, které nikam nevede). Výsledky drží
+				// v kategorii skrytý cat_scope.
 				$current_id = (int) $current->term_id;
-				if ( empty( $selected ) ) {
-					$selected = [ $current->slug ];
-				}
 			}
 		}
 
@@ -1001,6 +1013,11 @@ final class ShopFilters {
 		if ( isset( $src['cat'] ) ) {
 			$raw = is_array( $src['cat'] ) ? $src['cat'] : explode( ',', (string) $src['cat'] );
 			$cat = array_values( array_filter( array_map( 'sanitize_title', (array) wp_unslash( $raw ) ) ) );
+		}
+
+		// Stránka kategorie: bez vybrané (pod)kategorie platí celá kategorie.
+		if ( ! $cat && ! empty( $src['cat_scope'] ) ) {
+			$cat = [ sanitize_title( wp_unslash( (string) $src['cat_scope'] ) ) ];
 		}
 
 		$vendor = [];
