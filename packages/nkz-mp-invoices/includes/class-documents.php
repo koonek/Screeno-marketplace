@@ -79,6 +79,15 @@ final class Documents {
 			if ( ! $lines ) {
 				continue;
 			}
+			// Jménem prodejce jen se zmocněním (podmínky pro prodejce).
+			if ( $issuer !== 'platform' && ! Mandate::has( (int) $issuer ) ) {
+				$order->add_order_note( sprintf(
+					/* translators: %s: prodejce */
+					__( 'Doklad za zboží prodejce %s nevystaven – prodejce zatím nepotvrdil zmocnění k samofakturaci, doklad zákazníkovi vystavuje sám.', 'nkz-mp-invoices' ),
+					get_the_title( (int) $issuer ) ?: ( '#' . $issuer )
+				) );
+				continue;
+			}
 			$docs[] = self::make_doc( 'invoice', (string) $issuer, $lines, $buyer, $order, $issued_at, $duzp, $currency );
 		}
 
@@ -334,10 +343,17 @@ final class Documents {
 		$now     = time();
 		$numbers = [];
 		foreach ( $groups as $issuer => $lines ) {
+			// Dobropis jen k vystavenému dokladu (bez zmocnění žádný nebyl).
+			if ( $issuer !== 'platform' && empty( $by_iss[ $issuer ] ) ) {
+				continue;
+			}
 			$doc       = self::make_doc( 'credit', (string) $issuer, $lines, self::buyer( $order ), $order, $now, $now, $order->get_currency(), (string) ( $by_iss[ $issuer ] ?? '' ) );
 			$doc['refund_id'] = (int) $refund_id;
 			$docs[]    = $doc;
 			$numbers[] = $doc['number'];
+		}
+		if ( ! $numbers ) {
+			return;
 		}
 		$order->update_meta_data( self::META, $docs );
 		$order->save();

@@ -55,6 +55,9 @@ final class Settings {
 			'vendor_copy'     => 'yes',
 			// Faktury Art of život prodejcům za členství (místo faktur ze Stripe).
 			'membership'      => 'yes',
+			// Od kdy podmínky pro prodejce obsahují zmocnění k samofakturaci
+			// (RRRR-MM-DD). Prázdné = doklady jménem prodejců se nevystavují.
+			'mandate_from'    => '',
 		];
 	}
 
@@ -108,6 +111,8 @@ final class Settings {
 			$out[ $k ] = ! empty( $in[ $k ] ) ? 'yes' : 'no';
 		}
 		$out['vat_rate'] = max( 0, min( 100, (int) ( $in['vat_rate'] ?? 21 ) ) );
+		$mf = sanitize_text_field( wp_unslash( (string) ( $in['mandate_from'] ?? '' ) ) );
+		$out['mandate_from'] = preg_match( '/^\d{4}-\d{2}-\d{2}$/', $mf ) ? $mf : '';
 		return $out;
 	}
 
@@ -185,6 +190,11 @@ final class Settings {
 		$row( __( 'Prefix dokladů prodejců', 'nkz-mp-invoices' ), $text( 'prefix_vendor', '', '160px' ), __( '{vendor} se nahradí číslem prodejce, např. P3613-2026-00001. Každý prodejce má vlastní řadu.', 'nkz-mp-invoices' ) );
 		$row( __( 'Označení dobropisů', 'nkz-mp-invoices' ), $text( 'prefix_credit', '', '80px' ), __( 'Vkládá se do čísla dobropisu, např. AOZ-D-2026-00001.', 'nkz-mp-invoices' ) );
 		$row( __( 'E-mail', 'nkz-mp-invoices' ), $check( 'attach_email', __( 'přiložit PDF k potvrzení objednávky', 'nkz-mp-invoices' ) ) );
+		$row(
+			__( 'Zmocnění v podmínkách od', 'nkz-mp-invoices' ),
+			'<input type="date" name="' . esc_attr( self::OPTION ) . '[mandate_from]" value="' . esc_attr( (string) $s['mandate_from'] ) . '" />',
+			__( 'Den, od kdy podmínky pro prodejce obsahují zmocnění k vystavování dokladů jejich jménem. Prodejci registrovaní od tohoto dne ho mají automaticky, stávající ho potvrdí jedním kliknutím v přehledu prodejce. Dokud je prázdné, doklady jménem prodejců se nevystavují (jen doklady Art of život).', 'nkz-mp-invoices' )
+		);
 		$row(
 			__( 'Kopie prodejci', 'nkz-mp-invoices' ),
 			$check( 'vendor_copy', __( 'poslat prodejci e-mailem kopii každého dokladu vystaveného jeho jménem', 'nkz-mp-invoices' ) ),

@@ -95,9 +95,90 @@ final class Voucher {
 		add_filter( 'nkv_svs_filter_split_non_stripe_order', [ $this, 'split_voucher_only_order' ], 10, 2 );
 		add_filter( 'nkv_svs_filter_use_source_transaction', [ $this, 'use_source_transaction' ], 10, 2 );
 
+		// Informace o podmínkách poukazu při NÁKUPU (právník: zákazník musí
+		// vědět dopředu – nejen v obchodních podmínkách, ale viditelně při
+		// nákupu i na poukazu samotném).
+		add_action( 'woocommerce_single_product_summary', [ $this, 'product_terms' ], 25 );
+		add_filter( 'woocommerce_get_item_data', [ $this, 'cart_item_terms' ], 10, 2 );
+		add_action( 'woocommerce_review_order_before_submit', [ $this, 'checkout_ack' ], 5 );
+		add_action( 'woocommerce_checkout_process', [ $this, 'validate_ack' ] );
+		add_action( 'woocommerce_checkout_create_order', [ $this, 'save_ack' ], 25, 2 );
+
 		// Kolik peněz za poukazy musí zůstat na Stripe.
 		add_action( 'admin_notices', [ $this, 'liability_notice' ] );
 		add_filter( 'nkzmp/v1/admin/health_checks', [ $this, 'health_row' ] );
+	}
+
+	/* ===================================================== podmínky poukazu */
+
+	public static function valid_months(): int {
+		return max( 1, (int) apply_filters( 'nkzmp/v1/voucher/valid_months', 12 ) );
+	}
+
+	/** Podmínky poukazu jedním textem (produkt, košík, pokladna, e-mail). */
+	public static function terms_text(): string {
+		return sprintf(
+			/* translators: %d: počet měsíců */
+			__( 'Poukaz platí %d měsíců od zakoupení. Uplatňuje se jednorázově na celý nákup u kteréhokoli tvůrce, včetně poštovného. Nevyčerpaný zůstatek propadá a nevrací se.', 'nkz-mp-storefront' ),
+			self::valid_months()
+		);
+	}
+
+	public function product_terms(): void {
+		global $product;
+		if ( ! $product instanceof \WC_Product || ! self::is_voucher_product( $product ) ) {
+			return;
+		}
+		echo '<div class="nkzmp-voucher-terms" style="margin:0 0 18px;padding:14px 16px;border-radius:14px;background:#f2f6ff;border:1px solid #d6e2ff;font-size:14px;line-height:1.5;color:#1f2937;">';
+		echo '<strong style="display:block;margin:0 0 6px;">' . esc_html__( 'Jak poukaz funguje', 'nkz-mp-storefront' ) . '</strong>';
+		echo '<ul style="margin:0;padding-left:18px;">';
+		/* translators: %d: počet měsíců */
+		echo '<li>' . esc_html( sprintf( __( 'Platí %d měsíců od zakoupení.', 'nkz-mp-storefront' ), self::valid_months() ) ) . '</li>';
+		echo '<li>' . esc_html__( 'Uplatní se na celý nákup u kteréhokoli tvůrce, včetně poštovného.', 'nkz-mp-storefront' ) . '</li>';
+		echo '<li><strong>' . esc_html__( 'Je jednorázový – nevyčerpaný zůstatek propadá a nevrací se.', 'nkz-mp-storefront' ) . '</strong></li>';
+		echo '</ul></div>';
+	}
+
+	/** @param array $data @param array $item */
+	public function cart_item_terms( $data, $item ): array {
+		$data    = (array) $data;
+		$product = $item['data'] ?? null;
+		if ( $product instanceof \WC_Product && self::is_voucher_product( $product ) ) {
+			$data[] = [
+				'key'   => __( 'Podmínky poukazu', 'nkz-mp-storefront' ),
+				/* translators: %d: počet měsíců */
+				'value' => sprintf( __( 'platí %d měsíců, jednorázový – nevyčerpaný zůstatek propadá', 'nkz-mp-storefront' ), self::valid_months() ),
+			];
+		}
+		return $data;
+	}
+
+	/** Povinné potvrzení podmínek v pokladně, když se kupuje poukaz. */
+	public function checkout_ack(): void {
+		if ( ! self::cart_has_voucher_product() ) {
+			return;
+		}
+		echo '<p class="form-row validate-required nkzmp-voucher-ack" style="margin:0 0 14px;"><label class="woocommerce-form__label woocommerce-form__label-for-checkbox checkbox" style="display:flex;gap:8px;align-items:flex-start;font-size:14px;line-height:1.45;">'
+			. '<input type="checkbox" class="woocommerce-form__input woocommerce-form__input-checkbox input-checkbox" name="nkzmp_voucher_ack" value="1" style="margin-top:3px;" /> '
+			. '<span>' . esc_html__( 'Beru na vědomí podmínky dárkového poukazu:', 'nkz-mp-storefront' ) . ' ' . esc_html( self::terms_text() ) . ' <abbr class="required" title="' . esc_attr__( 'povinné', 'nkz-mp-storefront' ) . '">*</abbr></span>'
+			. '</label></p>';
+	}
+
+	public function validate_ack(): void {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce ověřuje WooCommerce pokladna.
+		if ( self::cart_has_voucher_product() && empty( $_POST['nkzmp_voucher_ack'] ) ) {
+			wc_add_notice( __( 'Potvrď prosím, že bereš na vědomí podmínky dárkového poukazu (platnost a propadnutí nevyčerpaného zůstatku).', 'nkz-mp-storefront' ), 'error' );
+		}
+	}
+
+	/** Důkaz o potvrzení podmínek u objednávky. */
+	public function save_ack( $order, $data ): void {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		if ( ! $order instanceof \WC_Order || empty( $_POST['nkzmp_voucher_ack'] ) ) {
+			return;
+		}
+		$order->update_meta_data( '_nkzmp_voucher_terms_ack', [ 'at' => time(), 'text' => self::terms_text() ] );
+		$order->add_order_note( __( 'Zákazník v pokladně potvrdil podmínky dárkového poukazu:', 'nkz-mp-storefront' ) . ' ' . self::terms_text() );
 	}
 
 	/**
@@ -672,7 +753,7 @@ final class Voucher {
 			$subject = sprintf( __( 'Vrácení peněz poukazem – objednávka #%s', 'nkz-mp-storefront' ), $order->get_order_number() );
 			$body    = sprintf(
 				/* translators: 1: částka, 2: kód, 3: datum, 4: web */
-				__( "Dobrý den,\n\nčást objednávky jste platili dárkovým poukazem, proto vám tuto část vracíme stejnou cestou – novým poukazem.\n\nHodnota: %1\$s\nKód: %2\$s\nPlatí do: %3\$s\n\nKód zadáte v košíku do pole „Máte dárkový poukaz?\".\n\n%4\$s", 'nkz-mp-storefront' ),
+				__( "Dobrý den,\n\nčást objednávky jste platili dárkovým poukazem, proto vám tuto část vracíme stejnou cestou – novým poukazem.\n\nHodnota: %1\$s\nKód: %2\$s\nPlatí do: %3\$s\n\nKód zadáte v košíku do pole „Máte dárkový poukaz?\". Poukaz je jednorázový – nevyčerpaný zůstatek propadá a nevrací se.\n\n%4\$s", 'nkz-mp-storefront' ),
 				wp_strip_all_tags( wc_price( $amount ) ),
 				$code,
 				wp_date( 'j. n. Y', $exp ),
@@ -737,7 +818,7 @@ final class Voucher {
 			foreach ( $rows as $r ) {
 				echo esc_html( sprintf( '%s — %s — platí do %s', $r['code'], wp_strip_all_tags( wc_price( $r['value'] ) ), wp_date( 'j. n. Y', $r['expires'] ) ) ) . "\n";
 			}
-			echo esc_html__( 'Kód zadejte v košíku do pole „Máte dárkový poukaz?". Poukaz je jednorázový, nevyčerpaná částka propadá.', 'nkz-mp-storefront' ) . "\n";
+			echo esc_html__( 'Kód zadejte v košíku do pole „Máte dárkový poukaz?". Odečte se z celé částky včetně poštovného. POUKAZ JE JEDNORÁZOVÝ – NEVYČERPANÝ ZŮSTATEK PROPADÁ A NEVRACÍ SE.', 'nkz-mp-storefront' ) . "\n";
 			return;
 		}
 		echo '<h2 style="margin-top:24px;">' . esc_html__( 'Vaše dárkové poukazy', 'nkz-mp-storefront' ) . '</h2>';
@@ -749,7 +830,7 @@ final class Voucher {
 				esc_html( sprintf( /* translators: %s: datum */ __( 'platí do %s', 'nkz-mp-storefront' ), wp_date( 'j. n. Y', $r['expires'] ) ) )
 			);
 		}
-		echo '<p style="font-size:13px;color:#555;">' . esc_html__( 'Kód zadejte v košíku do pole „Máte dárkový poukaz?". Odečte se z celé částky včetně poštovného. Poukaz je jednorázový – nevyčerpaná částka propadá.', 'nkz-mp-storefront' ) . '</p>';
+		echo '<p style="font-size:13px;color:#555;">' . esc_html__( 'Kód zadejte v košíku do pole „Máte dárkový poukaz?". Odečte se z celé částky včetně poštovného.', 'nkz-mp-storefront' ) . ' <strong style="color:#111;">' . esc_html__( 'Poukaz je jednorázový – nevyčerpaný zůstatek propadá a nevrací se.', 'nkz-mp-storefront' ) . '</strong></p>';
 	}
 
 	/* ===================================================== výplaty */

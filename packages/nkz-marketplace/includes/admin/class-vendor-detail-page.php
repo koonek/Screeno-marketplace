@@ -180,6 +180,13 @@ final class VendorDetailPage {
 			$rows[ __( 'Prohlášení o podnikateli', 'nkz-marketplace' ) ] = '<span class="nkzmp-vd-warn">' . esc_html__( 'neudělil (registrace před zavedením)', 'nkz-marketplace' ) . '</span>';
 		}
 
+		if ( class_exists( \NKZMP\Invoices\Mandate::class ) ) {
+			$m = get_post_meta( $vendor_id, \NKZMP\Invoices\Mandate::META, true );
+			$rows[ __( 'Zmocnění k dokladům', 'nkz-marketplace' ) ] = \NKZMP\Invoices\Mandate::has( $vendor_id )
+				? $yes( true ) . ( is_array( $m ) && ! empty( $m['at'] ) ? ' <span style="color:#888;">(' . esc_html( sprintf( __( 'potvrzeno v přehledu %s', 'nkz-marketplace' ), wp_date( 'j. n. Y H:i', (int) $m['at'] ) ) ) . ')</span>' : ' <span style="color:#888;">(' . esc_html__( 'přijato při registraci', 'nkz-marketplace' ) . ')</span>' )
+				: '<span class="nkzmp-vd-warn">' . esc_html__( 'ne – doklady jeho jménem se nevystavují', 'nkz-marketplace' ) . '</span>';
+		}
+
 		$this->panel( __( 'Souhlasy z registrace', 'nkz-marketplace' ), $rows );
 	}
 

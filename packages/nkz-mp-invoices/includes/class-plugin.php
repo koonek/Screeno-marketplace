@@ -22,5 +22,6 @@ final class Plugin {
 		MembershipInvoices::instance()->init();
 		Delivery::instance()->init();
 		VendorDocuments::instance()->init();
+		Mandate::instance()->init();
 	}
 }
