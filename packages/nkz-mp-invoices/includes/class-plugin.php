@@ -23,5 +23,6 @@ final class Plugin {
 		Delivery::instance()->init();
 		VendorDocuments::instance()->init();
 		Mandate::instance()->init();
+		AccountantExport::instance()->init();
 	}
 }

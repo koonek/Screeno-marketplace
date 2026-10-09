@@ -302,7 +302,7 @@ final class VendorDocuments {
 		krsort( $rates );
 		$rates = array_keys( $rates );
 
-		$head = [ 'Číslo dokladu', 'Typ', 'Datum vystavení', 'Datum plnění', 'Objednávka', 'K dokladu', 'Odběratel', 'IČO odběratele' ];
+		$head = [ 'Číslo dokladu', 'Typ', 'Dodavatel', 'IČO dodavatele', 'Datum vystavení', 'Datum plnění', 'Objednávka', 'K dokladu', 'Odběratel', 'IČO odběratele' ];
 		foreach ( $rates as $r ) {
 			$head[] = 'Základ ' . $r . ' %';
 			$head[] = 'DPH ' . $r . ' %';
@@ -328,7 +328,9 @@ final class VendorDocuments {
 			}
 			$row = [
 				$d['number'],
-				( $d['type'] ?? '' ) === 'credit' ? 'dobropis' : 'doklad',
+				( $d['type'] ?? '' ) === 'credit' ? 'dobropis' : ( ! empty( $d['subject'] ) && (string) ( $d['order_number'] ?? '' ) === '' ? 'členství' : 'doklad' ),
+				$d['issuer']['name'] ?? '',
+				$d['issuer']['ico'] ?? '',
 				wp_date( 'j. n. Y', (int) $d['issued_at'] ),
 				wp_date( 'j. n. Y', (int) $d['duzp'] ),
 				$d['order_number'] ?? '',

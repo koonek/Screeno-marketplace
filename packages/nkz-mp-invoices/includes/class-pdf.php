@@ -199,7 +199,13 @@ final class Pdf {
 		return $out . implode( '<div class="break"></div>', $pages ) . '</body></html>';
 	}
 
+	/** Export pro účetní: každý doklad na vlastní stránce (nespojovat). */
+	public static bool $separate = false;
+
 	private static function combine_enabled(): bool {
+		if ( self::$separate ) {
+			return false;
+		}
 		return class_exists( Settings::class ) ? ( Settings::get()['combined'] ?? 'yes' ) === 'yes' : true;
 	}
 
