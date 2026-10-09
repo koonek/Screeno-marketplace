@@ -56,6 +56,14 @@ final class Capabilities {
 			self::EDIT_OWN_PRODUCTS,
 			self::VIEW_OWN_ORDERS,
 			self::VIEW_OWN_PAYOUTS,
+			// WP/WC caps aby vendor mohl přes náš controller uploadovat fotky
+			// a vytvořit / editovat vlastní produkt. Vlastnictví je vynuceno
+			// v ProductSubmitController (pouze own produkty).
+			'upload_files',
+			'edit_posts',
+			'edit_published_posts',
+			'edit_products',
+			'edit_published_products',
 		];
 	}
 

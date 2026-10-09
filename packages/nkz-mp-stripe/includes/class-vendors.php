@@ -37,19 +37,21 @@ final class Vendors {
 					'add_new_item'  => __( 'Přidat prodejce', 'nkz-woo-stripe-vendor-split' ),
 					'edit_item'     => __( 'Upravit prodejce', 'nkz-woo-stripe-vendor-split' ),
 				],
-				// `public => true` is required so Elementor Pro Loop Grid shows the CPT
-				// in its source dropdown. Single vendor profiles now have a pretty URL
-				// (`/prodejce/<slug>/`). Only ACTIVE vendors render publicly — every other
-				// status is 404'd in `block_single_vendor()` so unfinished/private vendor
-				// data never leaks. Sensitive meta (email, IČO, fees, Stripe IDs) is never
-				// exposed on the single template anyway.
+				// `public => true` + `show_in_nav_menus => true` is required so Elementor Pro
+				// Loop Grid shows the CPT in its source dropdown. Who renders the public
+				// vendor page depends on the install:
+				//  - AOZ storefront module loaded → storefront owns `/vendor/<slug>/`, the CPT
+				//    has no URL of its own and every single request is 404'd.
+				//  - no storefront (Screeno) → CPT gets `/prodejce/<slug>/`, only ACTIVE vendors
+				//    render, every other status is 404'd in `block_single_vendor()`.
+				// Sensitive meta (email, IČO, fees, Stripe IDs) is never exposed either way.
 				'public'              => true,
 				'publicly_queryable'  => true,
 				'show_in_rest'        => true,
 				'exclude_from_search' => true,
-				'show_in_nav_menus'   => false,
+				'show_in_nav_menus'   => true,
 				'has_archive'         => false,
-				'rewrite'             => [
+				'rewrite'             => self::storefront_owns_pages() ? false : [
 					'slug'       => self::rewrite_slug(),
 					'with_front' => false,
 				],
@@ -67,6 +69,15 @@ final class Vendors {
 	 * URL slug for single vendor profiles. Filterable so a site can move the
 	 * base (e.g. `/vendor/`) without code changes.
 	 */
+	/**
+	 * True when the NKZ Marketplace storefront module (AOZ) is loaded – it then
+	 * owns the public vendor pages and the Screeno `/prodejce/<slug>/` pages +
+	 * `nkv-vendor` Elementor tags stay off, so there is one URL and one tag group.
+	 */
+	public static function storefront_owns_pages(): bool {
+		return defined( 'NKZMP_STOREFRONT_VERSION' );
+	}
+
 	public static function rewrite_slug(): string {
 		return (string) apply_filters( 'nkv_svs_vendor_rewrite_slug', 'prodejce' );
 	}
@@ -117,7 +128,7 @@ final class Vendors {
 		if ( ! is_singular( self::POST_TYPE ) ) {
 			return;
 		}
-		if ( self::is_public_vendor( (int) get_queried_object_id() ) ) {
+		if ( ! self::storefront_owns_pages() && self::is_public_vendor( (int) get_queried_object_id() ) ) {
 			return;
 		}
 		global $wp_query;
@@ -161,6 +172,7 @@ final class Vendors {
 		$this->render_onboarding_panel( $post->ID );
 		$fields = [
 			'_nkv_vendor_status'          => [ 'label' => __( 'Stav prodejce', 'nkz-woo-stripe-vendor-split' ), 'type' => 'select', 'options' => [ 'active' => __( 'aktivní', 'nkz-woo-stripe-vendor-split' ), 'inactive' => __( 'neaktivní', 'nkz-woo-stripe-vendor-split' ) ] ],
+			'_nkv_stripe_country'         => [ 'label' => __( 'Země Stripe účtu', 'nkz-woo-stripe-vendor-split' ), 'type' => 'select', 'options' => \NKVSVS\Onboarding_Controller::allowed_countries(), 'default' => 'CZ', 'help' => __( 'Nastav PŘED prvním onboardingem. Země je u Stripe účtu neměnná – po vytvoření účtu ji lze změnit jen přes „Odpojit Stripe účet" a nový onboarding.', 'nkz-woo-stripe-vendor-split' ) ],
 			'_nkv_default_fee_percent'    => [ 'label' => __( 'Provize platformy (%)', 'nkz-woo-stripe-vendor-split' ), 'type' => 'number', 'step' => '0.01' ],
 			'_nkv_default_fee_fixed'      => [ 'label' => __( 'Fixní poplatek (v haléřích, volitelné)', 'nkz-woo-stripe-vendor-split' ), 'type' => 'number', 'step' => '1' ],
 			'_nkv_vendor_email'           => [ 'label' => __( 'Email prodejce', 'nkz-woo-stripe-vendor-split' ), 'type' => 'email' ],
@@ -173,6 +185,9 @@ final class Vendors {
 		echo '<table class="form-table">';
 		foreach ( $fields as $key => $cfg ) {
 			$value = get_post_meta( $post->ID, $key, true );
+			if ( '' === $value && isset( $cfg['default'] ) ) {
+				$value = $cfg['default'];
+			}
 			echo '<tr><th><label for="' . esc_attr( $key ) . '">' . esc_html( $cfg['label'] ) . '</label></th><td>';
 			switch ( $cfg['type'] ) {
 				case 'textarea':
@@ -196,6 +211,9 @@ final class Vendors {
 						isset( $cfg['step'] ) ? 'step="' . esc_attr( $cfg['step'] ) . '"' : ''
 					);
 			}
+			if ( ! empty( $cfg['help'] ) ) {
+				echo '<p class="description">' . esc_html( $cfg['help'] ) . '</p>';
+			}
 			echo '</td></tr>';
 		}
 		echo '</table>';
@@ -204,8 +222,6 @@ final class Vendors {
 	private function render_onboarding_panel( int $vendor_id ): void {
 		$account_id = (string) get_post_meta( $vendor_id, '_nkv_stripe_account_id', true );
 		$status     = (string) ( get_post_meta( $vendor_id, '_nkv_stripe_account_status', true ) ?: 'unknown' );
-		$due_json   = (string) get_post_meta( $vendor_id, '_nkv_stripe_requirements_due', true );
-		$due        = $due_json ? (array) json_decode( $due_json, true ) : [];
 		$email      = (string) get_post_meta( $vendor_id, '_nkv_vendor_email', true );
 		$ico        = trim( (string) get_post_meta( $vendor_id, '_nkv_vendor_ico', true ) );
 		$has_ico    = '' !== $ico;
@@ -239,38 +255,142 @@ final class Vendors {
 				break;
 		}
 
+		// Země účtu: zvolená vs. reálně vytvořená. Když prodejce (např. SK) dostal
+		// omylem CZ účet, admin přepne zemi nahoře a musí Odpojit + onboardovat znovu.
+		$sel_country     = \NKVSVS\Onboarding_Controller::vendor_country( $vendor_id );
+		$acct_country    = strtoupper( (string) get_post_meta( $vendor_id, '_nkv_stripe_account_country', true ) );
+		$country_labels  = \NKVSVS\Onboarding_Controller::allowed_countries();
+		if ( '' !== $account_id && '' !== $acct_country && $acct_country !== $sel_country ) {
+			printf(
+				'<div class="notice notice-warning inline"><p><strong>%s</strong><br>%s</p></div>',
+				esc_html__( 'Pozor: země Stripe účtu se neshoduje.', 'nkz-woo-stripe-vendor-split' ),
+				esc_html( sprintf(
+					/* translators: 1: created country, 2: selected country */
+					__( 'Účet byl vytvořen pro %1$s, ale nahoře je vybráno %2$s. Země Stripe účtu je neměnná — klikni „Odpojit Stripe účet" a nech prodejce onboardovat znovu, aby vznikl nový účet pro správnou zemi.', 'nkz-woo-stripe-vendor-split' ),
+					$country_labels[ $acct_country ] ?? $acct_country,
+					$country_labels[ $sel_country ] ?? $sel_country
+				) )
+			);
+		}
+
 		// Status badge (only if account exists).
 		if ( '' !== $account_id ) {
-			$labels = [
-				'enabled'    => [ __( 'Aktivní', 'nkz-woo-stripe-vendor-split' ),    '#46b450' ],
-				'pending'    => [ __( 'Probíhá ověření', 'nkz-woo-stripe-vendor-split' ), '#ffb900' ],
-				'restricted' => [ __( 'Omezený', 'nkz-woo-stripe-vendor-split' ),    '#dc3232' ],
-				'unknown'    => [ __( 'Neznámý', 'nkz-woo-stripe-vendor-split' ),    '#888'    ],
+			$snapshot = \NKVSVS\Onboarding_Controller::snapshot( $vendor_id );
+			$state    = (string) ( $snapshot['state'] ?? get_post_meta( $vendor_id, '_nkv_stripe_account_state', true ) );
+
+			$colors = [
+				\NKVSVS\Account_State::VERIFIED             => '#46b450',
+				\NKVSVS\Account_State::PENDING_VERIFICATION => '#2271b1',
+				\NKVSVS\Account_State::ACTION_REQUIRED      => '#ffb900',
+				\NKVSVS\Account_State::PAST_DUE             => '#dc3232',
+				\NKVSVS\Account_State::VERIFICATION_ERROR   => '#dc3232',
+				\NKVSVS\Account_State::ACCOUNT_RESTRICTED   => '#dc3232',
 			];
-			$badge = $labels[ $status ] ?? $labels['unknown'];
+			$color = $colors[ $state ] ?? '#888';
+			$label = $state !== '' ? \NKVSVS\Account_State::label( $state ) : __( 'Neznámý stav', 'nkz-woo-stripe-vendor-split' );
+
 			printf(
 				'<p style="margin:0 0 10px;"><strong>%s:</strong> <code>%s</code><br><strong>%s:</strong> <span style="display:inline-block;padding:2px 10px;border-radius:3px;color:#fff;background:%s;font-weight:600;">%s</span></p>',
 				esc_html__( 'Stripe účet', 'nkz-woo-stripe-vendor-split' ),
 				esc_html( $account_id ),
 				esc_html__( 'Stav', 'nkz-woo-stripe-vendor-split' ),
-				esc_attr( $badge[1] ),
-				esc_html( $badge[0] )
+				esc_attr( $color ),
+				esc_html( $label )
 			);
-			if ( ! empty( $due ) ) {
-				echo '<p><strong>' . esc_html__( 'Stripe ještě vyžaduje', 'nkz-woo-stripe-vendor-split' ) . ':</strong><br><code style="font-size:11px;">' . esc_html( implode( ', ', array_map( 'strval', $due ) ) ) . '</code></p>';
+
+			if ( $snapshot ) {
+				// Rozepsané po kategoriích – „chybí" a „ověřuje se" jsou dvě
+				// úplně jiné situace a slití do jedné bylo jádro problému.
+				$rows = [
+					__( 'Chybí (currently_due)', 'nkz-woo-stripe-vendor-split' )      => $snapshot['currently_due'] ?? [],
+					__( 'Po termínu (past_due)', 'nkz-woo-stripe-vendor-split' )      => $snapshot['past_due'] ?? [],
+					__( 'Ověřuje Stripe (pending)', 'nkz-woo-stripe-vendor-split' )   => $snapshot['pending_verification'] ?? [],
+					__( 'Bude potřeba (eventually)', 'nkz-woo-stripe-vendor-split' )  => $snapshot['eventually_due'] ?? [],
+				];
+				echo '<table class="widefat striped" style="margin:8px 0;"><tbody>';
+				foreach ( $rows as $head => $items ) {
+					if ( empty( $items ) ) {
+						continue;
+					}
+					printf(
+						'<tr><td style="width:190px;"><strong>%s</strong></td><td><code style="font-size:11px;">%s</code></td></tr>',
+						esc_html( $head ),
+						esc_html( implode( ', ', array_map( 'strval', (array) $items ) ) )
+					);
+				}
+				if ( ! empty( $snapshot['disabled_reason'] ) ) {
+					printf(
+						'<tr><td><strong>%s</strong></td><td><code>%s</code></td></tr>',
+						esc_html__( 'disabled_reason', 'nkz-woo-stripe-vendor-split' ),
+						esc_html( (string) $snapshot['disabled_reason'] )
+					);
+				}
+				foreach ( (array) ( $snapshot['errors'] ?? [] ) as $err ) {
+					printf(
+						'<tr><td><strong>%s</strong></td><td><code>%s</code> — %s</td></tr>',
+						esc_html__( 'Chyba ověření', 'nkz-woo-stripe-vendor-split' ),
+						esc_html( (string) ( $err['requirement'] ?? '' ) ),
+						esc_html( (string) ( $err['reason'] ?? '' ) )
+					);
+				}
+				printf(
+					'<tr><td><strong>%s</strong></td><td>charges: %s &nbsp; payouts: %s &nbsp; transfers: %s</td></tr>',
+					esc_html__( 'Schopnosti', 'nkz-woo-stripe-vendor-split' ),
+					! empty( $snapshot['charges_enabled'] ) ? '✓' : '✗',
+					! empty( $snapshot['payouts_enabled'] ) ? '✓' : '✗',
+					! empty( $snapshot['transfers_active'] ) ? '✓' : '✗'
+				);
+				if ( ! empty( $snapshot['synced_at'] ) ) {
+					printf(
+						'<tr><td><strong>%s</strong></td><td>%s</td></tr>',
+						esc_html__( 'Načteno ze Stripe', 'nkz-woo-stripe-vendor-split' ),
+						esc_html( sprintf(
+							/* translators: %s: doba */
+							__( 'před %s', 'nkz-woo-stripe-vendor-split' ),
+							human_time_diff( (int) $snapshot['synced_at'], time() )
+						) )
+					);
+				}
+				echo '</tbody></table>';
+
+				if ( \NKVSVS\Account_State::needs_hosted_flow( array_merge( (array) ( $snapshot['currently_due'] ?? [] ), (array) ( $snapshot['past_due'] ?? [] ) ) ) ) {
+					echo '<div class="notice notice-info inline"><p>' . esc_html__( 'Mezi požadavky je krok, který zvládne jen Stripe (selfie / naskenování obličeje nebo nahrání dokladu). Prodejce ho musí dokončit ve Stripe onboardingu — vlastním formulářem to nenahradíme.', 'nkz-woo-stripe-vendor-split' ) . '</p></div>';
+				}
+
+				// Náhradní cesta od Stripe. Tohle je pro admina ta nejdůležitější
+				// informace v celém panelu: znamená to, že opakované vyplňování
+				// údajů nikdy neprojde a prodejce musí nahrát doklady.
+				$alt = \NKVSVS\Account_State::alternative_labels( $snapshot );
+				if ( $alt ) {
+					printf(
+						'<div class="notice notice-warning inline"><p><strong>%s</strong><br>%s</p></div>',
+						esc_html__( 'Stripe nabízí náhradní ověření — prodejce NEMÁ vyplňovat údaje znovu.', 'nkz-woo-stripe-vendor-split' ),
+						esc_html( sprintf(
+							/* translators: %s: seznam dokladů */
+							__( 'Ověření podle vyplněných údajů u tohoto účtu selhalo a bude selhávat i při dalších pokusech. Stripe místo nich přijme: %s. Prodejce to nahraje ve Stripe onboardingu přes svůj odkaz.', 'nkz-woo-stripe-vendor-split' ),
+							implode( ', ', $alt )
+						) )
+					);
+				}
 			}
+
+			printf(
+				'<p><a class="button" href="%s" target="_blank" rel="noopener">%s</a> <span class="description">%s</span></p>',
+				esc_url( \NKVSVS\Onboarding_Controller::diagnose_url( $vendor_id ) ),
+				esc_html__( 'Diagnostika (JSON)', 'nkz-woo-stripe-vendor-split' ),
+				esc_html__( 'Read-only výpis stavu ze Stripe, bez osobních údajů.', 'nkz-woo-stripe-vendor-split' )
+			);
 		} else {
 			echo '<p style="color:#50575e;">' . esc_html__( 'Prodejce ještě není připojený ke Stripe. Pošli mu níže uvedený odkaz — všechny údaje vyplní sám přímo u Stripe.', 'nkz-woo-stripe-vendor-split' ) . '</p>';
 		}
 
-		// Hard policy: vendors without IČO cannot be onboarded to Stripe.
-		// Show a clear admin message and suppress onboarding UI entirely until IČO is filled.
+		// IČO je nepovinné (viz filtr `nkv/v1/onboarding/require_ico`), takže
+		// onboarding panel neblokujeme – jen upozorníme. Nepodnikající prodejce
+		// Stripe ověří jako fyzickou osobu přes doklad.
 		if ( ! $has_ico && '' === $account_id ) {
-			echo '<div class="notice notice-warning inline" style="margin:0;"><p>'
-				. esc_html__( 'Tento prodejce zatím nemá vyplněné IČO. Bez IČO ho nelze onboardovat na Stripe — vyplň IČO v polích níže a ulož, pak se objeví onboarding panel.', 'nkz-woo-stripe-vendor-split' )
+			echo '<div class="notice notice-info inline" style="margin:0 0 12px;"><p>'
+				. esc_html__( 'Prodejce nemá vyplněné IČO. Onboarding proběhne jako u fyzické osoby — Stripe si vyžádá doklad totožnosti místo IČO.', 'nkz-woo-stripe-vendor-split' )
 				. '</p></div>';
-			echo '</div>'; // close .nkv-onboarding wrapper
-			return;
 		}
 
 		// Onboarding section — only when account is missing or not yet fully enabled.
@@ -395,6 +515,7 @@ final class Vendors {
 
 		$map = [
 			'_nkv_vendor_status'         => 'enum:active,inactive',
+			'_nkv_stripe_country'        => 'enum:' . implode( ',', array_keys( \NKVSVS\Onboarding_Controller::allowed_countries() ) ),
 			'_nkv_default_fee_percent'   => 'float',
 			'_nkv_default_fee_fixed'     => 'int',
 			'_nkv_vendor_email'          => 'email',
@@ -409,6 +530,18 @@ final class Vendors {
 			$raw = $_POST[ $key ] ?? '';
 			$val = self::sanitize( $type, $raw );
 			update_post_meta( $post_id, $key, $val );
+
+			// Zrcadlení do nového `_nkzmp_*` klíče (core MetaKeys). Repository čte
+			// přednostně z nových klíčů, takže bez tohoto mirroru by edit v admin
+			// meta boxu (legacy klíče) zůstal v core readeru neviditelný, pokud
+			// nový klíč už nějakou hodnotu má (typicky po registraci přes nový
+			// formulář, který píše do `_nkzmp_*` přímo).
+			if ( class_exists( \NKZMP\Vendor\MetaKeys::class ) ) {
+				$new_key = \NKZMP\Vendor\MetaKeys::legacy_map()[ $key ] ?? null;
+				if ( $new_key ) {
+					update_post_meta( $post_id, $new_key, $val );
+				}
+			}
 		}
 	}
 

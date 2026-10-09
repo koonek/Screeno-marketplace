@@ -81,6 +81,8 @@ final class OwnershipGuard {
 
 	/**
 	 * Vrátí vendor ID, který „vlastní" daný WP user, nebo 0.
+	 *
+	 * Order: nový meta → legacy meta → email match (auto-link forward).
 	 */
 	public static function user_vendor_id( int $user_id ): int {
 		if ( $user_id <= 0 ) {
@@ -99,6 +101,26 @@ final class OwnershipGuard {
 		);
 		if ( $id > 0 ) {
 			return $id;
+		}
+
+		// Email fallback — pokud vendor CPT má registrovaný email shodný
+		// s emailem WP usera, propojíme je (a uložíme link na příště).
+		if ( apply_filters( 'nkzmp/v1/vendor/email_link_fallback', true ) ) {
+			$user = get_user_by( 'id', $user_id );
+			if ( $user && ! empty( $user->user_email ) ) {
+				$vid = (int) $wpdb->get_var(
+					$wpdb->prepare(
+						"SELECT post_id FROM {$wpdb->postmeta}
+						 WHERE meta_key IN ('_nkzmp_vendor_email', '_nkv_vendor_email')
+						   AND meta_value = %s LIMIT 1",
+						(string) $user->user_email
+					)
+				);
+				if ( $vid > 0 ) {
+					update_post_meta( $vid, MetaKeys::WP_USER_ID, $user_id );
+					return $vid;
+				}
+			}
 		}
 
 		// Legacy fallback.

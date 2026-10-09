@@ -2,7 +2,7 @@
 /**
  * Plugin Name: NKZ Woo Stripe Vendor Split
  * Description: Rozdělení plateb mezi platformu a vendory přes Stripe Connect (separate charges & transfers).
- * Version: 0.6.7.4
+ * Version: 0.15.2
  * Author: NKZ
  * Requires at least: 6.2
  * Requires PHP: 8.1
@@ -15,7 +15,27 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'NKVSVS_VERSION', '0.6.7.4' );
+// Modul je nainstalovaný dvakrát (samostatný plugin i uvnitř balíku) – už
+// běží jiná kopie. Druhou nespouštět: dvojí háčky by zdvojily i akce
+// (převody, e-maily) a konstanty hlásí varování.
+if ( defined( 'NKVSVS_VERSION' ) ) {
+	add_action(
+		'admin_notices',
+		static function (): void {
+			if ( ! current_user_can( 'activate_plugins' ) ) {
+				return;
+			}
+			printf(
+				'<div class="notice notice-warning"><p><strong>%s</strong> je nainstalovaný dvakrát – druhá kopie se nenačítá: <code>%s</code>. Deaktivuj a smaž ji v Pluginech (stačí jedna kopie, např. v balíku NKZ Marketplace).</p></div>',
+				esc_html( 'NKZ Woo Stripe Vendor Split' ),
+				esc_html( wp_normalize_path( __FILE__ ) )
+			);
+		}
+	);
+	return;
+}
+
+define( 'NKVSVS_VERSION', '0.15.2' );
 define( 'NKVSVS_PLUGIN_FILE', __FILE__ );
 define( 'NKVSVS_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'NKVSVS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
