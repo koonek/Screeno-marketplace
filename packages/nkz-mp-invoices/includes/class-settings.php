@@ -58,6 +58,9 @@ final class Settings {
 			// Od kdy podmínky pro prodejce obsahují zmocnění k samofakturaci
 			// (RRRR-MM-DD). Prázdné = doklady jménem prodejců se nevystavují.
 			'mandate_from'    => '',
+			// Bez potvrzeného zmocnění doklad jménem prodejce nevystavit.
+			// Výchozí ne – vystavuje se všem, zmocnění se sbírá.
+			'mandate_enforce' => 'no',
 		];
 	}
 
@@ -107,7 +110,7 @@ final class Settings {
 		foreach ( [ 'name', 'street', 'city', 'zip', 'country', 'ico', 'dic', 'registry', 'prefix_platform', 'prefix_vendor', 'prefix_credit' ] as $k ) {
 			$out[ $k ] = sanitize_text_field( wp_unslash( (string) ( $in[ $k ] ?? '' ) ) );
 		}
-		foreach ( [ 'enabled', 'vat_payer', 'attach_email', 'combined', 'vendor_copy', 'membership' ] as $k ) {
+		foreach ( [ 'enabled', 'vat_payer', 'attach_email', 'combined', 'vendor_copy', 'membership', 'mandate_enforce' ] as $k ) {
 			$out[ $k ] = ! empty( $in[ $k ] ) ? 'yes' : 'no';
 		}
 		$out['vat_rate'] = max( 0, min( 100, (int) ( $in['vat_rate'] ?? 21 ) ) );
@@ -193,7 +196,12 @@ final class Settings {
 		$row(
 			__( 'Zmocnění v podmínkách od', 'nkz-mp-invoices' ),
 			'<input type="date" name="' . esc_attr( self::OPTION ) . '[mandate_from]" value="' . esc_attr( (string) $s['mandate_from'] ) . '" />',
-			__( 'Den, od kdy podmínky pro prodejce obsahují zmocnění k vystavování dokladů jejich jménem. Prodejci registrovaní od tohoto dne ho mají automaticky, stávající ho potvrdí jedním kliknutím v přehledu prodejce. Dokud je prázdné, doklady jménem prodejců se nevystavují (jen doklady Art of život).', 'nkz-mp-invoices' )
+			__( 'Den, od kdy podmínky pro prodejce obsahují zmocnění k vystavování dokladů jejich jménem. Prodejci registrovaní od tohoto dne ho mají automaticky, stávající dostanou v přehledu výzvu k potvrzení jedním kliknutím. Prázdné = výzva se neukazuje.', 'nkz-mp-invoices' )
+		);
+		$row(
+			__( 'Vynutit zmocnění', 'nkz-mp-invoices' ),
+			$check( 'mandate_enforce', __( 'za prodejce bez potvrzeného zmocnění doklady nevystavovat', 'nkz-mp-invoices' ) ),
+			__( 'Vypnuto (výchozí): doklady se vystavují všem prodejcům a zmocnění se mezitím sbírá. Zapni, až ho budou mít všichni (přehled je ve stavu systému a v detailu prodejce).', 'nkz-mp-invoices' )
 		);
 		$row(
 			__( 'Kopie prodejci', 'nkz-mp-invoices' ),

@@ -80,7 +80,7 @@ final class Documents {
 				continue;
 			}
 			// Jménem prodejce jen se zmocněním (podmínky pro prodejce).
-			if ( $issuer !== 'platform' && ! Mandate::has( (int) $issuer ) ) {
+			if ( $issuer !== 'platform' && ! Mandate::allows( (int) $issuer ) ) {
 				$order->add_order_note( sprintf(
 					/* translators: %s: prodejce */
 					__( 'Doklad za zboží prodejce %s nevystaven – prodejce zatím nepotvrdil zmocnění k samofakturaci, doklad zákazníkovi vystavuje sám.', 'nkz-mp-invoices' ),

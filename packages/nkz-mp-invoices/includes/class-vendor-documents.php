@@ -152,7 +152,7 @@ final class VendorDocuments {
 		}
 		$docs = self::vendor_docs( $order, (int) $vendor_id );
 		if ( ! $docs ) {
-			if ( $order->get_meta( Documents::ISSUED_META ) && ! Mandate::has( (int) $vendor_id ) ) {
+			if ( $order->get_meta( Documents::ISSUED_META ) && ! Mandate::allows( (int) $vendor_id ) ) {
 				echo '<div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(0,0,0,.1);font-size:13px;color:#8a4b00;">' . esc_html__( 'Doklad k této objednávce vystavuješ sám/sama – zatím jsi nepotvrdil/a zmocnění (výzva nahoře v přehledu).', 'nkz-mp-invoices' ) . '</div>';
 			}
 			return;

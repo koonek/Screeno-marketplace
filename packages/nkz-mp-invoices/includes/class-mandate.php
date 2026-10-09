@@ -45,6 +45,19 @@ final class Mandate {
 		return $t ? (int) $t : 0;
 	}
 
+	/** Vynucovat zmocnění (bez něj doklad nevystavit)? Výchozí ne. */
+	public static function enforced(): bool {
+		return ( Settings::get()['mandate_enforce'] ?? 'no' ) === 'yes';
+	}
+
+	/**
+	 * Smí se doklad jménem prodejce vystavit? Dokud vynucení není zapnuté,
+	 * vystavuje se všem (zmocnění se mezitím sbírá).
+	 */
+	public static function allows( int $vendor_id ): bool {
+		return ! self::enforced() || self::has( $vendor_id );
+	}
+
 	/** Má prodejce platné zmocnění? */
 	public static function has( int $vendor_id ): bool {
 		if ( $vendor_id <= 0 ) {
@@ -77,7 +90,9 @@ final class Mandate {
 		$terms = self::terms_url();
 		echo '<div class="nkzmp-vd-flash" style="border-color:rgba(0,96,255,.25);"><div class="icon">!</div><div>';
 		echo '<strong>' . esc_html__( 'Potvrď prosím aktualizované podmínky pro prodejce', 'nkz-mp-invoices' ) . '</strong>';
-		echo '<p>' . esc_html__( 'Doplnili jsme zmocnění, abychom za tebe mohli zákazníkům vystavovat doklady (samofakturace) – nemusíš je psát ručně. Dokud podmínky nepotvrdíš, doklady ke svým objednávkám vystavuješ sám/sama.', 'nkz-mp-invoices' ) . '</p>';
+		echo '<p>' . ( self::enforced()
+			? esc_html__( 'Doplnili jsme zmocnění, abychom za tebe mohli zákazníkům vystavovat doklady (samofakturace) – nemusíš je psát ručně. Dokud podmínky nepotvrdíš, doklady ke svým objednávkám vystavuješ sám/sama.', 'nkz-mp-invoices' )
+			: esc_html__( 'Doplnili jsme zmocnění, abychom za tebe mohli zákazníkům vystavovat doklady (samofakturace) – nemusíš je psát ručně. Potvrď ho prosím jedním kliknutím.', 'nkz-mp-invoices' ) ) . '</p>';
 		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="margin-top:10px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;">';
 		echo '<input type="hidden" name="action" value="nkzmp_mandate_accept">';
 		wp_nonce_field( 'nkzmp_mandate_accept' );
@@ -117,22 +132,26 @@ final class Mandate {
 		if ( ! Settings::enabled() ) {
 			return $rows;
 		}
+		$label = __( 'Samofakturace – zmocnění prodejců', 'nkz-mp-invoices' );
 		if ( self::since() <= 0 ) {
 			$rows[] = [
-				'label'  => __( 'Samofakturace – zmocnění prodejců', 'nkz-mp-invoices' ),
-				'state'  => 'warn',
-				'detail' => __( 'V nastavení Faktury není datum, od kdy podmínky pro prodejce obsahují zmocnění. Do té doby se doklady jménem prodejců nevystavují (Art of život vystavuje jen své doklady).', 'nkz-mp-invoices' ),
+				'label'  => $label,
+				'state'  => 'ok',
+				'detail' => __( 'Doklady jménem prodejců se vystavují všem. Až bude zmocnění v podmínkách pro prodejce, vyplň ve Faktury datum – prodejci pak dostanou výzvu k potvrzení.', 'nkz-mp-invoices' ),
 			];
 			return $rows;
 		}
 		$ids     = get_posts( [ 'post_type' => [ 'nkv_vendor', 'nkzmp_vendor' ], 'post_status' => 'publish', 'posts_per_page' => -1, 'fields' => 'ids' ] );
 		$missing = array_filter( (array) $ids, static fn( $id ) => ! self::has( (int) $id ) );
 		$rows[]  = [
-			'label'  => __( 'Samofakturace – zmocnění prodejců', 'nkz-mp-invoices' ),
-			'state'  => $missing ? 'warn' : 'ok',
+			'label'  => $label,
+			'state'  => $missing && self::enforced() ? 'warn' : 'ok',
 			'detail' => $missing
-				/* translators: %d: počet */
-				? sprintf( __( '%d prodejců zatím nepotvrdilo zmocnění – za jejich zboží se doklady nevystavují (vidí výzvu v přehledu).', 'nkz-mp-invoices' ), count( $missing ) )
+				? ( self::enforced()
+					/* translators: %d: počet */
+					? sprintf( __( '%d prodejců zatím nepotvrdilo zmocnění – za jejich zboží se doklady nevystavují (vidí výzvu v přehledu).', 'nkz-mp-invoices' ), count( $missing ) )
+					/* translators: %d: počet */
+					: sprintf( __( '%d prodejců zatím nepotvrdilo zmocnění (vidí výzvu v přehledu). Doklady se zatím vystavují všem – vynucení zapneš ve Faktury.', 'nkz-mp-invoices' ), count( $missing ) ) )
 				: __( 'Všichni prodejci mají zmocnění.', 'nkz-mp-invoices' ),
 		];
 		return $rows;
