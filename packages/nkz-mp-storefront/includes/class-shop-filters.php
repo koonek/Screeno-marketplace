@@ -330,6 +330,11 @@ final class ShopFilters {
 	}
 
 	private function render_categories( array $selected ): void {
+		// Na stránce kategorie řeší podkategorie řada nad produkty
+		// (navigace jako Zalando) – nabídka Kategorie by to jen zdvojovala.
+		if ( function_exists( 'is_product_category' ) && is_product_category() ) {
+			return;
+		}
 		$terms = get_terms( [
 			'taxonomy'   => 'product_cat',
 			'hide_empty' => false,
