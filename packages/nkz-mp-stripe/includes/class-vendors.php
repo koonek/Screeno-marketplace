@@ -167,6 +167,7 @@ final class Vendors {
 		$fields = [
 			'_nkv_vendor_status'          => [ 'label' => __( 'Stav prodejce', 'nkz-woo-stripe-vendor-split' ), 'type' => 'select', 'options' => [ 'active' => __( 'aktivní', 'nkz-woo-stripe-vendor-split' ), 'inactive' => __( 'neaktivní', 'nkz-woo-stripe-vendor-split' ) ] ],
 			'_nkv_vendor_package'         => [ 'label' => __( 'Balíček', 'nkz-woo-stripe-vendor-split' ), 'type' => 'select', 'options' => [ '' => __( '— nezvoleno —', 'nkz-woo-stripe-vendor-split' ) ] + self::package_labels() ],
+			'_nkv_print_date'             => [ 'label' => __( 'Datum tisku (jen Rozjezd)', 'nkz-woo-stripe-vendor-split' ), 'type' => 'date' ],
 			'_nkv_default_fee_percent'    => [ 'label' => __( 'Provize platformy (%)', 'nkz-woo-stripe-vendor-split' ), 'type' => 'number', 'step' => '0.01' ],
 			'_nkv_default_fee_fixed'      => [ 'label' => __( 'Fixní poplatek (v haléřích, volitelné)', 'nkz-woo-stripe-vendor-split' ), 'type' => 'number', 'step' => '1' ],
 			'_nkv_vendor_email'           => [ 'label' => __( 'Email prodejce', 'nkz-woo-stripe-vendor-split' ), 'type' => 'email' ],
@@ -402,6 +403,7 @@ final class Vendors {
 		$map = [
 			'_nkv_vendor_status'         => 'enum:active,inactive',
 			'_nkv_vendor_package'        => 'enum:,' . implode( ',', self::PACKAGES ),
+			'_nkv_print_date'            => 'date',
 			'_nkv_default_fee_percent'   => 'float',
 			'_nkv_default_fee_fixed'     => 'int',
 			'_nkv_vendor_email'          => 'email',
@@ -432,6 +434,7 @@ final class Vendors {
 			case 'url':      return esc_url_raw( (string) wp_unslash( $raw ) );
 			case 'float':    return (float) $raw;
 			case 'int':      return (int) $raw;
+			case 'date':     return preg_match( '/^\d{4}-\d{2}-\d{2}$/', (string) $raw ) ? (string) $raw : '';
 			case 'currency': return strtoupper( preg_replace( '/[^A-Za-z]/', '', (string) $raw ) );
 		}
 		return sanitize_text_field( (string) wp_unslash( $raw ) );
