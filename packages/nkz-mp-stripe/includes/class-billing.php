@@ -179,10 +179,12 @@ final class Billing {
 		}
 
 		// Nečekáme na webhook – stav uložíme hned z dokončené session.
-		$session_id = isset( $_GET['session_id'] ) ? sanitize_text_field( wp_unslash( $_GET['session_id'] ) ) : '';
-		if ( str_starts_with( $session_id, 'cs_' ) ) {
+		// Přísný formát ID: hodnota jde do cesty volání Stripe API s tajným klíčem, nesmí
+		// obsahovat lomítka, otazníky apod. Session musí patřit prodejci z podepsaného odkazu.
+		$session_id = isset( $_GET['session_id'] ) ? (string) wp_unslash( $_GET['session_id'] ) : '';
+		if ( preg_match( '/^cs_(test|live)_[A-Za-z0-9]{10,255}$/', $session_id ) ) {
 			$session = ( new Stripe_Client() )->retrieve_checkout_session( $session_id );
-			if ( is_array( $session ) && empty( $session['error'] ) ) {
+			if ( is_array( $session ) && empty( $session['error'] ) && (int) ( $session['metadata']['nkv_vendor_id'] ?? 0 ) === $vendor_id ) {
 				$this->apply_session( $session );
 			}
 		}
@@ -210,7 +212,12 @@ final class Billing {
 
 	/** checkout.session.completed */
 	public function apply_session( array $session ): void {
-		$vendor_id = (int) ( $session['metadata']['nkv_vendor_id'] ?? $session['client_reference_id'] ?? 0 );
+		// Jen session založené tímto pluginem na tomto webu – na stejném Stripe účtu můžou
+		// Checkout zakládat i jiné služby (client_reference_id proto nestačí).
+		if ( ! self::is_own_object( $session ) ) {
+			return;
+		}
+		$vendor_id = (int) $session['metadata']['nkv_vendor_id'];
 		if ( $vendor_id <= 0 || ! Vendor_Repository::get( $vendor_id ) ) {
 			return;
 		}
@@ -227,6 +234,14 @@ final class Billing {
 			update_post_meta( $vendor_id, '_nkv_billing_subscription_id', $session['subscription'] );
 			$this->set_status( $vendor_id, self::STATUS_ACTIVE );
 		}
+	}
+
+	/** Objekt (session / předplatné) založil tento plugin na tomto webu – podle metadat. */
+	private static function is_own_object( array $object ): bool {
+		$meta = $object['metadata'] ?? [];
+		return is_array( $meta )
+			&& ! empty( $meta['nkv_vendor_id'] )
+			&& untrailingslashit( (string) ( $meta['site'] ?? '' ) ) === untrailingslashit( home_url() );
 	}
 
 	/** customer.subscription.updated / customer.subscription.deleted */
@@ -264,7 +279,7 @@ final class Billing {
 	}
 
 	private function vendor_by_subscription( array $subscription ): int {
-		$vendor_id = (int) ( $subscription['metadata']['nkv_vendor_id'] ?? 0 );
+		$vendor_id = self::is_own_object( $subscription ) ? (int) $subscription['metadata']['nkv_vendor_id'] : 0;
 		if ( $vendor_id > 0 && Vendor_Repository::get( $vendor_id ) ) {
 			return $vendor_id;
 		}
