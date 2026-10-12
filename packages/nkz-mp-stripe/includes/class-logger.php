@@ -23,6 +23,10 @@ final class Logger {
 		self::wc()->info( self::format( $message, $context ), [ 'source' => self::SOURCE ] );
 	}
 
+	public static function warning( string $message, array $context = [] ): void {
+		self::wc()->warning( self::format( $message, $context ), [ 'source' => self::SOURCE ] );
+	}
+
 	public static function error( string $message, array $context = [] ): void {
 		self::wc()->error( self::format( $message, $context ), [ 'source' => self::SOURCE ] );
 	}

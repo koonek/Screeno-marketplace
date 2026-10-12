@@ -35,4 +35,4 @@ Platí pro všechny balíčky najednou. V pauze se neodesílá (týdenní dávka
 
 ## Elementor šablona produktu
 
-Termín se vkládá automaticky pod cenu standardní šablony WooCommerce. Pokud je detail produktu postavený v Elementoru a termín se nezobrazí, vlož na šablonu widget **Shortcode** s `[screeno_odeslani]`.
+Termín se zobrazí sám nad tlačítkem **Přidat do košíku** – v klasické šabloně WooCommerce, v blokovém motivu i v Elementor widgetu *Add to Cart*. Na stránce je vždy jen jednou. Kdybys ho chtěla jinde (nebo šablona nemá tlačítko košíku), vlož widget **Shortcode** s `[screeno_odeslani]`.
