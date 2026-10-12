@@ -13,6 +13,9 @@ final class Vendors {
 
 	public const POST_TYPE = 'nkv_vendor';
 
+	/** Balíčky služby Screenuj (meta `_nkv_vendor_package`). Prázdná hodnota = nezvoleno. */
+	public const PACKAGES = [ 'rozjezd', 'rust', 'naplno' ];
+
 	private static ?Vendors $instance = null;
 	public static function instance(): Vendors { return self::$instance ??= new self(); }
 
@@ -21,6 +24,8 @@ final class Vendors {
 		add_action( 'init', [ $this, 'register_public_meta' ] );
 		add_action( 'add_meta_boxes', [ $this, 'add_meta_box' ] );
 		add_action( 'save_post_' . self::POST_TYPE, [ $this, 'save' ], 10, 2 );
+		add_filter( 'manage_' . self::POST_TYPE . '_posts_columns', [ $this, 'admin_columns' ] );
+		add_action( 'manage_' . self::POST_TYPE . '_posts_custom_column', [ $this, 'render_admin_column' ], 10, 2 );
 		// Block direct front-end access to a single vendor — Elementor still queries the CPT
 		// via WP_Query, but no public URL renders the full vendor post.
 		add_action( 'template_redirect', [ $this, 'block_single_vendor' ] );
@@ -161,6 +166,8 @@ final class Vendors {
 		$this->render_onboarding_panel( $post->ID );
 		$fields = [
 			'_nkv_vendor_status'          => [ 'label' => __( 'Stav prodejce', 'nkz-woo-stripe-vendor-split' ), 'type' => 'select', 'options' => [ 'active' => __( 'aktivní', 'nkz-woo-stripe-vendor-split' ), 'inactive' => __( 'neaktivní', 'nkz-woo-stripe-vendor-split' ) ] ],
+			'_nkv_vendor_package'         => [ 'label' => __( 'Balíček', 'nkz-woo-stripe-vendor-split' ), 'type' => 'select', 'options' => [ '' => __( '— nezvoleno —', 'nkz-woo-stripe-vendor-split' ) ] + self::package_labels() ],
+			'_nkv_print_date'             => [ 'label' => __( 'Datum tisku (jen Rozjezd)', 'nkz-woo-stripe-vendor-split' ), 'type' => 'date' ],
 			'_nkv_default_fee_percent'    => [ 'label' => __( 'Provize platformy (%)', 'nkz-woo-stripe-vendor-split' ), 'type' => 'number', 'step' => '0.01' ],
 			'_nkv_default_fee_fixed'      => [ 'label' => __( 'Fixní poplatek (v haléřích, volitelné)', 'nkz-woo-stripe-vendor-split' ), 'type' => 'number', 'step' => '1' ],
 			'_nkv_vendor_email'           => [ 'label' => __( 'Email prodejce', 'nkz-woo-stripe-vendor-split' ), 'type' => 'email' ],
@@ -395,6 +402,8 @@ final class Vendors {
 
 		$map = [
 			'_nkv_vendor_status'         => 'enum:active,inactive',
+			'_nkv_vendor_package'        => 'enum:,' . implode( ',', self::PACKAGES ),
+			'_nkv_print_date'            => 'date',
 			'_nkv_default_fee_percent'   => 'float',
 			'_nkv_default_fee_fixed'     => 'int',
 			'_nkv_vendor_email'          => 'email',
@@ -425,9 +434,53 @@ final class Vendors {
 			case 'url':      return esc_url_raw( (string) wp_unslash( $raw ) );
 			case 'float':    return (float) $raw;
 			case 'int':      return (int) $raw;
+			case 'date':     return preg_match( '/^\d{4}-\d{2}-\d{2}$/', (string) $raw ) ? (string) $raw : '';
 			case 'currency': return strtoupper( preg_replace( '/[^A-Za-z]/', '', (string) $raw ) );
 		}
 		return sanitize_text_field( (string) wp_unslash( $raw ) );
+	}
+
+	/**
+	 * @return array<string,string> slug => label
+	 */
+	public static function package_labels(): array {
+		return [
+			'rozjezd' => __( 'Rozjezd', 'nkz-woo-stripe-vendor-split' ),
+			'rust'    => __( 'Růst', 'nkz-woo-stripe-vendor-split' ),
+			'naplno'  => __( 'Naplno', 'nkz-woo-stripe-vendor-split' ),
+		];
+	}
+
+	/** Balíček prodejce (slug z PACKAGES), nebo '' když není zvolený. */
+	public static function package_of( int $vendor_id ): string {
+		$package = (string) get_post_meta( $vendor_id, '_nkv_vendor_package', true );
+		return in_array( $package, self::PACKAGES, true ) ? $package : '';
+	}
+
+	/**
+	 * @param array<string,string> $columns
+	 * @return array<string,string>
+	 */
+	public function admin_columns( array $columns ): array {
+		$out = [];
+		foreach ( $columns as $key => $label ) {
+			$out[ $key ] = $label;
+			if ( 'title' === $key ) {
+				$out['nkv_package'] = __( 'Balíček', 'nkz-woo-stripe-vendor-split' );
+				$out['nkv_status']  = __( 'Stav', 'nkz-woo-stripe-vendor-split' );
+			}
+		}
+		return $out;
+	}
+
+	public function render_admin_column( string $column, int $post_id ): void {
+		if ( 'nkv_package' === $column ) {
+			$package = self::package_of( $post_id );
+			echo '' === $package ? '—' : esc_html( self::package_labels()[ $package ] );
+		} elseif ( 'nkv_status' === $column ) {
+			$status = get_post_meta( $post_id, '_nkv_vendor_status', true ) ?: 'active';
+			echo 'active' === $status ? esc_html__( 'aktivní', 'nkz-woo-stripe-vendor-split' ) : esc_html__( 'neaktivní', 'nkz-woo-stripe-vendor-split' );
+		}
 	}
 
 	/**

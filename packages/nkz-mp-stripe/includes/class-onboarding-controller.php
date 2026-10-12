@@ -220,6 +220,10 @@ final class Onboarding_Controller {
 			<span class="badge" style="background: <?php echo esc_attr( $m[2] ); ?>;"><?php echo esc_html( $status ); ?></span>
 			<h1><?php echo esc_html( $m[0] ); ?></h1>
 			<p><?php echo esc_html( $m[1] ); ?></p>
+			<?php if ( 'restricted' !== $status && Billing::needs_payment( $vendor_id ) ) : ?>
+				<p><strong><?php esc_html_e( 'Poslední krok: zaplať onboarding a nastav měsíční platbu kartou.', 'nkz-woo-stripe-vendor-split' ); ?></strong></p>
+				<p><a href="<?php echo esc_url( Billing::start_url( $vendor_id ) ); ?>" style="display:inline-block;padding:12px 22px;border-radius:6px;background:#1d2327;color:#fff;text-decoration:none;font-weight:600;"><?php esc_html_e( 'Zaplatit kartou', 'nkz-woo-stripe-vendor-split' ); ?></a></p>
+			<?php endif; ?>
 			<p class="footer"><?php printf( esc_html__( 'Tuto stránku můžeš zavřít. — %s', 'nkz-woo-stripe-vendor-split' ), esc_html( $site ) ); ?></p>
 		</div>
 		</body></html><?php

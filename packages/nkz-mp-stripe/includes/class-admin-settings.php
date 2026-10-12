@@ -48,6 +48,20 @@ final class Admin_Settings {
 			[ 'type' => 'checkbox', 'id' => 'nkv_svs__auto_reversal_on_full_refund', 'title' => __( 'Automatický reversal při plném refundu', 'nkz-woo-stripe-vendor-split' ) ],
 			[ 'type' => 'checkbox', 'id' => 'nkv_svs__debug_logging', 'title' => __( 'Debug logování', 'nkz-woo-stripe-vendor-split' ) ],
 			[ 'type' => 'sectionend', 'id' => 'nkv_svs_section' ],
+			[ 'type' => 'title', 'title' => __( 'Platby prodejců (Screenuj)', 'nkz-woo-stripe-vendor-split' ), 'desc' => __( 'Konečné částky v Kč. Prodejce je zaplatí kartou přes Stripe po dokončení onboardingu; měsíční fee se pak strhává automaticky. 0 = bez měsíčního fee.', 'nkz-woo-stripe-vendor-split' ), 'id' => 'nkv_svs_billing' ],
+			[ 'type' => 'number', 'id' => 'nkv_svs__billing_onboarding_fee', 'title' => __( 'Onboarding (jednorázově, Kč)', 'nkz-woo-stripe-vendor-split' ), 'custom_attributes' => [ 'step' => '1', 'min' => '0' ] ],
+			[ 'type' => 'number', 'id' => 'nkv_svs__billing_monthly_rozjezd', 'title' => __( 'Měsíční fee – Rozjezd (Kč)', 'nkz-woo-stripe-vendor-split' ), 'custom_attributes' => [ 'step' => '1', 'min' => '0' ] ],
+			[ 'type' => 'number', 'id' => 'nkv_svs__billing_monthly_rust', 'title' => __( 'Měsíční fee – Růst (Kč)', 'nkz-woo-stripe-vendor-split' ), 'custom_attributes' => [ 'step' => '1', 'min' => '0' ] ],
+			[ 'type' => 'number', 'id' => 'nkv_svs__billing_monthly_naplno', 'title' => __( 'Měsíční fee – Naplno (Kč)', 'nkz-woo-stripe-vendor-split' ), 'custom_attributes' => [ 'step' => '1', 'min' => '0' ] ],
+			[ 'type' => 'text', 'id' => 'nkv_svs__billing_notify_email', 'title' => __( 'E-mail pro upozornění na neplacení', 'nkz-woo-stripe-vendor-split' ), 'desc' => __( 'Prázdné = e-mail administrátora webu.', 'nkz-woo-stripe-vendor-split' ) ],
+			[ 'type' => 'sectionend', 'id' => 'nkv_svs_billing' ],
+			[ 'type' => 'title', 'title' => __( 'Termín odeslání předobjednávek (Screenuj)', 'nkz-woo-stripe-vendor-split' ), 'desc' => __( 'Růst a Naplno: týdenní dávka. Rozjezd: datum tisku v kartě prodejce, odeslání = tisk + pracovní dny.', 'nkz-woo-stripe-vendor-split' ), 'id' => 'nkv_svs_delivery' ],
+			[ 'type' => 'select', 'id' => 'nkv_svs__delivery_weekly_cutoff_day', 'title' => __( 'Uzávěrka objednávek – den', 'nkz-woo-stripe-vendor-split' ), 'options' => [ '1' => __( 'pondělí', 'nkz-woo-stripe-vendor-split' ), '2' => __( 'úterý', 'nkz-woo-stripe-vendor-split' ), '3' => __( 'středa', 'nkz-woo-stripe-vendor-split' ), '4' => __( 'čtvrtek', 'nkz-woo-stripe-vendor-split' ), '5' => __( 'pátek', 'nkz-woo-stripe-vendor-split' ), '6' => __( 'sobota', 'nkz-woo-stripe-vendor-split' ), '7' => __( 'neděle', 'nkz-woo-stripe-vendor-split' ) ] ],
+			[ 'type' => 'text', 'id' => 'nkv_svs__delivery_weekly_cutoff_time', 'title' => __( 'Uzávěrka objednávek – čas', 'nkz-woo-stripe-vendor-split' ), 'placeholder' => '12:00' ],
+			[ 'type' => 'select', 'id' => 'nkv_svs__delivery_weekly_ship_day', 'title' => __( 'Odeslání týdenní dávky – den', 'nkz-woo-stripe-vendor-split' ), 'options' => [ '1' => __( 'pondělí', 'nkz-woo-stripe-vendor-split' ), '2' => __( 'úterý', 'nkz-woo-stripe-vendor-split' ), '3' => __( 'středa', 'nkz-woo-stripe-vendor-split' ), '4' => __( 'čtvrtek', 'nkz-woo-stripe-vendor-split' ), '5' => __( 'pátek', 'nkz-woo-stripe-vendor-split' ), '6' => __( 'sobota', 'nkz-woo-stripe-vendor-split' ), '7' => __( 'neděle', 'nkz-woo-stripe-vendor-split' ) ] ],
+			[ 'type' => 'number', 'id' => 'nkv_svs__delivery_rozjezd_business_days', 'title' => __( 'Rozjezd – odeslání za (pracovních dnů po tisku)', 'nkz-woo-stripe-vendor-split' ), 'custom_attributes' => [ 'step' => '1', 'min' => '0' ] ],
+			[ 'type' => 'textarea', 'id' => 'nkv_svs__delivery_pauses', 'title' => __( 'Pauzy (svátky, dovolená)', 'nkz-woo-stripe-vendor-split' ), 'desc' => __( 'Jedno období na řádek, např. 17.12.2026 - 4.1.2027 (nebo jen jedno datum). V pauze se neodesílá a pracovní dny se nepočítají. Platí pro všechny balíčky.', 'nkz-woo-stripe-vendor-split' ), 'css' => 'min-height:90px;' ],
+			[ 'type' => 'sectionend', 'id' => 'nkv_svs_delivery' ],
 		];
 	}
 
@@ -96,6 +110,9 @@ final class Admin_Settings {
 					break;
 				case 'select':
 					$settings[ $key ] = sanitize_text_field( (string) $raw );
+					break;
+				case 'textarea':
+					$settings[ $key ] = sanitize_textarea_field( wp_unslash( (string) $raw ) );
 					break;
 				default:
 					$settings[ $key ] = sanitize_text_field( (string) $raw );
