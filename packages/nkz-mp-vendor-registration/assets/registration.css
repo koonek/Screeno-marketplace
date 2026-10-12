@@ -494,3 +494,8 @@ button.nkzmp-reg-submit {
 /* Bez JS: podle zvolené volby (CSS :has) */
 .nkzmp-reg-idblock:not(:has(input[value="none"]:checked)) [data-idmode="none"] { display: none; }
 .nkzmp-reg-idblock:has(input[value="none"]:checked) [data-idmode="ico"] { display: none; }
+
+/* Chybějící pole (kontrola před odesláním) */
+.nkzmp-reg-invalid input[type="text"], .nkzmp-reg-invalid input[type="email"], .nkzmp-reg-invalid textarea { border-color: #c62828 !important; box-shadow: 0 0 0 3px rgba(198,40,40,.12) !important; }
+.nkzmp-reg-check.nkzmp-reg-invalid { border-color: #c62828 !important; background: #fdf3f3 !important; }
+.nkzmp-reg-error[data-nkzmp-reg-missing] { margin: 0 0 16px; padding: 14px 18px; border: 1px solid #f0c8c8; border-radius: 12px; background: #fdf3f3; color: #8e1b1b; font-size: 15px; }

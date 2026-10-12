@@ -259,6 +259,50 @@ defined( 'ABSPATH' ) || exit;
 		updateCount();
 	}
 
+	// Kontrola před odesláním (formulář má novalidate kvůli vlastnímu
+	// vzhledu) – zvýraznit, co chybí, a vypsat to, ne obecnou hlášku.
+	form.addEventListener('submit', function (e) {
+		var miss = [];
+		form.querySelectorAll('.nkzmp-reg-invalid').forEach(function (el) { el.classList.remove('nkzmp-reg-invalid'); });
+		var checks = [
+			['name', 'jméno nebo název značky'],
+			['email', 'platný e-mail'],
+			['bio', 'popis tvorby'],
+			['ico', 'IČO'],
+			['birth_number', 'rodné číslo'],
+			['business_declaration', 'prohlášení o prodeji v rámci samostatné činnosti'],
+			['terms', 'souhlas s podmínkami platformy'],
+			['vendor_terms', 'souhlas s podmínkami pro prodejce'],
+			['gdpr', 'souhlas se zpracováním osobních údajů']
+		];
+		var first = null;
+		checks.forEach(function (c) {
+			var el = form.querySelector('[name="' + c[0] + '"]');
+			if (!el || el.disabled || !el.required) { return; }
+			var bad = el.type === 'checkbox' ? !el.checked
+				: (el.type === 'email' ? !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(el.value.trim()) : el.value.trim() === '');
+			if (bad) {
+				miss.push(c[1]);
+				var box = el.closest('.nkzmp-reg-check, .nkzmp-reg-field, .nkzmp-reg-idpane') || el;
+				box.classList.add('nkzmp-reg-invalid');
+				first = first || box;
+			}
+		});
+		if (!miss.length) { return; }
+		e.preventDefault();
+		var msg = form.querySelector('[data-nkzmp-reg-missing]');
+		if (!msg) {
+			msg = document.createElement('div');
+			msg.className = 'nkzmp-reg-error';
+			msg.setAttribute('data-nkzmp-reg-missing', '');
+			msg.setAttribute('role', 'alert');
+			var row = form.querySelector('.nkzmp-reg-submit-row');
+			row.parentNode.insertBefore(msg, row);
+		}
+		msg.textContent = 'Chybí: ' + miss.join(', ') + '.';
+		if (first && first.scrollIntoView) { first.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+	});
+
 	// IČO / rodné číslo: ukázat jen zvolenou část a jen ta je povinná.
 	var idblock = form.querySelector('[data-nkzmp-idblock]');
 	if (idblock) {

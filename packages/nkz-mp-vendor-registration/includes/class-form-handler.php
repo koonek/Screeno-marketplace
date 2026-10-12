@@ -77,8 +77,32 @@ final class FormHandler {
 		// prodává v rámci své samostatné činnosti (ne jako spotřebitel).
 		$id_mode      = ( $_POST['id_mode'] ?? '' ) === 'none' ? 'none' : 'ico';
 		$birth_number = '';
-		if ( $name === '' || ! is_email( $email ) || $bio === '' || ! $terms || ! $gdpr || ! $vendor_terms_ok ) {
-			$this->redirect_error( __( 'Vyplň prosím všechna povinná pole a odsouhlas všechny souhlasy.', 'nkz-mp-vendor-registration' ) );
+		// Konkrétně, co chybí – obecná hláška nechávala lidi hádat.
+		$missing = [];
+		if ( $name === '' ) {
+			$missing[] = __( 'jméno nebo název značky', 'nkz-mp-vendor-registration' );
+		}
+		if ( ! is_email( $email ) ) {
+			$missing[] = __( 'platný e-mail', 'nkz-mp-vendor-registration' );
+		}
+		if ( $bio === '' ) {
+			$missing[] = __( 'popis tvorby', 'nkz-mp-vendor-registration' );
+		}
+		if ( ! $terms ) {
+			$missing[] = __( 'souhlas s podmínkami platformy', 'nkz-mp-vendor-registration' );
+		}
+		if ( ! $vendor_terms_ok ) {
+			$missing[] = __( 'souhlas s podmínkami pro prodejce', 'nkz-mp-vendor-registration' );
+		}
+		if ( ! $gdpr ) {
+			$missing[] = __( 'souhlas se zpracováním osobních údajů', 'nkz-mp-vendor-registration' );
+		}
+		if ( $missing ) {
+			$this->redirect_error( sprintf(
+				/* translators: %s: seznam chybějících polí */
+				__( 'Chybí: %s.', 'nkz-mp-vendor-registration' ),
+				implode( ', ', $missing )
+			) );
 		}
 		if ( $id_mode === 'ico' ) {
 			$ico_digits = preg_replace( '/\D/', '', $ico );

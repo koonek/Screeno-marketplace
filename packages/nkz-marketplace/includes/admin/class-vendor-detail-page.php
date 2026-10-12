@@ -127,7 +127,7 @@ final class VendorDetailPage {
 	private function panel_identity( array $vendor ): void {
 		$rows = [
 			__( 'E-mail', 'nkz-marketplace' )   => $vendor['email'] ? '<a href="mailto:' . esc_attr( $vendor['email'] ) . '">' . esc_html( $vendor['email'] ) . '</a>' : '—',
-			__( 'IČO', 'nkz-marketplace' )       => $vendor['ico'] ? esc_html( $vendor['ico'] ) : '—',
+			__( 'IČO', 'nkz-marketplace' )       => $vendor['ico'] ? esc_html( $vendor['ico'] ) : esc_html__( 'nemá IČO', 'nkz-marketplace' ) . ( current_user_can( 'manage_woocommerce' ) && ! get_post_meta( (int) $vendor['id'], '_nkzmp_birth_number', true ) ? ' <span class="nkzmp-vd-warn">' . esc_html__( '(rodné číslo chybí)', 'nkz-marketplace' ) . '</span>' : '' ),
 			__( 'Web', 'nkz-marketplace' )       => $vendor['website'] ? '<a href="' . esc_url( $vendor['website'] ) . '" target="_blank" rel="noopener">' . esc_html( $vendor['website'] ) . '</a>' : '—',
 			__( 'Provize', 'nkz-marketplace' )   => $this->fee_label( $vendor ),
 		];
@@ -151,33 +151,40 @@ final class VendorDetailPage {
 	 * sporu by je nikdo nenašel.
 	 */
 	private function panel_consents( int $vendor_id ): void {
-		$c = get_post_meta( $vendor_id, '_nkzmp_consents', true );
-		if ( ! is_array( $c ) || empty( $c['at'] ) ) {
-			$this->panel( __( 'Souhlasy z registrace', 'nkz-marketplace' ), [
-				__( 'Stav', 'nkz-marketplace' ) => '<span class="nkzmp-vd-warn">' . esc_html__( 'Nezaznamenány (prodejce registrován před zavedením evidence souhlasů)', 'nkz-marketplace' ) . '</span>',
-			] );
-			return;
-		}
-
+		$c   = get_post_meta( $vendor_id, '_nkzmp_consents', true );
+		$c   = is_array( $c ) ? $c : [];
 		$yes = static fn( $v ) => ! empty( $v ) ? '✓' : '<span class="nkzmp-vd-warn">✗</span>';
 
-		$rows = [
-			__( 'Kdy', 'nkz-marketplace' ) => esc_html( wp_date( 'j. n. Y H:i', (int) $c['at'] ) )
-				. ( ! empty( $c['ip'] ) ? ' <span style="color:#888;">(IP ' . esc_html( (string) $c['ip'] ) . ')</span>' : '' ),
-			__( 'Podmínky platformy', 'nkz-marketplace' ) => $yes( $c['terms']['accepted'] ?? false ),
-			__( 'Podmínky pro prodejce', 'nkz-marketplace' ) => $yes( $c['vendor_terms']['accepted'] ?? false ),
-			__( 'GDPR', 'nkz-marketplace' ) => $yes( $c['gdpr']['accepted'] ?? false ),
-		];
+		if ( empty( $c['at'] ) ) {
+			$rows = [
+				__( 'Stav', 'nkz-marketplace' ) => '<span class="nkzmp-vd-warn">' . esc_html__( 'Nezaznamenány (prodejce registrován před zavedením evidence souhlasů)', 'nkz-marketplace' ) . '</span>',
+			];
+		} else {
+			$rows = [
+				__( 'Kdy', 'nkz-marketplace' ) => esc_html( wp_date( 'j. n. Y H:i', (int) $c['at'] ) )
+					. ( ! empty( $c['ip'] ) ? ' <span style="color:#888;">(IP ' . esc_html( (string) $c['ip'] ) . ')</span>' : '' ),
+				__( 'Podmínky platformy', 'nkz-marketplace' ) => $yes( $c['terms']['accepted'] ?? false ),
+				__( 'Podmínky pro prodejce', 'nkz-marketplace' ) => $yes( $c['vendor_terms']['accepted'] ?? false ),
+				__( 'GDPR', 'nkz-marketplace' ) => $yes( $c['gdpr']['accepted'] ?? false ),
+			];
+		}
 
+		$ico     = trim( (string) ( get_post_meta( $vendor_id, '_nkv_vendor_ico', true ) ?: get_post_meta( $vendor_id, '_nkzmp_vendor_ico', true ) ) );
+		$has_ico = $ico !== '';
 		if ( isset( $c['business_declaration'] ) ) {
 			$bd = (array) $c['business_declaration'];
-			$has_ico = (string) get_post_meta( $vendor_id, '_nkzmp_id_mode', true ) === 'ico';
-			$rows[ __( 'Prohlášení o podnikateli', 'nkz-marketplace' ) ] = ( $has_ico && empty( $bd['accepted'] ) ? esc_html__( 'nepožaduje se (má IČO)', 'nkz-marketplace' ) : $yes( $bd['accepted'] ?? false ) )
+			// Potvrzeno dodatečně v přehledu prodejce – vlastní čas a IP.
+			$when = ! empty( $bd['at'] )
+				? ' <span style="color:#888;">(' . esc_html( sprintf( __( 'potvrzeno v přehledu %s', 'nkz-marketplace' ), wp_date( 'j. n. Y H:i', (int) $bd['at'] ) ) ) . ( ! empty( $bd['ip'] ) ? ', IP ' . esc_html( (string) $bd['ip'] ) : '' ) . ')</span>'
+				: '';
+			$rows[ __( 'Prohlášení o podnikateli', 'nkz-marketplace' ) ] = ( $has_ico && empty( $bd['accepted'] ) ? esc_html__( 'nepožaduje se (má IČO)', 'nkz-marketplace' ) : $yes( $bd['accepted'] ?? false ) . $when )
 				. ( ! empty( $bd['text'] )
 					? '<br><span style="color:#666;font-size:12px;">„' . esc_html( (string) $bd['text'] ) . '"</span>'
 					: '' );
 		} else {
-			$rows[ __( 'Prohlášení o podnikateli', 'nkz-marketplace' ) ] = '<span class="nkzmp-vd-warn">' . esc_html__( 'neudělil (registrace před zavedením)', 'nkz-marketplace' ) . '</span>';
+			$rows[ __( 'Prohlášení o podnikateli', 'nkz-marketplace' ) ] = $has_ico
+				? esc_html__( 'nepožaduje se (má IČO)', 'nkz-marketplace' )
+				: '<span class="nkzmp-vd-warn">' . esc_html__( 'zatím nepotvrdil (vidí výzvu v přehledu prodejce)', 'nkz-marketplace' ) . '</span>';
 		}
 
 		if ( class_exists( \NKZMP\Invoices\Mandate::class ) ) {
