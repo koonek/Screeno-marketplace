@@ -77,9 +77,22 @@ defined( 'ABSPATH' ) || exit;
 					<small><?php esc_html_e( 'České IČO se samo doplní z ARES.', 'nkz-mp-vendor-registration' ); ?></small>
 				</div>
 				<div class="nkzmp-reg-idpane" data-idmode="none">
-					<label for="nkzmp_rc" class="nkzmp-reg-sublabel"><?php esc_html_e( 'Rodné číslo', 'nkz-mp-vendor-registration' ); ?></label>
-					<input id="nkzmp_rc" type="text" name="birth_number" maxlength="11" inputmode="numeric" placeholder="<?php esc_attr_e( 'např. 905123/4567', 'nkz-mp-vendor-registration' ); ?>" autocomplete="off" />
-					<small><?php esc_html_e( 'Potřebujeme ho k identifikaci prodejce a k povinnému hlášení prodejců finanční správě. Nikde se nezobrazuje, vidí ho jen správce platformy.', 'nkz-mp-vendor-registration' ); ?></small>
+					<label class="nkzmp-reg-check nkzmp-reg-check--inline">
+						<input type="checkbox" name="foreigner" value="1" data-nkzmp-foreigner />
+						<span><?php esc_html_e( 'Nemám české rodné číslo (jsem cizinec/cizinka)', 'nkz-mp-vendor-registration' ); ?></span>
+					</label>
+					<div class="nkzmp-reg-idpane" data-rc="cz">
+						<label for="nkzmp_rc" class="nkzmp-reg-sublabel"><?php esc_html_e( 'Rodné číslo', 'nkz-mp-vendor-registration' ); ?></label>
+						<input id="nkzmp_rc" type="text" name="birth_number" maxlength="11" inputmode="numeric" placeholder="<?php esc_attr_e( 'např. 905123/4567', 'nkz-mp-vendor-registration' ); ?>" autocomplete="off" />
+						<small><?php esc_html_e( 'Potřebujeme ho k identifikaci prodejce a k povinnému hlášení prodejců finanční správě. Nikde se nezobrazuje, vidí ho jen správce platformy.', 'nkz-mp-vendor-registration' ); ?></small>
+					</div>
+					<div class="nkzmp-reg-idpane" data-rc="foreign" hidden>
+						<label for="nkzmp_bdate" class="nkzmp-reg-sublabel"><?php esc_html_e( 'Datum narození', 'nkz-mp-vendor-registration' ); ?></label>
+						<input id="nkzmp_bdate" type="date" name="birth_date" autocomplete="bday" />
+						<label for="nkzmp_fid" class="nkzmp-reg-sublabel"><?php esc_html_e( 'Daňové nebo osobní identifikační číslo ze tvé země (nepovinné)', 'nkz-mp-vendor-registration' ); ?></label>
+						<input id="nkzmp_fid" type="text" name="foreign_id" maxlength="40" autocomplete="off" data-optional />
+						<small><?php esc_html_e( 'Místo rodného čísla stačí datum narození – slouží k identifikaci prodejce a k povinnému hlášení prodejců. Nikde se nezobrazuje, vidí ho jen správce platformy.', 'nkz-mp-vendor-registration' ); ?></small>
+					</div>
 					<?php if ( $business_declaration !== '' ) : ?>
 						<label class="nkzmp-reg-check nkzmp-reg-check--inline">
 							<input type="checkbox" name="business_declaration" value="1" />
@@ -270,6 +283,14 @@ defined( 'ABSPATH' ) || exit;
 		return (11 - sum % 11) % 10 === +d[7];
 	};
 
+	// Opravené pole hned ztratí červené zvýraznění.
+	['input', 'change'].forEach(function (ev) {
+		form.addEventListener(ev, function (e) {
+			var box = e.target.closest && e.target.closest('.nkzmp-reg-invalid');
+			if (box) { box.classList.remove('nkzmp-reg-invalid'); }
+		});
+	});
+
 	// Kontrola před odesláním (formulář má novalidate kvůli vlastnímu
 	// vzhledu) – zvýraznit, co chybí, a vypsat to, ne obecnou hlášku.
 	form.addEventListener('submit', function (e) {
@@ -281,6 +302,7 @@ defined( 'ABSPATH' ) || exit;
 			['bio', 'popis tvorby'],
 			['ico', 'IČO'],
 			['birth_number', 'rodné číslo'],
+			['birth_date', 'datum narození'],
 			['business_declaration', 'prohlášení o prodeji v rámci samostatné činnosti'],
 			['terms', 'souhlas s podmínkami platformy'],
 			['vendor_terms', 'souhlas s podmínkami pro prodejce'],
@@ -326,10 +348,26 @@ defined( 'ABSPATH' ) || exit;
 				pane.hidden = !on;
 				pane.querySelectorAll('input').forEach(function(inp){
 					inp.disabled = !on;
-					inp.required = on;
+					inp.required = on && !inp.hasAttribute('data-nkzmp-foreigner') && !inp.hasAttribute('data-optional');
+				});
+			});
+			syncRc();
+		};
+		// Bez IČO: rodné číslo, nebo (cizinec) datum narození.
+		var foreigner = idblock.querySelector('[data-nkzmp-foreigner]');
+		var syncRc = function(){
+			var noneOn = !idblock.querySelector('[data-idmode="none"]').hidden;
+			var f = !!(foreigner && foreigner.checked);
+			idblock.querySelectorAll('[data-rc]').forEach(function(sub){
+				var on = noneOn && (sub.getAttribute('data-rc') === (f ? 'foreign' : 'cz'));
+				sub.hidden = !on;
+				sub.querySelectorAll('input').forEach(function(inp){
+					inp.disabled = !on;
+					inp.required = on && !inp.hasAttribute('data-optional');
 				});
 			});
 		};
+		if (foreigner) { foreigner.addEventListener('change', syncRc); }
 		idblock.querySelectorAll('input[name="id_mode"]').forEach(function(r){ r.addEventListener('change', syncId); });
 		syncId();
 	}

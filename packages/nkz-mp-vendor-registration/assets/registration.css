@@ -242,6 +242,7 @@
 .nkzmp-reg-field input[type="text"],
 .nkzmp-reg-field input[type="email"],
 .nkzmp-reg-field input[type="url"],
+.nkzmp-reg-field input[type="date"],
 .nkzmp-reg-field select,
 .nkzmp-reg-field textarea {
 	width: 100%;
@@ -496,6 +497,8 @@ button.nkzmp-reg-submit {
 .nkzmp-reg-idblock:has(input[value="none"]:checked) [data-idmode="ico"] { display: none; }
 
 /* Chybějící pole (kontrola před odesláním) */
-.nkzmp-reg-invalid input[type="text"], .nkzmp-reg-invalid input[type="email"], .nkzmp-reg-invalid textarea { border-color: #c62828 !important; box-shadow: 0 0 0 3px rgba(198,40,40,.12) !important; }
+.nkzmp-reg-invalid input[type="text"]:required, .nkzmp-reg-invalid input[type="date"], .nkzmp-reg-invalid input[type="email"], .nkzmp-reg-invalid textarea { border-color: #c62828 !important; box-shadow: 0 0 0 3px rgba(198,40,40,.12) !important; }
 .nkzmp-reg-check.nkzmp-reg-invalid { border-color: #c62828 !important; background: #fdf3f3 !important; }
 .nkzmp-reg-error[data-nkzmp-reg-missing] { margin: 0 0 16px; padding: 14px 18px; border: 1px solid #f0c8c8; border-radius: 12px; background: #fdf3f3; color: #8e1b1b; font-size: 15px; }
+
+.nkzmp-reg-field input[type="date"] { max-width: 260px; min-height: 50px; }

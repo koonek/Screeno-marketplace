@@ -127,7 +127,7 @@ final class VendorDetailPage {
 	private function panel_identity( array $vendor ): void {
 		$rows = [
 			__( 'E-mail', 'nkz-marketplace' )   => $vendor['email'] ? '<a href="mailto:' . esc_attr( $vendor['email'] ) . '">' . esc_html( $vendor['email'] ) . '</a>' : '—',
-			__( 'IČO', 'nkz-marketplace' )       => $vendor['ico'] ? esc_html( $vendor['ico'] ) . ( class_exists( \NKZMP\Registration\IcoCheck::class ) ? '<br><span style="color:#666;font-size:12px;">' . \NKZMP\Registration\IcoCheck::label( (int) $vendor['id'] ) . '</span>' : '' ) : esc_html__( 'nemá IČO', 'nkz-marketplace' ) . ( current_user_can( 'manage_woocommerce' ) && ! get_post_meta( (int) $vendor['id'], '_nkzmp_birth_number', true ) ? ' <span class="nkzmp-vd-warn">' . esc_html__( '(rodné číslo chybí)', 'nkz-marketplace' ) . '</span>' : '' ),
+			__( 'IČO', 'nkz-marketplace' )       => $vendor['ico'] ? esc_html( $vendor['ico'] ) . ( class_exists( \NKZMP\Registration\IcoCheck::class ) ? '<br><span style="color:#666;font-size:12px;">' . \NKZMP\Registration\IcoCheck::label( (int) $vendor['id'] ) . '</span>' : '' ) : esc_html__( 'nemá IČO', 'nkz-marketplace' ) . ( current_user_can( 'manage_woocommerce' ) && ! get_post_meta( (int) $vendor['id'], '_nkzmp_birth_number', true ) && ! get_post_meta( (int) $vendor['id'], '_nkzmp_birth_date', true ) ? ' <span class="nkzmp-vd-warn">' . esc_html__( '(rodné číslo chybí)', 'nkz-marketplace' ) . '</span>' : '' ),
 			__( 'Web', 'nkz-marketplace' )       => $vendor['website'] ? '<a href="' . esc_url( $vendor['website'] ) . '" target="_blank" rel="noopener">' . esc_html( $vendor['website'] ) . '</a>' : '—',
 			__( 'Provize', 'nkz-marketplace' )   => $this->fee_label( $vendor ),
 		];
@@ -136,6 +136,13 @@ final class VendorDetailPage {
 		$rc = (string) get_post_meta( (int) $vendor['id'], '_nkzmp_birth_number', true );
 		if ( $rc !== '' && current_user_can( 'manage_woocommerce' ) ) {
 			$rows[ __( 'Rodné číslo', 'nkz-marketplace' ) ] = '<details><summary style="cursor:pointer;">' . esc_html( substr( $rc, 0, 2 ) . '••••/••••' ) . ' <span style="color:#888;">' . esc_html__( '(zobrazit)', 'nkz-marketplace' ) . '</span></summary><code>' . esc_html( $rc ) . '</code></details>';
+		}
+		// Cizinec bez českého rodného čísla – datum narození (+ zahraniční ID).
+		$bdate = (string) get_post_meta( (int) $vendor['id'], '_nkzmp_birth_date', true );
+		if ( $bdate !== '' && current_user_can( 'manage_woocommerce' ) ) {
+			$fid = (string) get_post_meta( (int) $vendor['id'], '_nkzmp_foreign_id', true );
+			$rows[ __( 'Cizinec – datum narození', 'nkz-marketplace' ) ] = '<details><summary style="cursor:pointer;">•• . •• . ' . esc_html( substr( $bdate, 0, 4 ) ) . ' <span style="color:#888;">' . esc_html__( '(zobrazit)', 'nkz-marketplace' ) . '</span></summary><code>' . esc_html( wp_date( 'j. n. Y', strtotime( $bdate . ' 12:00' ) ) ) . '</code>'
+				. ( $fid !== '' ? '<br>' . esc_html__( 'Zahraniční ID:', 'nkz-marketplace' ) . ' <code>' . esc_html( $fid ) . '</code>' : '' ) . '</details>';
 		}
 		$wp_user = (int) ( $vendor['wp_user_id'] ?? 0 );
 		if ( $wp_user > 0 ) {
