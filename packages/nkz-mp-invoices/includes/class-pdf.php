@@ -301,7 +301,8 @@ final class Pdf {
 			$big   = $payer ? 'Faktura –<br>daňový doklad' : ( $has_ico ? 'Faktura' : 'Doklad<br>o prodeji' );
 		}
 
-		$h  = self::brand( $credit ? 'dobropis' : ( ! empty( $d['subject'] ) ? 'členství' : 'online market' ) );
+		$commission = ( $d['kind'] ?? '' ) === 'commission';
+		$h  = self::brand( $credit ? 'dobropis' : ( $commission ? 'provize' : ( ! empty( $d['subject'] ) ? 'členství' : 'online market' ) ) );
 		$h .= '<h1>' . $big . '</h1>';
 		$h .= '<div class="num">č. ' . self::e( $d['number'] ) . '</div>';
 
@@ -329,6 +330,9 @@ final class Pdf {
 
 		if ( ! $credit ) {
 			$h .= self::paid( $d, (string) ( $d['order_number'] ?? '' ) !== '' ? 'Objednávka ' . self::e( $d['order_number'] ) . ' uhrazena: ' : 'Uhrazeno ' );
+		}
+		if ( $commission ) {
+			$h .= '<p class="foot">Provize za zprostředkování prodeje na platformě Art of život za uvedené objednávky, stržená z výplat tržeb prodejci (započtení).' . ( $payer ? '' : ' Dodavatel není plátcem DPH, cena je konečná.' ) . '</p>';
 		}
 		if ( ! empty( $d['on_behalf'] ) ) {
 			$h .= '<p class="foot">Doklad vystavil provozovatel platformy Art of život jménem a na účet dodavatele na základě jeho zmocnění.</p>';

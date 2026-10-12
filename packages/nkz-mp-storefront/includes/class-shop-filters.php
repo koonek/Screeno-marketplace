@@ -178,8 +178,10 @@ final class ShopFilters {
 		html body .nkzmp-catpills a.is-back{background:#fff;border:1.5px solid #d5dbe6;color:#111;-webkit-text-fill-color:#111}
 		html body .nkzmp-catpills a.is-back:hover{border-color:#0060FF;color:#0060FF;-webkit-text-fill-color:#0060FF}
 		@media (max-width:767px){
-		.nkzmp-catpills{margin:0 -16px 16px}
-		.nkzmp-catpills ul{flex-wrap:nowrap;overflow-x:auto;padding:2px 16px 6px;scrollbar-width:none;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity}
+		/* Bez záporných okrajů – odsazení šablony bývá menší než 16 px
+		   a řada pak rozšířila celou stránku (na iPhonu šla táhnout do strany). */
+		.nkzmp-catpills{margin:0 0 16px;max-width:100%}
+		.nkzmp-catpills ul{flex-wrap:nowrap;overflow-x:auto;padding:2px 0 6px;scrollbar-width:none;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity}
 		.nkzmp-catpills ul::-webkit-scrollbar{display:none}
 		.nkzmp-catpills li{flex:0 0 auto;scroll-snap-align:start}
 		html body .nkzmp-catpills a{padding:9px 16px;font-size:14px}

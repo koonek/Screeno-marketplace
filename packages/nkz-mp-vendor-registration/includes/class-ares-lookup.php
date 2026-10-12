@@ -46,10 +46,22 @@ final class AresLookup {
 		}
 		$ico = str_pad( $ico, 8, '0', STR_PAD_LEFT );
 
+		$data = self::fetch( $ico );
+		return is_wp_error( $data ) ? $data : rest_ensure_response( $data );
+	}
+
+	/**
+	 * Dotaz do ARES (s cache). Vrací [found, ico, name, address, active],
+	 * [found => false] když subjekt neexistuje, nebo WP_Error při výpadku.
+	 *
+	 * @return array|\WP_Error
+	 */
+	public static function fetch( string $ico ) {
+		$ico       = str_pad( preg_replace( '/[^0-9]/', '', $ico ), 8, '0', STR_PAD_LEFT );
 		$cache_key = 'nkzmp_ares_' . $ico;
 		$cached    = get_transient( $cache_key );
 		if ( $cached !== false ) {
-			return rest_ensure_response( $cached );
+			return $cached;
 		}
 
 		$url      = 'https://ares.gov.cz/ekonomicke-subjekty-v-be/rest/ekonomicke-subjekty/' . $ico;
@@ -65,7 +77,7 @@ final class AresLookup {
 		if ( $code === 404 ) {
 			$data = [ 'found' => false ];
 			set_transient( $cache_key, $data, HOUR_IN_SECONDS );
-			return rest_ensure_response( $data );
+			return $data;
 		}
 		if ( $code >= 400 ) {
 			return new \WP_Error( 'ares_error', 'ARES vrátil chybu', [ 'status' => 502 ] );
@@ -80,15 +92,15 @@ final class AresLookup {
 			'found'   => true,
 			'ico'     => $ico,
 			'name'    => (string) ( $body['obchodniJmeno'] ?? '' ),
-			'address' => $this->format_address( $body['sidlo'] ?? [] ),
+			'address' => self::format_address( $body['sidlo'] ?? [] ),
 			'active'  => empty( $body['datumZaniku'] ),
 		];
 
 		set_transient( $cache_key, $data, DAY_IN_SECONDS );
-		return rest_ensure_response( $data );
+		return $data;
 	}
 
-	private function format_address( $sidlo ): string {
+	private static function format_address( $sidlo ): string {
 		if ( ! is_array( $sidlo ) ) {
 			return '';
 		}
