@@ -168,7 +168,8 @@
 			btn.textContent = 'Načítám…';
 			var data = collect();
 			data.paged = currentPaged + 1;
-			fetch( sameOriginAjax(), {
+			var viaPage = function () { return fetchPage( data ).then( function ( r ) { return r.html; } ); };
+			( ajaxBlocked ? viaPage() : fetch( sameOriginAjax(), {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
 				body: buildBody( data ).toString(),
@@ -176,8 +177,17 @@
 			} )
 				.then( function ( r ) { if ( ! r.ok ) { throw new Error( 'HTTP ' + r.status ); } return r.json(); } )
 				.then( function ( res ) {
+					if ( ! res || ! res.data || typeof res.data.html !== 'string' ) { throw new Error( 'bad response' ); }
+					return res.data.html;
+				} )
+				.catch( function () {
+					ajaxBlocked = true;
+					try { window.sessionStorage.setItem( 'nkzmpAjaxBlocked', '1' ); } catch ( e ) {}
+					return viaPage();
+				} ) )
+				.then( function ( html ) {
 					var tmp = document.createElement( 'div' );
-					tmp.innerHTML = ( res && res.data && res.data.html ) || '';
+					tmp.innerHTML = html || '';
 					var ul = results.querySelector( 'ul.products' );
 					tmp.querySelectorAll( 'ul.products > li' ).forEach( function ( li ) { if ( ul ) { ul.appendChild( li ); } } );
 					currentPaged = data.paged;
@@ -332,12 +342,68 @@
 		return ajaxUrl;
 	}
 
+	/* Některé hostingy blokují admin-ajax.php (403 od firewallu). Pak
+	   výsledky i počty načteme z obyčejné stránky obchodu s filtrem v URL
+	   (GET, server ji vyfiltruje stejně) – bez reloadu, panel zůstane
+	   otevřený a „Zobrazit N produktů" se přepočítá. */
+	var ajaxBlocked = false;
+	try { ajaxBlocked = window.sessionStorage.getItem( 'nkzmpAjaxBlocked' ) === '1'; } catch ( e ) {}
+
+	function renderResult( data, html, total, facets ) {
+		results.innerHTML = html;
+		currentPaged = data.paged || 1;
+		updateDone( total );
+		updateFacets( facets );
+		renderChips();
+		afterRender( total );
+		track( 'filter_apply', {
+			categories: data.cat.join( ',' ),
+			brands: data.vendor.join( ',' ),
+			min_price: data.min_price,
+			max_price: data.max_price,
+			search_term: data.q,
+			in_stock: data.instock ? 1 : 0,
+			results: total
+		} );
+		if ( total === 0 ) { track( 'empty_results', { search_term: data.q, categories: data.cat.join( ',' ) } ); }
+	}
+
+	function fetchPage( data, signal ) {
+		var qs   = toQuery( data );
+		var path = window.location.pathname.replace( /\/page\/\d+\/?$/, '/' ).replace( /\/?$/, '/' );
+		if ( data.paged > 1 ) { path += 'page/' + data.paged + '/'; }
+		return fetch( path + ( qs ? '?' + qs : '' ), { credentials: 'same-origin', signal: signal } )
+			.then( function ( r ) {
+				if ( ! r.ok ) { throw new Error( 'HTTP ' + r.status ); }
+				return r.text();
+			} )
+			.then( function ( text ) {
+				var doc  = new DOMParser().parseFromString( text, 'text/html' );
+				var res  = doc.getElementById( 'nkzmp-shop-results' );
+				var done = doc.querySelector( '[data-nkzmp-done]' );
+				if ( ! res ) { throw new Error( 'no results in page' ); }
+				var facets = { brands: {}, hist: [] };
+				doc.querySelectorAll( '[data-nkzmp-vendorwrap] li[data-nkzmp-vendor-name]' ).forEach( function ( li ) {
+					var inp = li.querySelector( 'input' );
+					var em  = li.querySelector( 'em' );
+					if ( inp ) { facets.brands[ inp.value ] = em ? parseInt( em.textContent, 10 ) || 0 : 0; }
+				} );
+				doc.querySelectorAll( '.nkzmp-filters__hist span' ).forEach( function ( b ) {
+					facets.hist.push( parseFloat( b.style.height ) || 0 );
+				} );
+				return { html: res.innerHTML, total: done ? parseInt( done.getAttribute( 'data-total' ), 10 ) : NaN, facets: facets };
+			} );
+	}
+
 	function apply( data ) {
 		syncUrl( data );
 
 		var body = buildBody( data );
 
 		layout.classList.add( 'is-loading' );
+		// Starý počet by mátl – během načítání „Počítám…".
+		var doneEl = form.querySelector( '[data-nkzmp-done]' );
+		if ( doneEl ) { doneEl.textContent = 'Počítám…'; }
 
 		// fetch / AbortController nemusi byt ve starsim Safari → fallback na
 		// nativni odeslani formulare (GET reload, server-side filtr).
@@ -373,12 +439,18 @@
 			window.location.href = window.location.pathname + ( qs ? '?' + qs : '' );
 		}
 
-		fetch( ajaxUrl, {
+		var signal = controller ? controller.signal : undefined;
+		function viaPage() {
+			return fetchPage( data, signal ).then( function ( r ) {
+				renderResult( data, r.html, r.total, r.facets );
+			} );
+		}
+		( ajaxBlocked ? viaPage() : fetch( ajaxUrl, {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
 			body: body.toString(),
 			credentials: 'same-origin',
-			signal: controller ? controller.signal : undefined
+			signal: signal
 		} )
 			.then( function ( r ) {
 				if ( ! r.ok ) { throw new Error( 'HTTP ' + r.status ); }
@@ -386,29 +458,22 @@
 			} )
 			.then( function ( res ) {
 				if ( res && res.success && res.data && typeof res.data.html === 'string' ) {
-					results.innerHTML = res.data.html;
-					var total = parseInt( res.data.total, 10 );
-					currentPaged = data.paged || 1;
-					updateDone( total );
-					updateFacets( res.data.facets );
-					renderChips();
-					afterRender( total );
-					track( 'filter_apply', {
-						categories: data.cat.join( ',' ),
-						brands: data.vendor.join( ',' ),
-						min_price: data.min_price,
-						max_price: data.max_price,
-						search_term: data.q,
-						in_stock: data.instock ? 1 : 0,
-						results: total
-					} );
-					if ( total === 0 ) { track( 'empty_results', { search_term: data.q, categories: data.cat.join( ',' ) } ); }
+					renderResult( data, res.data.html, parseInt( res.data.total, 10 ), res.data.facets );
+					return;
 				}
+				throw new Error( 'bad response' );
 			} )
+			.catch( function ( err ) {
+				if ( err && err.name === 'AbortError' ) { throw err; }
+				// admin-ajax nejde → příště rovnou přes stránku.
+				ajaxBlocked = true;
+				try { window.sessionStorage.setItem( 'nkzmpAjaxBlocked', '1' ); } catch ( e ) {}
+				return viaPage();
+			} ) )
 			.catch( function ( err ) {
 				if ( err && err.name === 'AbortError' ) { return; }
 				if ( window.console && console.warn ) {
-					console.warn( '[nkzmp filters] AJAX selhal, fallback na reload:', err );
+					console.warn( '[nkzmp filters] načtení selhalo, fallback na reload:', err );
 				}
 				fallbackReload();
 			} )
