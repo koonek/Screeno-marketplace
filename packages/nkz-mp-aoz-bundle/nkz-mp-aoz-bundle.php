@@ -155,6 +155,9 @@ register_deactivation_hook(
 		if ( class_exists( \NKZMP\Storefront\AbandonedCart::class ) ) {
 			\NKZMP\Storefront\AbandonedCart::unschedule();
 		}
+		if ( class_exists( \NKZMP\Invoices\CommissionInvoices::class ) ) {
+			\NKZMP\Invoices\CommissionInvoices::unschedule();
+		}
 		flush_rewrite_rules();
 	}
 );
