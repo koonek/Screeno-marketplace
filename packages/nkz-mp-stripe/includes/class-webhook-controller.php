@@ -2,8 +2,10 @@
 /**
  * Stripe webhook receiver.
  *
- * Currently handles only `account.updated` — keeps connected-account status in sync
- * without forcing the admin to click "Obnovit stav".
+ * Handles `account.updated` — keeps connected-account status in sync without forcing
+ * the admin to click "Obnovit stav" — and the Screenuj billing events (see Billing).
+ * In Stripe Dashboard subscribe the endpoint to: account.updated, checkout.session.completed,
+ * customer.subscription.updated, customer.subscription.deleted, invoice.payment_failed.
  *
  * @package NKVSVS
  */
@@ -64,6 +66,16 @@ final class Webhook_Controller {
 			switch ( $event['type'] ) {
 				case 'account.updated':
 					$this->on_account_updated( $event );
+					break;
+				case 'checkout.session.completed':
+					Billing::instance()->apply_session( (array) ( $event['data']['object'] ?? [] ) );
+					break;
+				case 'customer.subscription.updated':
+				case 'customer.subscription.deleted':
+					Billing::instance()->apply_subscription( (array) ( $event['data']['object'] ?? [] ) );
+					break;
+				case 'invoice.payment_failed':
+					Billing::instance()->apply_failed_invoice( (array) ( $event['data']['object'] ?? [] ) );
 					break;
 				default:
 					// Ignore unknown events — Stripe will not retry on 200.

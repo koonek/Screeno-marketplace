@@ -48,6 +48,13 @@ final class Admin_Settings {
 			[ 'type' => 'checkbox', 'id' => 'nkv_svs__auto_reversal_on_full_refund', 'title' => __( 'Automatický reversal při plném refundu', 'nkz-woo-stripe-vendor-split' ) ],
 			[ 'type' => 'checkbox', 'id' => 'nkv_svs__debug_logging', 'title' => __( 'Debug logování', 'nkz-woo-stripe-vendor-split' ) ],
 			[ 'type' => 'sectionend', 'id' => 'nkv_svs_section' ],
+			[ 'type' => 'title', 'title' => __( 'Platby prodejců (Screenuj)', 'nkz-woo-stripe-vendor-split' ), 'desc' => __( 'Konečné částky v Kč. Prodejce je zaplatí kartou přes Stripe po dokončení onboardingu; měsíční fee se pak strhává automaticky. 0 = bez měsíčního fee.', 'nkz-woo-stripe-vendor-split' ), 'id' => 'nkv_svs_billing' ],
+			[ 'type' => 'number', 'id' => 'nkv_svs__billing_onboarding_fee', 'title' => __( 'Onboarding (jednorázově, Kč)', 'nkz-woo-stripe-vendor-split' ), 'custom_attributes' => [ 'step' => '1', 'min' => '0' ] ],
+			[ 'type' => 'number', 'id' => 'nkv_svs__billing_monthly_rozjezd', 'title' => __( 'Měsíční fee – Rozjezd (Kč)', 'nkz-woo-stripe-vendor-split' ), 'custom_attributes' => [ 'step' => '1', 'min' => '0' ] ],
+			[ 'type' => 'number', 'id' => 'nkv_svs__billing_monthly_rust', 'title' => __( 'Měsíční fee – Růst (Kč)', 'nkz-woo-stripe-vendor-split' ), 'custom_attributes' => [ 'step' => '1', 'min' => '0' ] ],
+			[ 'type' => 'number', 'id' => 'nkv_svs__billing_monthly_naplno', 'title' => __( 'Měsíční fee – Naplno (Kč)', 'nkz-woo-stripe-vendor-split' ), 'custom_attributes' => [ 'step' => '1', 'min' => '0' ] ],
+			[ 'type' => 'text', 'id' => 'nkv_svs__billing_notify_email', 'title' => __( 'E-mail pro upozornění na neplacení', 'nkz-woo-stripe-vendor-split' ), 'desc' => __( 'Prázdné = e-mail administrátora webu.', 'nkz-woo-stripe-vendor-split' ) ],
+			[ 'type' => 'sectionend', 'id' => 'nkv_svs_billing' ],
 		];
 	}
 

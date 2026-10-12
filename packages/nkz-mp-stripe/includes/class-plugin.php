@@ -27,6 +27,7 @@ final class Plugin {
 		Order_Meta_Box::instance()->init();
 		Onboarding_Controller::instance()->init();
 		Webhook_Controller::instance()->init();
+		Billing::instance()->init();
 		Checkout_Guard::instance()->init();
 		Cron_Sync::instance()->init();
 		Elementor_Integration::instance()->init();
@@ -88,6 +89,12 @@ final class Plugin {
 			'transfer_hook'                    => 'payment_complete',
 			'require_currency_match'           => 'yes',
 			'auto_reversal_on_full_refund'     => 'no',
+			// Platby Screenuj – konečné částky v Kč (platforma není plátce DPH).
+			'billing_onboarding_fee'           => 2400.0,
+			'billing_monthly_rozjezd'          => 0.0,
+			'billing_monthly_rust'             => 490.0,
+			'billing_monthly_naplno'           => 790.0,
+			'billing_notify_email'             => '',
 		];
 		$saved = get_option( 'nkv_svs_settings', [] );
 		return array_merge( $defaults, is_array( $saved ) ? $saved : [] );

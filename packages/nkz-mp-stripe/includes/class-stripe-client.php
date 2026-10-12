@@ -153,6 +153,26 @@ final class Stripe_Client {
 	}
 
 	/**
+	 * Stripe Checkout (platform account) — onboarding fee + monthly subscription.
+	 *
+	 * @return array Decoded session, or ['error' => …] on failure.
+	 */
+	public function create_checkout_session( array $params ): array {
+		return $this->request( 'POST', 'checkout/sessions', $params ) ?? [ 'error' => [ 'message' => 'transport' ] ];
+	}
+
+	public function retrieve_checkout_session( string $session_id ): ?array {
+		return $this->request( 'GET', "checkout/sessions/{$session_id}", [] );
+	}
+
+	/**
+	 * Stripe customer portal (card change, invoices, cancel) — must be enabled in Stripe Dashboard.
+	 */
+	public function create_portal_session( array $params ): array {
+		return $this->request( 'POST', 'billing_portal/sessions', $params ) ?? [ 'error' => [ 'message' => 'transport' ] ];
+	}
+
+	/**
 	 * Low-level request via wp_remote_*. Keeps zero dependency footprint by default.
 	 * If stripe-php is loaded by another plugin, we still use HTTP — to avoid coupling to its version.
 	 *
