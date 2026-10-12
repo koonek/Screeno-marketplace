@@ -26,7 +26,10 @@ final class Shipping_Estimate {
 	public static function instance(): Shipping_Estimate { return self::$instance ??= new self(); }
 
 	public function init(): void {
+		// Klasická šablona (pod cenou) i formulář košíku – ten vykresluje i blokový motiv a
+		// Elementor widget „Add to Cart", kde se summary háček nevolá. Zobrazí se jen jednou.
 		add_action( 'woocommerce_single_product_summary', [ $this, 'render_product_notice' ], 25 );
+		add_action( 'woocommerce_before_add_to_cart_form', [ $this, 'render_product_notice' ] );
 		add_shortcode( 'screeno_odeslani', [ $this, 'shortcode' ] );
 		add_filter( 'woocommerce_is_purchasable', [ $this, 'filter_purchasable' ], 10, 2 );
 		add_filter( 'woocommerce_get_item_data', [ $this, 'cart_item_data' ], 10, 2 );
@@ -193,14 +196,33 @@ final class Shipping_Estimate {
 		return '<p class="nkv-ship-estimate">' . $text . '</p>';
 	}
 
+	/** @var array<int,true> Produkty, u kterých už termín na stránce je. */
+	private array $rendered = [];
+
 	public function render_product_notice(): void {
-		echo $this->notice_html( (int) get_the_ID() ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in notice_html
+		$product_id = (int) get_the_ID();
+		if ( isset( $this->rendered[ $product_id ] ) ) {
+			return;
+		}
+		$html = $this->notice_html( $product_id );
+		if ( '' !== $html ) {
+			$this->rendered[ $product_id ] = true;
+			echo $html; // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in notice_html
+		}
 	}
 
 	/** [screeno_odeslani] – pro Elementor šablony produktu, kde se standardní hook nevolá. */
 	public function shortcode( $atts = [] ): string {
-		$atts = shortcode_atts( [ 'id' => 0 ], (array) $atts );
-		return $this->notice_html( (int) $atts['id'] ?: (int) get_the_ID() );
+		$atts       = shortcode_atts( [ 'id' => 0 ], (array) $atts );
+		$product_id = (int) $atts['id'] ?: (int) get_the_ID();
+		if ( isset( $this->rendered[ $product_id ] ) ) {
+			return '';
+		}
+		$html = $this->notice_html( $product_id );
+		if ( '' !== $html ) {
+			$this->rendered[ $product_id ] = true;
+		}
+		return $html;
 	}
 
 	public function cart_item_data( array $data, array $cart_item ): array {
