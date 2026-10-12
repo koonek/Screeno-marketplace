@@ -110,6 +110,10 @@ final class FormHandler {
 				$this->redirect_error( __( 'Vyplň prosím IČO (8 číslic), nebo zvol „Nemám IČO“.', 'nkz-mp-vendor-registration' ) );
 			}
 			$ico = str_pad( $ico_digits, 8, '0', STR_PAD_LEFT );
+			if ( ! IcoCheck::valid( $ico ) ) {
+				/* translators: %s: IČO */
+				$this->redirect_error( sprintf( __( 'IČO %s není platné (nesedí kontrolní číslice) – zkontroluj prosím překlep, nebo zvol „Nemám IČO“.', 'nkz-mp-vendor-registration' ), $ico ) );
+			}
 		} else {
 			$ico          = '';
 			$birth_number = (string) self::normalize_birth_number( (string) wp_unslash( $_POST['birth_number'] ?? '' ) );

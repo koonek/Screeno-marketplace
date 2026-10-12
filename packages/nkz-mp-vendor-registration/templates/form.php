@@ -259,6 +259,17 @@ defined( 'ABSPATH' ) || exit;
 		updateCount();
 	}
 
+	// IČO: poslední číslice je kontrolní (vážený součet mod 11), překlep
+	// nebo vymyšlené číslo se pozná bez ARES. Stejně jako na serveru.
+	var icoOk = function (v) {
+		var d = String(v).replace(/\D/g, '');
+		if (d.length < 6 || d.length > 8) { return false; }
+		while (d.length < 8) { d = '0' + d; }
+		var sum = 0;
+		for (var i = 0; i < 7; i++) { sum += (+d[i]) * (8 - i); }
+		return (11 - sum % 11) % 10 === +d[7];
+	};
+
 	// Kontrola před odesláním (formulář má novalidate kvůli vlastnímu
 	// vzhledu) – zvýraznit, co chybí, a vypsat to, ne obecnou hlášku.
 	form.addEventListener('submit', function (e) {
@@ -281,8 +292,10 @@ defined( 'ABSPATH' ) || exit;
 			if (!el || el.disabled || !el.required) { return; }
 			var bad = el.type === 'checkbox' ? !el.checked
 				: (el.type === 'email' ? !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(el.value.trim()) : el.value.trim() === '');
+			var label = c[1];
+			if (!bad && c[0] === 'ico' && !icoOk(el.value)) { bad = true; label = 'platné IČO (to zadané nesedí – zkontroluj překlep)'; }
 			if (bad) {
-				miss.push(c[1]);
+				miss.push(label);
 				var box = el.closest('.nkzmp-reg-check, .nkzmp-reg-field, .nkzmp-reg-idpane') || el;
 				box.classList.add('nkzmp-reg-invalid');
 				first = first || box;
@@ -332,6 +345,10 @@ defined( 'ABSPATH' ) || exit;
 			var val = ico.value.replace(/[^0-9]/g, '');
 			if (val.length !== 8) {
 				if (icoStatus) icoStatus.textContent = '';
+				return;
+			}
+			if (!icoOk(val)) {
+				if (icoStatus) icoStatus.textContent = 'Tohle IČO není platné – zkontroluj překlep.';
 				return;
 			}
 			if (icoStatus) icoStatus.textContent = 'Hledám v ARES…';

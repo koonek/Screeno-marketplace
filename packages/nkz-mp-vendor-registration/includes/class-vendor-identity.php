@@ -99,6 +99,9 @@ final class VendorIdentity {
 			<label><input type="radio" name="nkzmp_id_mode" value="ico" <?php checked( $mode, 'ico' ); ?>> <?php esc_html_e( 'Má IČO', 'nkz-mp-vendor-registration' ); ?></label>
 			<label><input type="radio" name="nkzmp_id_mode" value="none" <?php checked( $mode, 'none' ); ?>> <?php esc_html_e( 'Nemá IČO', 'nkz-mp-vendor-registration' ); ?></label>
 		</p>
+		<?php if ( $mode === 'ico' ) : ?>
+			<p style="margin-top:0;"><strong><?php esc_html_e( 'IČO', 'nkz-mp-vendor-registration' ); ?>:</strong> <?php echo esc_html( self::ico( $vid ) ); ?><br><?php echo IcoCheck::label( $vid ); // phpcs:ignore WordPress.Security.EscapeOutput -- escapováno v label() ?></p>
+		<?php endif; ?>
 		<p class="description" style="margin-top:0;"><?php esc_html_e( 'IČO se vyplňuje ve Fakturačních údajích. „Nemá IČO" uložené IČO smaže, „Má IČO" smaže rodné číslo.', 'nkz-mp-vendor-registration' ); ?></p>
 		<p>
 			<label for="nkzmp_birth_number"><strong><?php esc_html_e( 'Rodné číslo', 'nkz-mp-vendor-registration' ); ?></strong></label><br>
@@ -144,8 +147,12 @@ final class VendorIdentity {
 
 		if ( $mode === 'ico' ) {
 			delete_post_meta( $vid, '_nkzmp_birth_number' );
-			if ( self::ico( $vid ) === '' ) {
+			$ico = self::ico( $vid );
+			if ( $ico === '' ) {
 				$this->flash( __( 'Prodejce je nastaven jako „Má IČO", ale IČO není vyplněné – doplň ho ve Fakturačních údajích.', 'nkz-mp-vendor-registration' ), 'warning' );
+			} elseif ( ! IcoCheck::valid( $ico ) ) {
+				/* translators: %s: IČO */
+				$this->flash( sprintf( __( 'IČO %s není platné (nesedí kontrolní číslice) – zkontroluj překlep.', 'nkz-mp-vendor-registration' ), $ico ), 'warning' );
 			}
 			return;
 		}
