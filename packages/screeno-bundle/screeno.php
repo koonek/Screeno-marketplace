@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Screeno
  * Description: Balík pluginů pro Screeno v jednom souboru – rozdělení plateb prodejcům přes Stripe (Screenuj) a rezervace studia, workshopy a poukazy.
- * Version: 1.0.3
+ * Version: 1.0.4
  * Author: NKZ
  * Requires at least: 6.8
  * Requires PHP: 8.1
@@ -26,7 +26,7 @@ if ( defined( 'SCREENO_BUNDLE_VERSION' ) ) {
 	return;
 }
 
-define( 'SCREENO_BUNDLE_VERSION', '1.0.3' );
+define( 'SCREENO_BUNDLE_VERSION', '1.0.4' );
 define( 'SCREENO_BUNDLE_DIR', plugin_dir_path( __FILE__ ) );
 
 foreach (
