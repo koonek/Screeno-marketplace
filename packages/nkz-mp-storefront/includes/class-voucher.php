@@ -798,18 +798,7 @@ final class Voucher {
 		// E-mail dostává instanci objednávky, která si položky načetla dřív,
 		// než jsme kódy vygenerovali (on_paid běží těsně před e-mailem) –
 		// z položek by kódy v prvním e-mailu chyběly.
-		$rows = [];
-		foreach ( get_posts( [
-			'post_type'      => self::CPT,
-			'post_status'    => 'any',
-			'posts_per_page' => 50,
-			'meta_key'       => '_purchase_order',
-			'meta_value'     => $order->get_id(),
-			'orderby'        => 'ID',
-			'order'          => 'ASC',
-		] ) as $v ) {
-			$rows[] = self::data( $v );
-		}
+		$rows = self::for_order( (int) $order->get_id() );
 		if ( ! $rows ) {
 			return;
 		}
@@ -831,6 +820,37 @@ final class Voucher {
 			);
 		}
 		echo '<p style="font-size:13px;color:#555;">' . esc_html__( 'Kód zadejte v košíku do pole „Máte dárkový poukaz?". Odečte se z celé částky včetně poštovného.', 'nkz-mp-storefront' ) . ' <strong style="color:#111;">' . esc_html__( 'Poukaz je jednorázový – nevyčerpaný zůstatek propadá a nevrací se.', 'nkz-mp-storefront' ) . '</strong></p>';
+		if ( VoucherPrint::available() ) {
+			echo '<p style="font-size:14px;margin:12px 0 0;">' . esc_html__( 'Poukaz jako dárek k vytištění (A4, přeložíte do obálky) je v příloze e-mailu.', 'nkz-mp-storefront' )
+				. ' <a href="' . esc_url( VoucherPrint::url( $order ) ) . '" style="color:#0060FF;font-weight:600;">' . esc_html__( 'Stáhnout poukaz k tisku', 'nkz-mp-storefront' ) . '</a></p>';
+		}
+	}
+
+	/**
+	 * Poukazy koupené v objednávce (bez zneplatněných).
+	 *
+	 * Bereme je z poukazů podle objednávky, ne z položek – e-mail dostává
+	 * instanci objednávky načtenou dřív, než se kódy vygenerovaly.
+	 *
+	 * @return array<int,array>
+	 */
+	public static function for_order( int $order_id ): array {
+		$rows = [];
+		foreach ( get_posts( [
+			'post_type'      => self::CPT,
+			'post_status'    => 'any',
+			'posts_per_page' => 50,
+			'meta_key'       => '_purchase_order',
+			'meta_value'     => $order_id,
+			'orderby'        => 'ID',
+			'order'          => 'ASC',
+		] ) as $v ) {
+			$d = self::data( $v );
+			if ( $d['status'] !== self::STATUS_VOID ) {
+				$rows[] = $d;
+			}
+		}
+		return $rows;
 	}
 
 	/* ===================================================== výplaty */

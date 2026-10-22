@@ -35,6 +35,7 @@ final class Plugin {
 		Withdrawal::instance()->init();
 		WithdrawalRefund::instance()->init();
 		Voucher::instance()->init();
+		VoucherPrint::instance()->init();
 		ShopFilters::instance()->init();
 		CategorySeed::instance()->init();
 		ShopEnhance::instance()->init();

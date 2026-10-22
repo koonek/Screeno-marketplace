@@ -35,6 +35,14 @@ final class Pdf {
 		if ( ! $docs ) {
 			return '';
 		}
+		return self::render_html( self::html( $docs ) );
+	}
+
+	/**
+	 * Libovolné HTML → PDF A4 (stejné písmo a nastavení jako doklady;
+	 * používá i tisk dárkového poukazu).
+	 */
+	public static function render_html( string $html ): string {
 		require_once NKZMP_INVOICES_DIR . 'lib/autoload.php';
 
 		$work = self::work_dir();
@@ -52,19 +60,23 @@ final class Pdf {
 
 		try {
 			$pdf = new \Dompdf\Dompdf( $opts );
-			$pdf->loadHtml( self::html( $docs ), 'UTF-8' );
+			$pdf->loadHtml( $html, 'UTF-8' );
 			$pdf->setPaper( 'A4', 'portrait' );
 			$pdf->render();
 			return (string) $pdf->output();
 		} catch ( \Throwable $e ) {
-			error_log( '[NKZMP] invoice PDF failed: ' . $e->getMessage() );
+			error_log( '[NKZMP] PDF failed: ' . $e->getMessage() );
 			return '';
 		}
 	}
 
 	/** Zapíše PDF do dočasného souboru (pro přílohu e-mailu). */
 	public static function to_file( array $docs, string $name ): string {
-		$bin = self::render( $docs );
+		return self::save( self::render( $docs ), $name );
+	}
+
+	/** Uloží hotové PDF do dočasného souboru, vrátí cestu ('' při chybě). */
+	public static function save( string $bin, string $name ): string {
 		if ( $bin === '' ) {
 			return '';
 		}
@@ -124,7 +136,7 @@ final class Pdf {
 	}
 
 	/** Písmo Inter (OFL, přibalené) – čistý grotesk ve stylu art of život. */
-	private static function fonts_css(): string {
+	public static function fonts_css(): string {
 		$dir = 'file://' . NKZMP_INVOICES_DIR . 'assets/fonts/';
 		if ( ! is_readable( NKZMP_INVOICES_DIR . 'assets/fonts/Inter-Regular.ttf' ) ) {
 			return '';
