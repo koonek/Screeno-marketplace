@@ -94,7 +94,8 @@ final class VoucherPrint {
 		$host  = preg_replace( '/^www\./', '', $host );
 		$shop  = function_exists( 'wc_get_page_permalink' ) ? (string) wp_parse_url( wc_get_page_permalink( 'shop' ), PHP_URL_PATH ) : '/obchod/';
 		$fonts = \NKZMP\Invoices\Pdf::fonts_css();
-		$terms = Voucher::terms_text();
+		// Věta o propadnutí zůstatku je níže tučně – v běžném textu ji vynecháme.
+		$terms = trim( str_replace( 'Nevyčerpaný zůstatek propadá a nevrací se.', '', Voucher::terms_text() ) );
 
 		$css = $fonts . '
 			@page { margin: 0; }
@@ -113,9 +114,10 @@ final class VoucherPrint {
 			.brand .r { text-align: right; }
 			.p1 { background: #0060FF; color: #fff; }
 			.p1 .brand td { color: #fff; }
-			.title { font-family: "Inter Light", "DejaVu Sans", sans-serif; font-size: 44pt; line-height: 0.95; letter-spacing: -1pt; margin: 9mm 0 0; color: #fff; }
+			.title { font-family: "Inter Light", "DejaVu Sans", sans-serif; font-size: 44pt; line-height: 1; letter-spacing: -1pt; margin: 10mm 0 0; color: #fff; }
+			.sub { font-size: 13pt; line-height: 1.3; margin: 3.5mm 0 0; color: #fff; }
 			.value { position: absolute; left: 0; top: 52mm; font-family: "Inter Light", "DejaVu Sans", sans-serif; font-size: 40pt; letter-spacing: -0.8pt; color: #fff; }
-			.valuelbl { position: absolute; right: 0; top: 58mm; font-size: 8.5pt; color: #CFE0FF; text-align: right; }
+			.valuelbl { position: absolute; right: 0; top: 61mm; font-size: 8.5pt; color: #CFE0FF; text-align: right; }
 			.lbl { font-size: 7.5pt; color: #4F86F7; margin: 0 0 1.5mm; }
 			.line { border-bottom: 0.6pt solid #0060FF; height: 9mm; margin: 0 0 5mm; }
 			.who { width: 100%; border-collapse: collapse; }
@@ -142,9 +144,10 @@ final class VoucherPrint {
 			// 1) Přední strana.
 			$h .= '<div class="panel p1"><div class="in">';
 			$h .= '<table class="brand"><tr><td>art of život</td><td class="r">online market</td></tr></table>';
-			$h .= '<div class="title">Dárkový<br>poukaz</div>';
+			$h .= '<div class="title">Dárkový poukaz</div>';
+			$h .= '<div class="sub">Platí na nákup u všech tvůrců na našem online marketu.</div>';
 			$h .= '<div class="value">' . self::e( self::money( (float) $r['value'], $currency ) ) . '</div>';
-			$h .= '<div class="valuelbl">na ručně dělané věci<br>od tvůrců na ' . self::e( $host ) . '</div>';
+			$h .= '<div class="valuelbl">' . self::e( $host ) . '</div>';
 			$h .= '</div></div>';
 
 			// 2) Pro / Od, kód, platnost.
