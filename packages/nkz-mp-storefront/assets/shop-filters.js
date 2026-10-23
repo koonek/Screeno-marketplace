@@ -350,7 +350,14 @@
 	try { ajaxBlocked = window.sessionStorage.getItem( 'nkzmpAjaxBlocked' ) === '1'; } catch ( e ) {}
 
 	function renderResult( data, html, total, facets ) {
+		// Vyhledávání + pás značek nahoře výsledků vykresluje jen stránka
+		// (ne AJAX) – při výměně obsahu ho přeneseme, ať nezmizí.
+		var discover = results.querySelector( '.nkzmp-discover' );
 		results.innerHTML = html;
+		if ( discover ) {
+			results.querySelectorAll( '.nkzmp-discover' ).forEach( function ( el ) { el.remove(); } );
+			results.insertBefore( discover, results.firstChild );
+		}
 		currentPaged = data.paged || 1;
 		updateDone( total );
 		updateFacets( facets );
