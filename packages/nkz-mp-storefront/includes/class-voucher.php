@@ -85,6 +85,11 @@ final class Voucher {
 		add_action( 'woocommerce_checkout_create_order', [ $this, 'attach_to_order' ], 20, 2 );
 		add_action( 'woocommerce_checkout_order_created', [ $this, 'reserve' ] );
 		// Priorita 1 = dřív než e-maily WooCommerce (10), ať jsou kódy v e-mailu.
+		// Objednávka jen s poukazy nemá co odesílat → po zaplacení rovnou
+		// „Dokončeno" a e-mail mluví o poukazu, ne o zásilce.
+		add_filter( 'woocommerce_payment_complete_order_status', [ $this, 'autocomplete' ], 20, 3 );
+		add_filter( 'woocommerce_email_heading_customer_completed_order', [ $this, 'email_heading' ], 20, 2 );
+		add_filter( 'woocommerce_email_subject_customer_completed_order', [ $this, 'email_subject' ], 20, 2 );
 		add_action( 'woocommerce_order_status_processing', [ $this, 'on_paid' ], 1 );
 		add_action( 'woocommerce_order_status_completed', [ $this, 'on_paid' ], 1 );
 		add_action( 'woocommerce_order_status_cancelled', [ $this, 'on_failed' ] );
@@ -824,6 +829,43 @@ final class Voucher {
 			echo '<p style="font-size:14px;margin:12px 0 0;">' . esc_html__( 'Poukaz jako dárek k vytištění (A4, přeložíte do obálky) je v příloze e-mailu.', 'nkz-mp-storefront' )
 				. ' <a href="' . esc_url( VoucherPrint::url( $order ) ) . '" style="color:#0060FF;font-weight:600;">' . esc_html__( 'Stáhnout poukaz k tisku', 'nkz-mp-storefront' ) . '</a></p>';
 		}
+	}
+
+	/** Obsahuje objednávka jen dárkové poukazy (nic k odeslání)? */
+	public static function voucher_only( $order ): bool {
+		if ( ! $order instanceof \WC_Order ) {
+			return false;
+		}
+		$items = $order->get_items( 'line_item' );
+		if ( ! $items ) {
+			return false;
+		}
+		foreach ( $items as $item ) {
+			$product = $item instanceof \WC_Order_Item_Product ? $item->get_product() : null;
+			if ( ! $product || ! self::is_voucher_product( $product ) ) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	/** @param string $status */
+	public function autocomplete( $status, $order_id = 0, $order = null ) {
+		$order = $order instanceof \WC_Order ? $order : wc_get_order( $order_id );
+		return self::voucher_only( $order ) ? 'completed' : $status;
+	}
+
+	/** @param string $heading */
+	public function email_heading( $heading, $order = null ) {
+		return self::voucher_only( $order ) ? __( 'Váš dárkový poukaz je připravený', 'nkz-mp-storefront' ) : $heading;
+	}
+
+	/** @param string $subject */
+	public function email_subject( $subject, $order = null ) {
+		return self::voucher_only( $order )
+			/* translators: %s: název webu */
+			? sprintf( __( 'Dárkový poukaz z %s', 'nkz-mp-storefront' ), wp_specialchars_decode( (string) get_bloginfo( 'name' ), ENT_QUOTES ) )
+			: $subject;
 	}
 
 	/**
