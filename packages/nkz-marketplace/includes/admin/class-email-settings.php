@@ -34,18 +34,29 @@ final class EmailSettings {
 	public function init(): void {
 		add_action( 'admin_init', [ $this, 'register' ] );
 
-		// Odesílací adresa. Většina SMTP serverů (vč. českých hostingů) odmítne
-		// odeslat pod jinou adresou, než pod kterou je klient přihlášený –
-		// „use your login email address as mail from". Držíme ji proto na
-		// jednom místě a vnucujeme ji všem e-mailům (naše, WooCommerce, WP).
+		add_action( 'admin_init', [ $this, 'maybe_migrate_legacy' ], 11 );
+		add_action( 'admin_init', [ $this, 'maybe_send_test' ], 12 );
+		add_filter( 'nkzmp/v1/admin/settings/tabs', [ $this, 'register_tab' ] );
+	}
+
+	/**
+	 * Odesílací adresa pro VŠECHNY e-maily. Většina SMTP serverů (vč. českých
+	 * hostingů) odmítne odeslat pod jinou adresou, než pod kterou je klient
+	 * přihlášený – „use your login email address as mail from". Volá se
+	 * vždy (web, cron, admin), ne jen v administraci – jinak e-maily
+	 * z objednávek a připomínky košíku odcházely z adresy WooCommerce.
+	 */
+	public static function sender_filters(): void {
+		static $done = false;
+		if ( $done ) {
+			return;
+		}
+		$done = true;
 		add_filter( 'wp_mail_from', [ self::class, 'filter_from_email' ], 99 );
 		add_filter( 'wp_mail_from_name', [ self::class, 'filter_from_name' ], 99 );
 		add_filter( 'woocommerce_email_from_address', [ self::class, 'filter_from_email' ], 99 );
 		add_filter( 'woocommerce_email_from_name', [ self::class, 'filter_from_name' ], 99 );
 		add_filter( 'wp_mail', [ self::class, 'add_reply_to' ], 99 );
-		add_action( 'admin_init', [ $this, 'maybe_migrate_legacy' ], 11 );
-		add_action( 'admin_init', [ $this, 'maybe_send_test' ], 12 );
-		add_filter( 'nkzmp/v1/admin/settings/tabs', [ $this, 'register_tab' ] );
 	}
 
 	/** Adresa, ze které se reálně odesílá (musí sedět s přihlášením do SMTP). */
