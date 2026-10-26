@@ -260,6 +260,7 @@
 			min_price: '',
 			max_price: '',
 			instock: '',
+			gift: '',
 			q: '',
 			orderby: '',
 			paged: 1
@@ -285,6 +286,8 @@
 
 		var stockEl = form.querySelector( 'input[name="instock"]' );
 		if ( stockEl && stockEl.checked ) { data.instock = '1'; }
+		var giftEl = form.querySelector( 'input[name="gift"]' );
+		if ( giftEl && giftEl.checked ) { data.gift = '1'; }
 
 		var orderEl = results.querySelector( 'select.orderby' );
 		if ( orderEl ) { data.orderby = orderEl.value; }
@@ -301,6 +304,7 @@
 		if ( data.min_price !== '' ) { p.set( 'min_price', data.min_price ); }
 		if ( data.max_price !== '' ) { p.set( 'max_price', data.max_price ); }
 		if ( data.instock ) { p.set( 'instock', '1' ); }
+		if ( data.gift ) { p.set( 'gift', '1' ); }
 		if ( data.q ) { p.set( 'q', data.q ); }
 		if ( data.orderby ) { p.set( 'orderby', data.orderby ); }
 		if ( data.paged > 1 ) { p.set( 'paged', data.paged ); }
@@ -324,6 +328,7 @@
 		if ( data.min_price !== '' ) { body.set( 'min_price', data.min_price ); }
 		if ( data.max_price !== '' ) { body.set( 'max_price', data.max_price ); }
 		if ( data.instock ) { body.set( 'instock', '1' ); }
+		if ( data.gift ) { body.set( 'gift', '1' ); }
 		if ( data.q ) { body.set( 'q', data.q ); }
 		if ( data.orderby ) { body.set( 'orderby', data.orderby ); }
 		if ( data.scope ) { body.set( 'cat_scope', data.scope ); }
@@ -551,6 +556,11 @@
 			box.appendChild( chip( txt, function () {
 				iMin.value = ''; iMax.value = ''; syncRangeFromInputs(); applyReset();
 			} ) );
+		}
+		var gf = form.querySelector( 'input[name="gift"]' );
+		if ( gf && gf.checked ) {
+			n++;
+			box.appendChild( chip( 'Tipy na dárky', function () { gf.checked = false; applyReset(); } ) );
 		}
 		var st = form.querySelector( 'input[name="instock"]' );
 		if ( st && st.checked ) {

@@ -245,7 +245,7 @@ final class ShopFilters {
 				$scope['cat'] = [ $t->slug ];
 			}
 		}
-		$any = ! empty( $scope['cat'] ) || ! empty( $scope['vendor'] ) || $scope['min_price'] !== null || $scope['max_price'] !== null || $scope['instock'] || $scope['q'] !== '';
+		$any = ! empty( $scope['cat'] ) || ! empty( $scope['vendor'] ) || $scope['min_price'] !== null || $scope['max_price'] !== null || $scope['instock'] || ! empty( $scope['gift'] ) || $scope['q'] !== '';
 		self::$facets = $any ? self::facets( $scope ) : null;
 
 		// Vzhled přímo ve stránce (šablona jinak přebíjí tlačítka růžovou).
@@ -311,6 +311,7 @@ final class ShopFilters {
 
 		$this->render_search( $active['q'] );
 		$this->render_categories( $active['cat'] );
+		$this->render_gift( $active['gift'] );
 		$this->render_price( $active['min_price'], $active['max_price'] );
 		$this->render_vendors( $active['vendor'], (array) ( $active['cat'] ?? [] ) );
 		$this->render_stock( $active['instock'] );
@@ -821,6 +822,29 @@ final class ShopFilters {
 		<?php
 	}
 
+	/**
+	 * „Tipy na dárky" – produkty se štítkem tip-na-darek (stejný výběr jako
+	 * na stránce Dárky). Klient chtěl volbu přímo ve filtru pod kategoriemi.
+	 */
+	private function render_gift( bool $on ): void {
+		if ( ! class_exists( GiftGuide::class ) || ! taxonomy_exists( 'product_tag' ) ) {
+			return;
+		}
+		$t = get_term_by( 'slug', GiftGuide::TAG, 'product_tag' );
+		if ( ! $t instanceof \WP_Term || (int) $t->count < 1 ) {
+			return;
+		}
+		echo '<fieldset class="nkzmp-filters__group nkzmp-filters__stock nkzmp-filters__gift" data-nkzmp-group="gift">';
+		echo '<legend>' . esc_html__( 'Tipy na dárky', 'nkz-mp-storefront' ) . '</legend>';
+		printf(
+			'<label class="nkzmp-filters__switch"><input type="checkbox" name="gift" value="1"%1$s> <span>%2$s</span></label>',
+			$on ? ' checked' : '',
+			esc_html__( 'Tipy na dárky', 'nkz-mp-storefront' )
+		);
+		echo '</fieldset>';
+		echo '<style>html body .nkzmp-shop-layout.is-bar .nkzmp-filters__gift legend{display:none!important}</style>';
+	}
+
 	private function render_stock( bool $on ): void {
 		echo '<fieldset class="nkzmp-filters__group nkzmp-filters__stock" data-nkzmp-group="instock">';
 		printf(
@@ -1076,6 +1100,7 @@ final class ShopFilters {
 		$max = isset( $src['max_price'] ) && $src['max_price'] !== '' ? (int) $src['max_price'] : null;
 
 		$instock = ! empty( $src['instock'] );
+		$gift    = ! empty( $src['gift'] );
 
 		$q = isset( $src['q'] ) ? sanitize_text_field( wp_unslash( (string) $src['q'] ) ) : '';
 		$q = trim( mb_substr( $q, 0, 100 ) );
@@ -1086,6 +1111,7 @@ final class ShopFilters {
 			'min_price' => $min,
 			'max_price' => $max,
 			'instock'   => $instock,
+			'gift'      => $gift,
 			'q'         => $q,
 		];
 	}
@@ -1097,6 +1123,15 @@ final class ShopFilters {
 	private static function build_clauses( array $f ): array {
 		$tax  = [];
 		$meta = [];
+
+		if ( ! empty( $f['gift'] ) && class_exists( GiftGuide::class ) ) {
+			$tax[] = [
+				'taxonomy' => 'product_tag',
+				'field'    => 'slug',
+				'terms'    => [ GiftGuide::TAG ],
+				'operator' => 'IN',
+			];
+		}
 
 		if ( ! empty( $f['cat'] ) ) {
 			$tax[] = [
