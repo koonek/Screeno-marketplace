@@ -2,7 +2,7 @@
 /**
  * Plugin Name: NKZ Marketplace – Vendor Dashboard
  * Description: Frontend vendor dashboard (rozšíření WC My Account). Vendoři vidí přehled, produkty, payouty pod /muj-ucet/. Vendor role je přesměrována z wp-admin na frontend.
- * Version: 0.26.0
+ * Version: 0.27.0
  * Author: NKZ
  * Requires at least: 6.2
  * Requires PHP: 8.1
@@ -34,7 +34,7 @@ if ( defined( 'NKZMP_DASHBOARD_VERSION' ) ) {
 	return;
 }
 
-define( 'NKZMP_DASHBOARD_VERSION', '0.26.0' );
+define( 'NKZMP_DASHBOARD_VERSION', '0.27.0' );
 define( 'NKZMP_DASHBOARD_FILE', __FILE__ );
 define( 'NKZMP_DASHBOARD_DIR', plugin_dir_path( __FILE__ ) );
 define( 'NKZMP_DASHBOARD_URL', plugin_dir_url( __FILE__ ) );

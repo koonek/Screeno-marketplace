@@ -146,6 +146,14 @@ final class ProductsView {
 										echo esc_html( $product->get_stock_status() === 'instock' ? __( 'Na skladě', 'nkz-mp-vendor-dashboard' ) : __( 'Vyprodáno', 'nkz-mp-vendor-dashboard' ) );
 									endif; ?>
 								</div>
+								<?php
+								/**
+								 * Pod skladem na kartě produktu (např. zobrazení, oblíbené, prodeje).
+								 *
+								 * @param \WC_Product $product
+								 */
+								do_action( 'nkzmp/v1/dashboard/product_card_stats', $product );
+								?>
 							</div>
 							<div class="nkzmp-vd-card-actions">
 								<a class="nkzmp-vd-card-edit" href="<?php echo esc_url( $edit_url ); ?>"><?php esc_html_e( 'Upravit', 'nkz-mp-vendor-dashboard' ); ?></a>
