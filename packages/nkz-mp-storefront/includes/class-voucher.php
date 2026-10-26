@@ -88,6 +88,12 @@ final class Voucher {
 		// Objednávka jen s poukazy nemá co odesílat → po zaplacení rovnou
 		// „Dokončeno" a e-mail mluví o poukazu, ne o zásilce.
 		add_filter( 'woocommerce_payment_complete_order_status', [ $this, 'autocomplete' ], 20, 3 );
+		// Pole WooCommerce „Máš kupón?" vedle našeho „Máte dárkový poukaz?"
+		// matlo (dvě pole na kód). Ukáže se, jen když nějaký kupón existuje.
+		add_filter( 'woocommerce_coupons_enabled', [ $this, 'coupons_enabled' ], 20 );
+		foreach ( [ 'save_post_shop_coupon', 'trashed_post', 'deleted_post', 'untrashed_post' ] as $h ) {
+			add_action( $h, static function () { delete_transient( 'nkzmp_has_coupons' ); } );
+		}
 		add_filter( 'woocommerce_email_heading_customer_completed_order', [ $this, 'email_heading' ], 20, 2 );
 		add_filter( 'woocommerce_email_subject_customer_completed_order', [ $this, 'email_subject' ], 20, 2 );
 		add_action( 'woocommerce_order_status_processing', [ $this, 'on_paid' ], 1 );
@@ -829,6 +835,22 @@ final class Voucher {
 			echo '<p style="font-size:14px;margin:12px 0 0;">' . esc_html__( 'Poukaz jako dárek k vytištění (A4, přeložíte do obálky) je v příloze e-mailu.', 'nkz-mp-storefront' )
 				. ' <a href="' . esc_url( VoucherPrint::url( $order ) ) . '" style="color:#0060FF;font-weight:600;">' . esc_html__( 'Stáhnout poukaz k tisku', 'nkz-mp-storefront' ) . '</a></p>';
 		}
+	}
+
+	/** @param bool $enabled */
+	public function coupons_enabled( $enabled ) {
+		if ( ! $enabled || is_admin() ) {
+			return $enabled;
+		}
+		static $has = null;
+		if ( $has === null ) {
+			$has = get_transient( 'nkzmp_has_coupons' );
+			if ( $has === false ) {
+				$has = get_posts( [ 'post_type' => 'shop_coupon', 'post_status' => 'publish', 'posts_per_page' => 1, 'fields' => 'ids' ] ) ? 'yes' : 'no';
+				set_transient( 'nkzmp_has_coupons', $has, 10 * MINUTE_IN_SECONDS );
+			}
+		}
+		return $has === 'yes';
 	}
 
 	/** Obsahuje objednávka jen dárkové poukazy (nic k odeslání)? */
