@@ -36,14 +36,28 @@ final class ProductStats {
 	}
 
 	public function init(): void {
+		// Hlavní cesta: obyčejný GET na adresu webu (?nkzmp_stat=…). REST
+		// i admin-ajax hosting (nginx) u části návštěvníků blokuje 403,
+		// běžné stránky ne. Vyřídí se hned na začátku, bez vykreslení.
+		add_action( 'init', [ $this, 'pixel' ], 0 );
 		add_action( 'rest_api_init', [ $this, 'route' ] );
+		add_action( 'admin_init', [ $this, 'maybe_backfill_favs' ] );
 		// Záloha, kdyby REST pro návštěvníka blokoval firewall.
 		add_action( 'wp_ajax_nkzmp_stats', [ $this, 'ajax' ] );
 		add_action( 'wp_ajax_nopriv_nkzmp_stats', [ $this, 'ajax' ] );
 		add_action( 'wp_footer', [ $this, 'script' ], 25 );
-		add_action( 'woocommerce_single_product_summary', [ $this, 'public_favs' ], 33 );
-		add_action( 'nkzmp/v1/dashboard/product_card_stats', [ $this, 'card_stats' ] );
-		add_action( 'nkzmp/v1/dashboard/overview_after_stats', [ $this, 'overview' ] );
+		// Počítá se vždy; ukazuje se až po zapnutí v nastavení Storefront
+		// (ať prodejci nevidí nuly, než se data nasbírají).
+		if ( self::shown() ) {
+			add_action( 'woocommerce_single_product_summary', [ $this, 'public_favs' ], 33 );
+			add_action( 'nkzmp/v1/dashboard/product_card_stats', [ $this, 'card_stats' ] );
+			add_action( 'nkzmp/v1/dashboard/overview_after_stats', [ $this, 'overview' ] );
+		}
+	}
+
+	/** Ukazovat čísla (prodejcům a veřejně)? Výchozí ne. */
+	public static function shown(): bool {
+		return class_exists( Settings::class ) && ( Settings::get()['product_stats'] ?? 'no' ) === 'yes';
 	}
 
 	/** Od kolika oblíbených se počet ukáže veřejně. */
@@ -74,6 +88,33 @@ final class ProductStats {
 
 	public static function sold( int $product_id ): int {
 		return max( 0, (int) get_post_meta( $product_id, 'total_sales', true ) );
+	}
+
+	/**
+	 * Jednou: započítat oblíbené, které už mají přihlášení zákazníci
+	 * uložené v účtu (z prohlížečů nepřihlášených se zjistit nedají).
+	 */
+	public function maybe_backfill_favs(): void {
+		if ( get_option( 'nkzmp_favs_backfilled' ) || ! class_exists( Favorites::class ) ) {
+			return;
+		}
+		update_option( 'nkzmp_favs_backfilled', time(), false );
+		global $wpdb;
+		$counts = [];
+		foreach ( (array) $wpdb->get_col( $wpdb->prepare( "SELECT meta_value FROM {$wpdb->usermeta} WHERE meta_key = %s", Favorites::META ) ) as $raw ) {
+			$ids = maybe_unserialize( $raw );
+			$ids = is_array( $ids ) ? $ids : ( json_decode( (string) $raw, true ) ?: [] );
+			foreach ( array_unique( array_map( 'intval', (array) $ids ) ) as $id ) {
+				if ( $id > 0 ) {
+					$counts[ $id ] = ( $counts[ $id ] ?? 0 ) + 1;
+				}
+			}
+		}
+		foreach ( $counts as $id => $n ) {
+			if ( get_post_type( $id ) === 'product' && $n > self::favs( $id ) ) {
+				update_post_meta( $id, self::FAVS_META, $n );
+			}
+		}
 	}
 
 	/* ----------------------------------------------------------- zápis */
@@ -128,6 +169,22 @@ final class ProductStats {
 		wp_send_json( [ 'ok' => $ok ], $ok ? 200 : 404 );
 	}
 
+	public function pixel(): void {
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- veřejné počítadlo s pojistkou.
+		if ( empty( $_GET['nkzmp_stat'] ) ) {
+			return;
+		}
+		$ev = sanitize_key( wp_unslash( (string) $_GET['nkzmp_stat'] ) );
+		$id = absint( $_GET['nkzmp_pid'] ?? 0 );
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended
+		if ( in_array( $ev, [ 'view', 'fav', 'unfav' ], true ) ) {
+			self::record( $id, $ev );
+		}
+		nocache_headers();
+		status_header( 204 );
+		exit;
+	}
+
 	/** Zapíše událost; false když produkt neexistuje / není veřejný. */
 	public static function record( int $pid, string $ev ): bool {
 		if ( $pid <= 0 || get_post_type( $pid ) !== 'product' || get_post_status( $pid ) !== 'publish' ) {
@@ -174,6 +231,7 @@ final class ProductStats {
 		}
 		$pid = function_exists( 'is_product' ) && is_product() ? (int) get_queried_object_id() : 0;
 		$cfg = [
+			'home'  => esc_url_raw( home_url( '/' ) ),
 			'url'   => esc_url_raw( rest_url( 'nkzmp/v1/stats' ) ),
 			'ajax'  => admin_url( 'admin-ajax.php' ),
 			'nonce' => is_user_logged_in() ? wp_create_nonce( 'wp_rest' ) : '',
@@ -191,10 +249,16 @@ final class ProductStats {
 					var b = new URLSearchParams(); b.set('action', 'nkzmp_stats'); b.set('p', p); b.set('e', e);
 					fetch(C.ajax, { method: 'POST', credentials: 'same-origin', keepalive: true, body: b }).catch(function () {});
 				}
-				try {
+				function viaRest() {
 					fetch(C.url, { method: 'POST', credentials: 'same-origin', keepalive: true, headers: h, body: JSON.stringify({ p: p, e: e }) })
 						.then(function (r) { if (r.status !== 200 && r.status !== 404) { viaAjax(); } })
 						.catch(viaAjax);
+				}
+				try {
+					var u = C.home + (C.home.indexOf('?') === -1 ? '?' : '&') + 'nkzmp_stat=' + e + '&nkzmp_pid=' + p + '&_=' + Date.now();
+					fetch(u, { method: 'GET', credentials: 'same-origin', keepalive: true, cache: 'no-store' })
+						.then(function (r) { if (r.status !== 204) { viaRest(); } })
+						.catch(viaRest);
 				} catch (x) {}
 			}
 			// Zobrazení: jednou za den a produkt v tomto prohlížeči.
