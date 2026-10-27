@@ -20,6 +20,7 @@ final class Plugin {
 		VendorBilling::instance()->init();
 		Documents::instance()->init();
 		MembershipInvoices::instance()->init();
+		CommissionInvoices::instance()->init();
 		Delivery::instance()->init();
 		VendorDocuments::instance()->init();
 		Mandate::instance()->init();

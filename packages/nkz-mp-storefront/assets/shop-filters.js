@@ -168,7 +168,8 @@
 			btn.textContent = 'Načítám…';
 			var data = collect();
 			data.paged = currentPaged + 1;
-			fetch( sameOriginAjax(), {
+			var viaPage = function () { return fetchPage( data ).then( function ( r ) { return r.html; } ); };
+			( ajaxBlocked ? viaPage() : fetch( sameOriginAjax(), {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
 				body: buildBody( data ).toString(),
@@ -176,8 +177,17 @@
 			} )
 				.then( function ( r ) { if ( ! r.ok ) { throw new Error( 'HTTP ' + r.status ); } return r.json(); } )
 				.then( function ( res ) {
+					if ( ! res || ! res.data || typeof res.data.html !== 'string' ) { throw new Error( 'bad response' ); }
+					return res.data.html;
+				} )
+				.catch( function () {
+					ajaxBlocked = true;
+					try { window.sessionStorage.setItem( 'nkzmpAjaxBlocked', '1' ); } catch ( e ) {}
+					return viaPage();
+				} ) )
+				.then( function ( html ) {
 					var tmp = document.createElement( 'div' );
-					tmp.innerHTML = ( res && res.data && res.data.html ) || '';
+					tmp.innerHTML = html || '';
 					var ul = results.querySelector( 'ul.products' );
 					tmp.querySelectorAll( 'ul.products > li' ).forEach( function ( li ) { if ( ul ) { ul.appendChild( li ); } } );
 					currentPaged = data.paged;
@@ -250,6 +260,7 @@
 			min_price: '',
 			max_price: '',
 			instock: '',
+			gift: '',
 			q: '',
 			orderby: '',
 			paged: 1
@@ -275,6 +286,8 @@
 
 		var stockEl = form.querySelector( 'input[name="instock"]' );
 		if ( stockEl && stockEl.checked ) { data.instock = '1'; }
+		var giftEl = form.querySelector( 'input[name="gift"]' );
+		if ( giftEl && giftEl.checked ) { data.gift = '1'; }
 
 		var orderEl = results.querySelector( 'select.orderby' );
 		if ( orderEl ) { data.orderby = orderEl.value; }
@@ -291,17 +304,38 @@
 		if ( data.min_price !== '' ) { p.set( 'min_price', data.min_price ); }
 		if ( data.max_price !== '' ) { p.set( 'max_price', data.max_price ); }
 		if ( data.instock ) { p.set( 'instock', '1' ); }
+		if ( data.gift ) { p.set( 'gift', '1' ); }
 		if ( data.q ) { p.set( 'q', data.q ); }
 		if ( data.orderby ) { p.set( 'orderby', data.orderby ); }
 		if ( data.paged > 1 ) { p.set( 'paged', data.paged ); }
 		return p.toString();
 	}
 
-	function syncUrl( data ) {
-		var qs  = toQuery( data );
-		var url = window.location.pathname + ( qs ? '?' + qs : '' );
-		window.history.replaceState( null, '', url );
+	/* Stránkování přidává záznam do historie (push), ať „Zpět" v prohlížeči
+	   vrátí na předchozí stránku výpisu, ne pryč z obchodu. Změny filtrů
+	   historii jen přepisují (replace). */
+	// Adresa, které odpovídá zobrazený obsah (mění se s každým AJAXem).
+	var shownUrl = window.location.pathname + window.location.search;
+	// Adresa výpisu: stránka jako /page/N/ (?paged=N web nezobrazí správně).
+	function urlFor( data ) {
+		var qs   = toQuery( Object.assign( {}, data, { paged: 1 } ) );
+		var path = window.location.pathname.replace( /\/page\/\d+\/?$/, '/' ).replace( /\/?$/, '/' );
+		if ( data.paged > 1 ) { path += 'page/' + data.paged + '/'; }
+		return path + ( qs ? '?' + qs : '' );
 	}
+	function syncUrl( data, push ) {
+		var url = urlFor( data );
+		if ( push && url !== window.location.pathname + window.location.search ) {
+			window.history.pushState( { nkzmp: 1 }, '', url );
+		} else {
+			window.history.replaceState( { nkzmp: 1 }, '', url );
+		}
+		shownUrl = url;
+	}
+	// Zpět / vpřed: když adresa neodpovídá zobrazenému obsahu, načíst ji.
+	window.addEventListener( 'popstate', function () {
+		if ( window.location.pathname + window.location.search !== shownUrl ) { window.location.reload(); }
+	} );
 
 	/* ───────── Fetch + render ───────── */
 
@@ -314,6 +348,7 @@
 		if ( data.min_price !== '' ) { body.set( 'min_price', data.min_price ); }
 		if ( data.max_price !== '' ) { body.set( 'max_price', data.max_price ); }
 		if ( data.instock ) { body.set( 'instock', '1' ); }
+		if ( data.gift ) { body.set( 'gift', '1' ); }
 		if ( data.q ) { body.set( 'q', data.q ); }
 		if ( data.orderby ) { body.set( 'orderby', data.orderby ); }
 		if ( data.scope ) { body.set( 'cat_scope', data.scope ); }
@@ -332,12 +367,75 @@
 		return ajaxUrl;
 	}
 
-	function apply( data ) {
-		syncUrl( data );
+	/* Některé hostingy blokují admin-ajax.php (403 od firewallu). Pak
+	   výsledky i počty načteme z obyčejné stránky obchodu s filtrem v URL
+	   (GET, server ji vyfiltruje stejně) – bez reloadu, panel zůstane
+	   otevřený a „Zobrazit N produktů" se přepočítá. */
+	var ajaxBlocked = false;
+	try { ajaxBlocked = window.sessionStorage.getItem( 'nkzmpAjaxBlocked' ) === '1'; } catch ( e ) {}
+
+	function renderResult( data, html, total, facets ) {
+		// Vyhledávání + pás značek nahoře výsledků vykresluje jen stránka
+		// (ne AJAX) – při výměně obsahu ho přeneseme, ať nezmizí.
+		var discover = results.querySelector( '.nkzmp-discover' );
+		results.innerHTML = html;
+		if ( discover ) {
+			results.querySelectorAll( '.nkzmp-discover' ).forEach( function ( el ) { el.remove(); } );
+			results.insertBefore( discover, results.firstChild );
+		}
+		currentPaged = data.paged || 1;
+		updateDone( total );
+		updateFacets( facets );
+		renderChips();
+		afterRender( total );
+		track( 'filter_apply', {
+			categories: data.cat.join( ',' ),
+			brands: data.vendor.join( ',' ),
+			min_price: data.min_price,
+			max_price: data.max_price,
+			search_term: data.q,
+			in_stock: data.instock ? 1 : 0,
+			results: total
+		} );
+		if ( total === 0 ) { track( 'empty_results', { search_term: data.q, categories: data.cat.join( ',' ) } ); }
+	}
+
+	function fetchPage( data, signal ) {
+		var qs   = toQuery( data );
+		var path = window.location.pathname.replace( /\/page\/\d+\/?$/, '/' ).replace( /\/?$/, '/' );
+		if ( data.paged > 1 ) { path += 'page/' + data.paged + '/'; }
+		return fetch( path + ( qs ? '?' + qs : '' ), { credentials: 'same-origin', signal: signal } )
+			.then( function ( r ) {
+				if ( ! r.ok ) { throw new Error( 'HTTP ' + r.status ); }
+				return r.text();
+			} )
+			.then( function ( text ) {
+				var doc  = new DOMParser().parseFromString( text, 'text/html' );
+				var res  = doc.getElementById( 'nkzmp-shop-results' );
+				var done = doc.querySelector( '[data-nkzmp-done]' );
+				if ( ! res ) { throw new Error( 'no results in page' ); }
+				var facets = { brands: {}, hist: [] };
+				doc.querySelectorAll( '[data-nkzmp-vendorwrap] li[data-nkzmp-vendor-name]' ).forEach( function ( li ) {
+					var inp = li.querySelector( 'input' );
+					var em  = li.querySelector( 'em' );
+					if ( inp ) { facets.brands[ inp.value ] = em ? parseInt( em.textContent, 10 ) || 0 : 0; }
+				} );
+				doc.querySelectorAll( '.nkzmp-filters__hist span' ).forEach( function ( b ) {
+					facets.hist.push( parseFloat( b.style.height ) || 0 );
+				} );
+				return { html: res.innerHTML, total: done ? parseInt( done.getAttribute( 'data-total' ), 10 ) : NaN, facets: facets };
+			} );
+	}
+
+	function apply( data, push ) {
+		syncUrl( data, push );
 
 		var body = buildBody( data );
 
 		layout.classList.add( 'is-loading' );
+		// Starý počet by mátl – během načítání „Počítám…".
+		var doneEl = form.querySelector( '[data-nkzmp-done]' );
+		if ( doneEl ) { doneEl.textContent = 'Počítám…'; }
 
 		// fetch / AbortController nemusi byt ve starsim Safari → fallback na
 		// nativni odeslani formulare (GET reload, server-side filtr).
@@ -369,16 +467,21 @@
 		function fallbackReload() {
 			if ( fellBack ) { return; }
 			fellBack = true;
-			var qs = toQuery( data );
-			window.location.href = window.location.pathname + ( qs ? '?' + qs : '' );
+			window.location.href = urlFor( data );
 		}
 
-		fetch( ajaxUrl, {
+		var signal = controller ? controller.signal : undefined;
+		function viaPage() {
+			return fetchPage( data, signal ).then( function ( r ) {
+				renderResult( data, r.html, r.total, r.facets );
+			} );
+		}
+		( ajaxBlocked ? viaPage() : fetch( ajaxUrl, {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
 			body: body.toString(),
 			credentials: 'same-origin',
-			signal: controller ? controller.signal : undefined
+			signal: signal
 		} )
 			.then( function ( r ) {
 				if ( ! r.ok ) { throw new Error( 'HTTP ' + r.status ); }
@@ -386,29 +489,22 @@
 			} )
 			.then( function ( res ) {
 				if ( res && res.success && res.data && typeof res.data.html === 'string' ) {
-					results.innerHTML = res.data.html;
-					var total = parseInt( res.data.total, 10 );
-					currentPaged = data.paged || 1;
-					updateDone( total );
-					updateFacets( res.data.facets );
-					renderChips();
-					afterRender( total );
-					track( 'filter_apply', {
-						categories: data.cat.join( ',' ),
-						brands: data.vendor.join( ',' ),
-						min_price: data.min_price,
-						max_price: data.max_price,
-						search_term: data.q,
-						in_stock: data.instock ? 1 : 0,
-						results: total
-					} );
-					if ( total === 0 ) { track( 'empty_results', { search_term: data.q, categories: data.cat.join( ',' ) } ); }
+					renderResult( data, res.data.html, parseInt( res.data.total, 10 ), res.data.facets );
+					return;
 				}
+				throw new Error( 'bad response' );
 			} )
+			.catch( function ( err ) {
+				if ( err && err.name === 'AbortError' ) { throw err; }
+				// admin-ajax nejde → příště rovnou přes stránku.
+				ajaxBlocked = true;
+				try { window.sessionStorage.setItem( 'nkzmpAjaxBlocked', '1' ); } catch ( e ) {}
+				return viaPage();
+			} ) )
 			.catch( function ( err ) {
 				if ( err && err.name === 'AbortError' ) { return; }
 				if ( window.console && console.warn ) {
-					console.warn( '[nkzmp filters] AJAX selhal, fallback na reload:', err );
+					console.warn( '[nkzmp filters] načtení selhalo, fallback na reload:', err );
 				}
 				fallbackReload();
 			} )
@@ -479,6 +575,11 @@
 			box.appendChild( chip( txt, function () {
 				iMin.value = ''; iMax.value = ''; syncRangeFromInputs(); applyReset();
 			} ) );
+		}
+		var gf = form.querySelector( 'input[name="gift"]' );
+		if ( gf && gf.checked ) {
+			n++;
+			box.appendChild( chip( 'Tipy na dárky', function () { gf.checked = false; applyReset(); } ) );
 		}
 		var st = form.querySelector( 'input[name="instock"]' );
 		if ( st && st.checked ) {
@@ -657,7 +758,7 @@
 		var paged = pagedFromHref( link.getAttribute( 'href' ) );
 		var data  = collect();
 		data.paged = paged;
-		apply( data );
+		apply( data, true );
 		results.scrollIntoView( { behavior: 'smooth', block: 'start' } );
 	} );
 

@@ -168,6 +168,14 @@ final class ShopFilters {
 			$active = $current instanceof \WP_Term && (int) $current->term_id === (int) $t->term_id;
 			printf( '<li><a href="%s"%s>%s</a></li>', esc_url( $url ), $active ? ' class="is-active" aria-current="page"' : '', esc_html( $t->name ) );
 		}
+		// Dárkový průvodce (podle ceny, tipy, poukaz) jako další „kategorie"
+		// v obchodě – klient ho chtěl mít mezi kategoriemi.
+		if ( ! $current instanceof \WP_Term && class_exists( GiftGuide::class ) ) {
+			$gid = (int) get_option( GiftGuide::PAGE_FLAG, 0 );
+			if ( $gid > 0 && get_post_status( $gid ) === 'publish' ) {
+				printf( '<li><a class="is-gift" href="%s">%s</a></li>', esc_url( GiftGuide::page_url() ), esc_html__( 'Tipy na dárky', 'nkz-mp-storefront' ) );
+			}
+		}
 		echo '</ul></nav>';
 		echo '<style>
 		.nkzmp-catpills{margin:0 0 20px}
@@ -175,11 +183,15 @@ final class ShopFilters {
 		html body .nkzmp-catpills a{display:inline-flex;align-items:center;padding:10px 18px;border-radius:999px;background:#f1f2f4;color:#111;-webkit-text-fill-color:#111;font-weight:600;font-size:15px;line-height:1.2;text-decoration:none!important;white-space:nowrap;transition:background .15s,color .15s}
 		html body .nkzmp-catpills a:hover{background:#e3e8f5;color:#0060FF;-webkit-text-fill-color:#0060FF}
 		html body .nkzmp-catpills a.is-active{background:#0060FF;color:#fff;-webkit-text-fill-color:#fff}
+		html body .nkzmp-catpills a.is-gift{background:#fff;border:1.5px solid #0060FF;color:#0060FF;-webkit-text-fill-color:#0060FF}
+		html body .nkzmp-catpills a.is-gift:hover{background:#0060FF;color:#fff;-webkit-text-fill-color:#fff}
 		html body .nkzmp-catpills a.is-back{background:#fff;border:1.5px solid #d5dbe6;color:#111;-webkit-text-fill-color:#111}
 		html body .nkzmp-catpills a.is-back:hover{border-color:#0060FF;color:#0060FF;-webkit-text-fill-color:#0060FF}
 		@media (max-width:767px){
-		.nkzmp-catpills{margin:0 -16px 16px}
-		.nkzmp-catpills ul{flex-wrap:nowrap;overflow-x:auto;padding:2px 16px 6px;scrollbar-width:none;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity}
+		/* Bez záporných okrajů – odsazení šablony bývá menší než 16 px
+		   a řada pak rozšířila celou stránku (na iPhonu šla táhnout do strany). */
+		.nkzmp-catpills{margin:0 0 16px;max-width:100%}
+		.nkzmp-catpills ul{flex-wrap:nowrap;overflow-x:auto;padding:2px 0 6px;scrollbar-width:none;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity}
 		.nkzmp-catpills ul::-webkit-scrollbar{display:none}
 		.nkzmp-catpills li{flex:0 0 auto;scroll-snap-align:start}
 		html body .nkzmp-catpills a{padding:9px 16px;font-size:14px}
@@ -233,7 +245,7 @@ final class ShopFilters {
 				$scope['cat'] = [ $t->slug ];
 			}
 		}
-		$any = ! empty( $scope['cat'] ) || ! empty( $scope['vendor'] ) || $scope['min_price'] !== null || $scope['max_price'] !== null || $scope['instock'] || $scope['q'] !== '';
+		$any = ! empty( $scope['cat'] ) || ! empty( $scope['vendor'] ) || $scope['min_price'] !== null || $scope['max_price'] !== null || $scope['instock'] || ! empty( $scope['gift'] ) || $scope['q'] !== '';
 		self::$facets = $any ? self::facets( $scope ) : null;
 
 		// Vzhled přímo ve stránce (šablona jinak přebíjí tlačítka růžovou).
@@ -299,6 +311,7 @@ final class ShopFilters {
 
 		$this->render_search( $active['q'] );
 		$this->render_categories( $active['cat'] );
+		$this->render_gift( $active['gift'] );
 		$this->render_price( $active['min_price'], $active['max_price'] );
 		$this->render_vendors( $active['vendor'], (array) ( $active['cat'] ?? [] ) );
 		$this->render_stock( $active['instock'] );
@@ -460,7 +473,7 @@ final class ShopFilters {
 	}
 
 	private function render_price( ?int $min, ?int $max ): void {
-		$data = self::price_data();
+		$data = self::price_data( self::scope_term() );
 		if ( ! $data ) {
 			return;
 		}
@@ -539,24 +552,53 @@ final class ShopFilters {
 	 *
 	 * @return array{lo:int,hi:int,capped:bool,hist:int[]}|null
 	 */
-	private static function price_data(): ?array {
-		$key    = 'nkzmp_shop_price_hist';
+	/**
+	 * Kategorie, pro kterou se počítá stupnice ceny: stránka kategorie,
+	 * v AJAXu skrytý cat_scope. 0 = celý obchod.
+	 */
+	private static function scope_term(): int {
+		if ( ! wp_doing_ajax() && function_exists( 'is_product_category' ) && is_product_category() ) {
+			$t = get_queried_object();
+			return $t instanceof \WP_Term ? (int) $t->term_id : 0;
+		}
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- jen čtení.
+		$slug = isset( $_POST['cat_scope'] ) ? sanitize_title( wp_unslash( (string) $_POST['cat_scope'] ) ) : '';
+		if ( $slug !== '' ) {
+			$t = get_term_by( 'slug', $slug, 'product_cat' );
+			return $t instanceof \WP_Term ? (int) $t->term_id : 0;
+		}
+		return 0;
+	}
+
+	/**
+	 * Stupnice a graf cen. Na stránce kategorie z cen té kategorie (vč.
+	 * podkategorií) – rozsah celého obchodu (79–19 000 Kč) byl u kategorie
+	 * nepoužitelný. Když má kategorie málo produktů, platí celý obchod.
+	 */
+	private static function price_data( int $term_id = 0 ): ?array {
+		$key    = 'nkzmp_shop_price_hist_' . $term_id . '_' . (int) get_option( 'nkzmp_shop_price_hist_v', 1 );
 		$cached = get_transient( $key );
 		if ( is_array( $cached ) && isset( $cached['lo'], $cached['hi'], $cached['hist'] ) ) {
 			return $cached;
 		}
 		global $wpdb;
+		$join = '';
+		if ( $term_id > 0 ) {
+			$terms = array_map( 'intval', array_merge( [ $term_id ], (array) get_term_children( $term_id, 'product_cat' ) ) );
+			$join  = " INNER JOIN {$wpdb->term_relationships} tr ON tr.object_id = p.ID
+			 INNER JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id AND tt.taxonomy = 'product_cat' AND tt.term_id IN (" . implode( ',', $terms ) . ')';
+		}
 		$prices = array_map( 'floatval', (array) $wpdb->get_col(
 			"SELECT MIN(CAST(pm.meta_value AS DECIMAL(10,2)))
 			 FROM {$wpdb->postmeta} pm
-			 INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
+			 INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id{$join}
 			 WHERE pm.meta_key = '_price' AND pm.meta_value != ''
 			   AND p.post_type = 'product' AND p.post_status = 'publish'
-			 GROUP BY pm.post_id"
+			 GROUP BY pm.post_id" // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- jen celá čísla.
 		) );
 		$prices = array_values( array_filter( $prices, static fn( $p ) => $p > 0 ) );
 		if ( count( $prices ) < 2 ) {
-			return null;
+			return $term_id > 0 ? self::price_data( 0 ) : null;
 		}
 		sort( $prices );
 		$lo  = max( 1, (int) floor( $prices[0] ) );
@@ -569,7 +611,7 @@ final class ShopFilters {
 			$hi = $max;
 		}
 		if ( $hi <= $lo ) {
-			return null;
+			return $term_id > 0 ? self::price_data( 0 ) : null;
 		}
 		$buckets = 40;
 		$hist    = array_fill( 0, $buckets, 0 );
@@ -780,6 +822,29 @@ final class ShopFilters {
 		<?php
 	}
 
+	/**
+	 * „Tipy na dárky" – produkty se štítkem tip-na-darek (stejný výběr jako
+	 * na stránce Dárky). Klient chtěl volbu přímo ve filtru pod kategoriemi.
+	 */
+	private function render_gift( bool $on ): void {
+		if ( ! class_exists( GiftGuide::class ) || ! taxonomy_exists( 'product_tag' ) ) {
+			return;
+		}
+		$t = get_term_by( 'slug', GiftGuide::TAG, 'product_tag' );
+		if ( ! $t instanceof \WP_Term || (int) $t->count < 1 ) {
+			return;
+		}
+		echo '<fieldset class="nkzmp-filters__group nkzmp-filters__stock nkzmp-filters__gift" data-nkzmp-group="gift">';
+		echo '<legend>' . esc_html__( 'Tipy na dárky', 'nkz-mp-storefront' ) . '</legend>';
+		printf(
+			'<label class="nkzmp-filters__switch"><input type="checkbox" name="gift" value="1"%1$s> <span>%2$s</span></label>',
+			$on ? ' checked' : '',
+			esc_html__( 'Tipy na dárky', 'nkz-mp-storefront' )
+		);
+		echo '</fieldset>';
+		echo '<style>html body .nkzmp-shop-layout.is-bar .nkzmp-filters__gift legend{display:none!important}</style>';
+	}
+
 	private function render_stock( bool $on ): void {
 		echo '<fieldset class="nkzmp-filters__group nkzmp-filters__stock" data-nkzmp-group="instock">';
 		printf(
@@ -981,7 +1046,7 @@ final class ShopFilters {
 			}
 		}
 
-		$data = self::price_data();
+		$data = self::price_data( self::scope_term() );
 		if ( $data ) {
 			$ids  = self::matching_ids( array_merge( $f, [ 'min_price' => null, 'max_price' => null ] ) );
 			$hist = array_fill( 0, count( $data['hist'] ), 0 );
@@ -1035,6 +1100,7 @@ final class ShopFilters {
 		$max = isset( $src['max_price'] ) && $src['max_price'] !== '' ? (int) $src['max_price'] : null;
 
 		$instock = ! empty( $src['instock'] );
+		$gift    = ! empty( $src['gift'] );
 
 		$q = isset( $src['q'] ) ? sanitize_text_field( wp_unslash( (string) $src['q'] ) ) : '';
 		$q = trim( mb_substr( $q, 0, 100 ) );
@@ -1045,6 +1111,7 @@ final class ShopFilters {
 			'min_price' => $min,
 			'max_price' => $max,
 			'instock'   => $instock,
+			'gift'      => $gift,
 			'q'         => $q,
 		];
 	}
@@ -1056,6 +1123,15 @@ final class ShopFilters {
 	private static function build_clauses( array $f ): array {
 		$tax  = [];
 		$meta = [];
+
+		if ( ! empty( $f['gift'] ) && class_exists( GiftGuide::class ) ) {
+			$tax[] = [
+				'taxonomy' => 'product_tag',
+				'field'    => 'slug',
+				'terms'    => [ GiftGuide::TAG ],
+				'operator' => 'IN',
+			];
+		}
 
 		if ( ! empty( $f['cat'] ) ) {
 			$tax[] = [
@@ -1206,6 +1282,8 @@ final class ShopFilters {
 	public static function forget_cache(): void {
 		delete_transient( 'nkzmp_shop_price_bounds' );
 		delete_transient( 'nkzmp_shop_price_hist' );
+		// Stupnice po kategoriích – nová verze klíče zneplatní všechny naráz.
+		update_option( 'nkzmp_shop_price_hist_v', (int) get_option( 'nkzmp_shop_price_hist_v', 1 ) + 1, false );
 		SearchBoost::forget();
 		delete_transient( 'nkzmp_shop_product_vendors' );
 	}
