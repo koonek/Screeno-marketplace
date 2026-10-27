@@ -311,11 +311,31 @@
 		return p.toString();
 	}
 
-	function syncUrl( data ) {
-		var qs  = toQuery( data );
-		var url = window.location.pathname + ( qs ? '?' + qs : '' );
-		window.history.replaceState( null, '', url );
+	/* Stránkování přidává záznam do historie (push), ať „Zpět" v prohlížeči
+	   vrátí na předchozí stránku výpisu, ne pryč z obchodu. Změny filtrů
+	   historii jen přepisují (replace). */
+	// Adresa, které odpovídá zobrazený obsah (mění se s každým AJAXem).
+	var shownUrl = window.location.pathname + window.location.search;
+	// Adresa výpisu: stránka jako /page/N/ (?paged=N web nezobrazí správně).
+	function urlFor( data ) {
+		var qs   = toQuery( Object.assign( {}, data, { paged: 1 } ) );
+		var path = window.location.pathname.replace( /\/page\/\d+\/?$/, '/' ).replace( /\/?$/, '/' );
+		if ( data.paged > 1 ) { path += 'page/' + data.paged + '/'; }
+		return path + ( qs ? '?' + qs : '' );
 	}
+	function syncUrl( data, push ) {
+		var url = urlFor( data );
+		if ( push && url !== window.location.pathname + window.location.search ) {
+			window.history.pushState( { nkzmp: 1 }, '', url );
+		} else {
+			window.history.replaceState( { nkzmp: 1 }, '', url );
+		}
+		shownUrl = url;
+	}
+	// Zpět / vpřed: když adresa neodpovídá zobrazenému obsahu, načíst ji.
+	window.addEventListener( 'popstate', function () {
+		if ( window.location.pathname + window.location.search !== shownUrl ) { window.location.reload(); }
+	} );
 
 	/* ───────── Fetch + render ───────── */
 
@@ -407,8 +427,8 @@
 			} );
 	}
 
-	function apply( data ) {
-		syncUrl( data );
+	function apply( data, push ) {
+		syncUrl( data, push );
 
 		var body = buildBody( data );
 
@@ -447,8 +467,7 @@
 		function fallbackReload() {
 			if ( fellBack ) { return; }
 			fellBack = true;
-			var qs = toQuery( data );
-			window.location.href = window.location.pathname + ( qs ? '?' + qs : '' );
+			window.location.href = urlFor( data );
 		}
 
 		var signal = controller ? controller.signal : undefined;
@@ -739,7 +758,7 @@
 		var paged = pagedFromHref( link.getAttribute( 'href' ) );
 		var data  = collect();
 		data.paged = paged;
-		apply( data );
+		apply( data, true );
 		results.scrollIntoView( { behavior: 'smooth', block: 'start' } );
 	} );
 
