@@ -45,6 +45,7 @@ final class Plugin {
 		GiftGuide::instance()->init();
 		ShopDiscovery::instance()->init();
 		Shortcodes::instance()->init();
+		LatestProducts::instance()->init();
 		ProductReadmore::instance()->init();
 		TextNormalize::instance()->init();
 

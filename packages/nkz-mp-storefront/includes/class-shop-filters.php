@@ -1269,7 +1269,7 @@ final class ShopFilters {
 	 * Prodejce, který v obchodě reálně prodává: schválený (ne pozastavený /
 	 * čekající) a – je-li zapnuté členství – se zaplaceným členstvím.
 	 */
-	private static function vendor_visible( int $vid ): bool {
+	public static function vendor_visible( int $vid ): bool {
 		$status = (string) get_post_meta( $vid, '_nkzmp_vendor_status', true );
 		if ( '' === $status ) {
 			$status = (string) get_post_meta( $vid, '_nkv_vendor_status', true );
