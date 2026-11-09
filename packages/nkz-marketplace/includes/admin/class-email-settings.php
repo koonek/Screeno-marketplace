@@ -34,18 +34,29 @@ final class EmailSettings {
 	public function init(): void {
 		add_action( 'admin_init', [ $this, 'register' ] );
 
-		// Odesílací adresa. Většina SMTP serverů (vč. českých hostingů) odmítne
-		// odeslat pod jinou adresou, než pod kterou je klient přihlášený –
-		// „use your login email address as mail from". Držíme ji proto na
-		// jednom místě a vnucujeme ji všem e-mailům (naše, WooCommerce, WP).
+		add_action( 'admin_init', [ $this, 'maybe_migrate_legacy' ], 11 );
+		add_action( 'admin_init', [ $this, 'maybe_send_test' ], 12 );
+		add_filter( 'nkzmp/v1/admin/settings/tabs', [ $this, 'register_tab' ] );
+	}
+
+	/**
+	 * Odesílací adresa pro VŠECHNY e-maily. Většina SMTP serverů (vč. českých
+	 * hostingů) odmítne odeslat pod jinou adresou, než pod kterou je klient
+	 * přihlášený – „use your login email address as mail from". Volá se
+	 * vždy (web, cron, admin), ne jen v administraci – jinak e-maily
+	 * z objednávek a připomínky košíku odcházely z adresy WooCommerce.
+	 */
+	public static function sender_filters(): void {
+		static $done = false;
+		if ( $done ) {
+			return;
+		}
+		$done = true;
 		add_filter( 'wp_mail_from', [ self::class, 'filter_from_email' ], 99 );
 		add_filter( 'wp_mail_from_name', [ self::class, 'filter_from_name' ], 99 );
 		add_filter( 'woocommerce_email_from_address', [ self::class, 'filter_from_email' ], 99 );
 		add_filter( 'woocommerce_email_from_name', [ self::class, 'filter_from_name' ], 99 );
 		add_filter( 'wp_mail', [ self::class, 'add_reply_to' ], 99 );
-		add_action( 'admin_init', [ $this, 'maybe_migrate_legacy' ], 11 );
-		add_action( 'admin_init', [ $this, 'maybe_send_test' ], 12 );
-		add_filter( 'nkzmp/v1/admin/settings/tabs', [ $this, 'register_tab' ] );
 	}
 
 	/** Adresa, ze které se reálně odesílá (musí sedět s přihlášením do SMTP). */
@@ -493,6 +504,9 @@ final class EmailSettings {
 					[ 'label' => __( 'Prodejce: úprava produktu přijata ke schválení', 'nkz-marketplace' ),
 					  'subject' => 'email_product_edit_vendor_subject', 'body' => 'email_product_edit_vendor_body',
 					  'placeholders' => [ 'name', 'name_vocative', 'product_name', 'dashboard_url', 'site_name' ] ],
+					[ 'label' => __( 'Prodejce: produkt schválen a je online', 'nkz-marketplace' ),
+					  'subject' => 'email_product_published_vendor_subject', 'body' => 'email_product_published_vendor_body',
+					  'placeholders' => [ 'name', 'name_vocative', 'product_name', 'product_url', 'dashboard_url', 'site_name' ] ],
 					[ 'label' => __( 'Admin: produkt ke schválení', 'nkz-marketplace' ),
 					  'subject' => 'email_product_admin_subject', 'body' => 'email_product_admin_body',
 					  'placeholders' => [ 'product_name', 'product_price', 'vendor_name', 'vendor_email', 'dashboard_url', 'edit_url', 'submit_kind', 'site_name' ] ],
@@ -648,6 +662,14 @@ final class EmailSettings {
 "Ahoj {name},\n\n" .
 "úpravu produktu „{product_name}\" jsme dostali. Projdeme ji v týmu a zase publikujeme.\n\n" .
 "Mezitím produkt visí v tvém panelu pod stavem „Čeká schválení\":\n{dashboard_url}\n\n" .
+"Tým {site_name}",
+
+			'email_product_published_vendor_subject' => 'Tvůj produkt je online — {site_name}',
+			'email_product_published_vendor_body'    =>
+"Ahoj {name},\n\n" .
+"produkt „{product_name}\" jsme schválili a už je v prodeji na {site_name}:\n{product_url}\n\n" .
+"Pošli odkaz kamarádům nebo ho sdílej na Instagramu – první objednávky přicházejí nejčastěji od lidí, kteří tě znají.\n\n" .
+"Svoje produkty spravuješ v panelu:\n{dashboard_url}\n\n" .
 "Tým {site_name}",
 
 			'email_product_admin_subject' => '[{site_name}] {submit_kind}: {product_name}',

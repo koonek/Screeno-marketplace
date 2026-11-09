@@ -272,6 +272,8 @@ final class Favorites {
 				if (i === -1) { favs.unshift(id); toast(C.t.added, true); track('add_to_wishlist', { item_id: id }); }
 				else { favs.splice(i, 1); toast(C.t.removed, false); track('remove_from_wishlist', { item_id: id }); }
 				save(favs); paint();
+				// Počet „v oblíbených" u produktu (modul Statistiky).
+				try { document.dispatchEvent(new CustomEvent('nkzmp:fav', { detail: { id: id, on: i === -1 } })); } catch (x) {}
 				if (C.loggedIn && window.fetch) { post('nkzmp_fav_sync', { nonce: C.nonce, ids: JSON.stringify(favs) }).catch(function () {}); }
 				var page = document.querySelector('[data-nkzmp-favs]');
 				if (page && i !== -1) { var li = b.closest('li.product'); if (li && page.contains(li)) { li.remove(); if (!page.querySelector('li.product')) { renderPage(); } } }

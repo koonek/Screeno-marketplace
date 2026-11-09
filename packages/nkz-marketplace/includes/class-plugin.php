@@ -52,6 +52,9 @@ final class Plugin {
 			\NKZMP\Vendor\Registry::instance()->init();
 		}
 
+		// Odesílatel e-mailů (SMTP adresa) – na webu, v cronu i v adminu.
+		\NKZMP\Admin\EmailSettings::sender_filters();
+
 		if ( is_admin() ) {
 			if ( ! function_exists( 'is_plugin_active' ) ) {
 				require_once ABSPATH . 'wp-admin/includes/plugin.php';

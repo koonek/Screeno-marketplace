@@ -25,6 +25,8 @@ final class Plugin {
 		MetaWatcher::instance()->init();
 		StatusPage::instance()->init();
 		AresLookup::instance()->init();
+		VendorIdentity::instance()->init();
+		IcoCheck::instance()->init();
 		Assets::instance()->init();
 	}
 }

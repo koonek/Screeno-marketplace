@@ -17,6 +17,52 @@ defined( 'ABSPATH' ) || exit;
 
 final class ProductEmails {
 
+	/** Hlídá schválení (čeká → zveřejněno), ať prodejce ví, že je produkt online. */
+	public static function init(): void {
+		add_action( 'transition_post_status', [ self::class, 'on_transition' ], 10, 3 );
+	}
+
+	/**
+	 * Schválení produktu – ať se stalo tlačítkem v Dashboardu marketplace,
+	 * nebo „Publikovat" v editaci produktu. Jen z „Čeká na schválení",
+	 * takže úpravy živého produktu ani ruční zveřejnění konceptu správcem
+	 * e-mail neposílají.
+	 *
+	 * @param string   $new
+	 * @param string   $old
+	 * @param \WP_Post $post
+	 */
+	public static function on_transition( $new, $old, $post ): void {
+		if ( $new !== 'publish' || $old !== 'pending' || ! $post instanceof \WP_Post || $post->post_type !== 'product' ) {
+			return;
+		}
+		$vendor_id = (int) ( get_post_meta( $post->ID, '_nkv_vendor_id', true ) ?: get_post_meta( $post->ID, '_nkzmp_vendor_id', true ) );
+		if ( $vendor_id <= 0 || get_post_meta( $post->ID, '_nkzmp_published_mail', true ) ) {
+			return;
+		}
+		$vendor = self::vendor( $vendor_id );
+		if ( ! $vendor || empty( $vendor['email'] ) ) {
+			return;
+		}
+		$name = (string) $vendor['name'];
+		$vars = [
+			'name'          => $name,
+			'name_vocative' => class_exists( \NKZMP\Services\VocativeService::class ) ? \NKZMP\Services\VocativeService::get( $name, $vendor_id ) : $name,
+			'product_name'  => get_the_title( $post ),
+			'product_url'   => (string) get_permalink( $post ),
+			'dashboard_url' => function_exists( 'wc_get_account_endpoint_url' ) ? wc_get_account_endpoint_url( 'vendor-products' ) : home_url( '/' ),
+			'site_name'     => (string) get_bloginfo( 'name' ),
+		];
+		$subject = self::render_tpl( 'email_product_published_vendor_subject', $vars, sprintf( 'Tvůj produkt je online — %s', $vars['site_name'] ) );
+		$body    = self::render_tpl( 'email_product_published_vendor_body', $vars, sprintf(
+			"Ahoj %s,\n\nprodukt „%s\" jsme schválili a je online:\n%s\n\nTým %s",
+			$vars['name'], $vars['product_name'], $vars['product_url'], $vars['site_name']
+		) );
+		self::send( (string) $vendor['email'], $subject, $body );
+		// Jen jednou za produkt (opakované schválení po úpravě už ne).
+		update_post_meta( $post->ID, '_nkzmp_published_mail', time() );
+	}
+
 	public static function on_submitted( int $product_id, int $vendor_id, bool $is_edit ): void {
 		if ( ! function_exists( 'wc_get_product' ) ) {
 			return;

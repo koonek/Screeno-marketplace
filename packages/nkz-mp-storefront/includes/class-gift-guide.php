@@ -260,7 +260,7 @@ final class GiftGuide {
 		.nkzmp-gift__voucher p{margin:0;color:#dbe6ff;max-width:560px}
 		html body .nkzmp-gift__voucher a{display:inline-flex;padding:14px 24px;border-radius:999px;background:#fff;color:#0060FF;-webkit-text-fill-color:#0060FF;font-weight:700;text-decoration:none!important}
 		@media (max-width:767px){
-		.nkzmp-gift__jump{flex-wrap:nowrap;overflow-x:auto;margin:0 -16px 24px;padding:2px 16px 6px;scrollbar-width:none}
+		.nkzmp-gift__jump{flex-wrap:nowrap;overflow-x:auto;margin:0 0 24px;max-width:100%;padding:2px 0 6px;scrollbar-width:none}
 		.nkzmp-gift__jump::-webkit-scrollbar{display:none}
 		.nkzmp-gift__head h2{font-size:22px}
 		.nkzmp-gift__cats{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}

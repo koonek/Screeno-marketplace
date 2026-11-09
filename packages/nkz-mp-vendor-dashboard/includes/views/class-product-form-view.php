@@ -161,7 +161,10 @@ final class ProductFormView {
 				<section class="nkzmp-vd-form-section">
 					<header class="nkzmp-vd-form-shead"><span class="num">02</span><h2><?php esc_html_e( 'Cena a sklad', 'nkz-mp-vendor-dashboard' ); ?></h2></header>
 
-					<div class="nkzmp-vd-grid-2">
+					<p class="nkzmp-vd-note" data-nkzmp-var-note style="display:none;margin:0 0 12px;">
+						<?php esc_html_e( 'Produkt má varianty – cenu a počet kusů nastavíš u každé varianty níže (2b).', 'nkz-mp-vendor-dashboard' ); ?>
+					</p>
+					<div class="nkzmp-vd-grid-2" data-nkzmp-baseprice>
 						<div class="nkzmp-vd-field">
 							<label for="vd_price"><?php esc_html_e( 'Cena', 'nkz-mp-vendor-dashboard' ); ?> <span class="req">*</span></label>
 							<input id="vd_price" type="number" name="regular_price" required min="0" step="0.01" value="<?php echo esc_attr( $regular_price ); ?>" />
@@ -230,14 +233,21 @@ final class ProductFormView {
 
 						function sync(){
 							var onDemand = chk.checked;
+							// S variantami se sklad zadává u variant – hlavní pole se schová.
+							var hv = document.getElementById('nkzmp-has-var');
+							var variants = !!(hv && hv.checked);
 							if (qty) {
-								qty.disabled = onDemand;
-								qty.required = !onDemand;
+								qty.disabled = onDemand || variants;
+								qty.required = !onDemand && !variants;
 								var field = qty.closest('.nkzmp-vd-field');
-								if (field) { field.style.opacity = onDemand ? '.45' : ''; }
+								if (field) {
+									field.style.opacity = onDemand ? '.45' : '';
+									field.style.display = variants ? 'none' : '';
+								}
 							}
 							if (pre) { pre.style.display = onDemand ? '' : 'none'; }
 						}
+						window.nkzmpStockSync = sync;
 
 						chk.addEventListener('change', sync);
 						sync();
@@ -248,7 +258,8 @@ final class ProductFormView {
 						var form = chk.form || chk.closest('form');
 						if (form) {
 							form.addEventListener('submit', function(){
-								if (qty && !chk.checked) { qty.disabled = false; }
+								var hv2 = document.getElementById('nkzmp-has-var');
+								if (qty && !chk.checked && !(hv2 && hv2.checked)) { qty.disabled = false; }
 							});
 						}
 					})();
@@ -351,9 +362,18 @@ final class ProductFormView {
 					var add  = document.getElementById('nkzmp-var-add');
 					var base = document.getElementById('vd_price');
 					if(!chk||!body||!rows||!tpl||!add){ return; }
+					var baseBox = document.querySelector('[data-nkzmp-baseprice]');
+					var note    = document.querySelector('[data-nkzmp-var-note]');
 					function sync(){
 						body.style.display = chk.checked ? '' : 'none';
 						if(base){ if(chk.checked){ base.removeAttribute('required'); } else { base.setAttribute('required','required'); } }
+						// Cena a akční cena hlavního produktu u variant nedávají smysl.
+						if(baseBox){
+							baseBox.style.display = chk.checked ? 'none' : '';
+							baseBox.querySelectorAll('input').forEach(function(i){ i.disabled = chk.checked; });
+						}
+						if(note){ note.style.display = chk.checked ? '' : 'none'; }
+						if(typeof window.nkzmpStockSync === 'function'){ window.nkzmpStockSync(); }
 					}
 					chk.addEventListener('change', sync);
 					add.addEventListener('click', function(){
