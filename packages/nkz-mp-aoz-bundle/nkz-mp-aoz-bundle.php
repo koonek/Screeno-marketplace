@@ -2,7 +2,7 @@
 /**
  * Plugin Name: NKZ Marketplace AOZ
  * Description: Kompletní marketplace pro Art of život – prodejci, Stripe Connect s escrow, Zásilkovna, členství, vouchery, samofakturace, odstoupení od smlouvy.
- * Version: 1.6.0
+ * Version: 1.6.1
  * Author: NKZ
  * Requires at least: 6.2
  * Requires PHP: 8.1
@@ -38,7 +38,7 @@ if ( defined( 'NKZMP_AOZ_BUNDLE_VERSION' ) ) {
 	return;
 }
 
-define( 'NKZMP_AOZ_BUNDLE_VERSION', '1.6.0' );
+define( 'NKZMP_AOZ_BUNDLE_VERSION', '1.6.1' );
 define( 'NKZMP_AOZ_BUNDLE_DIR', plugin_dir_path( __FILE__ ) );
 define( 'NKZMP_AOZ_BUNDLE_FILE', __FILE__ );
 
@@ -97,6 +97,22 @@ add_action(
 	},
 	5
 );
+
+/*
+ * Verze v adrese našich skriptů a stylů. Web parametr ?ver= odstraňuje
+ * (optimalizace) a Cloudflare / prohlížeč drží soubory rok – po aktualizaci
+ * tak zákazník mohl mít starý skript filtrů k nové stránce (stránkování
+ * v kategorii pak ukázalo celý obchod). Vlastní parametr ?nkzv= odstraňovač
+ * nezná, takže každá verze balíku má nové adresy a stáhne se znovu.
+ */
+$nkzmp_aoz_bust = static function ( $src ) {
+	if ( is_string( $src ) && $src !== '' && str_contains( $src, '/nkz-marketplace-aoz/' ) && ! str_contains( $src, 'nkzv=' ) ) {
+		$src = add_query_arg( 'nkzv', NKZMP_AOZ_BUNDLE_VERSION, $src );
+	}
+	return $src;
+};
+add_filter( 'script_loader_src', $nkzmp_aoz_bust, PHP_INT_MAX );
+add_filter( 'style_loader_src', $nkzmp_aoz_bust, PHP_INT_MAX );
 
 register_activation_hook(
 	__FILE__,
