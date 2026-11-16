@@ -102,8 +102,8 @@ if ( isset( $stripe_share ) && (int) $stripe_share > 0 ) {
 // filtr nkzmp/v1/registration/membership_benefits ([ [ tučně, zbytek ], … ]).
 $nkzmp_benefits = (array) apply_filters( 'nkzmp/v1/registration/membership_benefits', [
 	[ __( 'Kurátorovaný výběr.', 'nkz-mp-vendor-registration' ), __( 'Tvoje značka se neztratí mezi stovkami dalších.', 'nkz-mp-vendor-registration' ) ],
-	[ __( 'Propagace tvé značky a produktů.', 'nkz-mp-vendor-registration' ), __( 'Web, Instagram reels, sociální sítě a newsletter.', 'nkz-mp-vendor-registration' ) ],
-	[ __( 'Zvýhodněná účast na festivalu.', 'nkz-mp-vendor-registration' ), __( '1 500 Kč za 3 dny.', 'nkz-mp-vendor-registration' ) ],
+	[ __( 'Propagace tvé značky a produktů napříč kanály.', 'nkz-mp-vendor-registration' ), __( 'Web, sociální sítě, reklamní kampaně a newsletter.', 'nkz-mp-vendor-registration' ) ],
+	[ __( 'Možnost účasti na festivalu za zvýhodněný poplatek.', 'nkz-mp-vendor-registration' ), __( '1 500 Kč za 3 dny.', 'nkz-mp-vendor-registration' ) ],
 	[ __( 'Vlastní profil značky', 'nkz-mp-vendor-registration' ), __( 'a prodejní stránka na marketplace.', 'nkz-mp-vendor-registration' ) ],
 	[ __( 'Neomezený počet produktů.', 'nkz-mp-vendor-registration' ), '' ],
 	[ __( 'Doprava po ČR a SK.', 'nkz-mp-vendor-registration' ), '' ],
@@ -112,7 +112,7 @@ $nkzmp_benefits = (array) apply_filters( 'nkzmp/v1/registration/membership_benef
 if ( $nkzmp_benefits ) :
 	?>
 	<section class="nkzmp-benefits" aria-labelledby="nkzmp-benefits-title">
-		<h3 class="nkzmp-benefits__title" id="nkzmp-benefits-title"><?php esc_html_e( 'Co je v členství', 'nkz-mp-vendor-registration' ); ?></h3>
+		<h3 class="nkzmp-benefits__title" id="nkzmp-benefits-title"><?php esc_html_e( 'Co zahrnuje členství', 'nkz-mp-vendor-registration' ); ?></h3>
 		<ul class="nkzmp-benefits__list">
 			<?php foreach ( $nkzmp_benefits as $b ) : ?>
 				<li><strong><?php echo esc_html( (string) ( $b[0] ?? '' ) ); ?></strong><?php echo ! empty( $b[1] ) ? ' ' . esc_html( (string) $b[1] ) : ''; ?></li>
