@@ -41,6 +41,9 @@ final class Settings {
 			// Kategorie s originály (štítek „Originál" místo „Poslední kus").
 			// null = výchozí „Umění a design".
 			'original_cats'       => null,
+			// Zobrazení a oblíbené: počítají se vždy, ukazují se (prodejcům
+			// i veřejně „V oblíbených u N lidí") až po zapnutí.
+			'product_stats'       => 'no',
 		];
 		$saved = get_option( self::OPTION, [] );
 		return array_merge( $defaults, is_array( $saved ) ? $saved : [] );
@@ -62,6 +65,7 @@ final class Settings {
 			'abandoned_delay'     => __( 'Poslat připomínku po (hodinách)', 'nkz-mp-storefront' ),
 			'new_days'            => __( 'Štítek „Novinka" (dní)', 'nkz-mp-storefront' ),
 			'original_cats'       => __( 'Kategorie s originály', 'nkz-mp-storefront' ),
+			'product_stats'       => __( 'Ukazovat zobrazení a oblíbené (prodejcům + veřejně od 5)', 'nkz-mp-storefront' ),
 		];
 		foreach ( $fields as $key => $label ) {
 			add_settings_field(
@@ -137,7 +141,7 @@ final class Settings {
 			echo '<p class="description">' . esc_html__( 'Za kolik hodin od poslední změny košíku poslat zákazníkovi jednu připomínku. Posílá se jen jednou a jen na e-mail, který zákazník sám zadal v pokladně (nebo je přihlášený).', 'nkz-mp-storefront' ) . '</p>';
 			return;
 		}
-		if ( in_array( $key, [ 'enable_archive', 'enable_single', 'enable_product_link', 'abandoned_cart' ], true ) ) {
+		if ( in_array( $key, [ 'enable_archive', 'enable_single', 'enable_product_link', 'abandoned_cart', 'product_stats' ], true ) ) {
 			echo '<select name="' . esc_attr( $name ) . '">';
 			echo '<option value="yes"' . selected( $value, 'yes', false ) . '>' . esc_html__( 'Ano', 'nkz-mp-storefront' ) . '</option>';
 			echo '<option value="no"' . selected( $value, 'no', false ) . '>' . esc_html__( 'Ne', 'nkz-mp-storefront' ) . '</option>';

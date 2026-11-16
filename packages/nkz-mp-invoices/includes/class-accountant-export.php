@@ -75,13 +75,14 @@ final class AccountantExport {
 			}
 		}
 
-		// Faktury za členství (u prodejců).
-		if ( class_exists( MembershipInvoices::class ) ) {
-			$vendors = get_posts( [ 'post_type' => [ 'nkv_vendor', 'nkzmp_vendor' ], 'post_status' => 'any', 'posts_per_page' => -1, 'fields' => 'ids' ] );
-			foreach ( (array) $vendors as $vid ) {
-				foreach ( MembershipInvoices::all( (int) $vid ) as $d ) {
-					$docs[] = $d;
-				}
+		// Faktury za členství a doklady za provizi (u prodejců).
+		$vendors = get_posts( [ 'post_type' => [ 'nkv_vendor', 'nkzmp_vendor' ], 'post_status' => 'any', 'posts_per_page' => -1, 'fields' => 'ids' ] );
+		foreach ( (array) $vendors as $vid ) {
+			foreach ( MembershipInvoices::all( (int) $vid ) as $d ) {
+				$docs[] = $d;
+			}
+			foreach ( CommissionInvoices::all( (int) $vid ) as $d ) {
+				$docs[] = $d;
 			}
 		}
 
@@ -115,13 +116,13 @@ final class AccountantExport {
 		}
 
 		echo '<div class="wrap"><h1>' . esc_html__( 'Doklady pro účetní', 'nkz-mp-invoices' ) . '</h1>';
-		echo '<p>' . esc_html__( 'Všechny doklady vystavené v daném měsíci naráz – doklady k objednávkám, dobropisy i faktury za členství. PDF pro archiv, CSV pro účetní program (Excel).', 'nkz-mp-invoices' ) . '</p>';
+		echo '<p>' . esc_html__( 'Všechny doklady vystavené v daném měsíci naráz – doklady k objednávkám, dobropisy, faktury za členství i doklady za provizi. PDF pro archiv, CSV pro účetní program (Excel).', 'nkz-mp-invoices' ) . '</p>';
 
 		echo '<form method="get" style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin:16px 0;">';
 		echo '<input type="hidden" name="page" value="nkz-mp-accountant">';
 		echo '<label>' . esc_html__( 'Měsíc', 'nkz-mp-invoices' ) . '<br><input type="month" name="month" value="' . esc_attr( $month ) . '"></label>';
 		echo '<label>' . esc_html__( 'Dodavatel', 'nkz-mp-invoices' ) . '<br><select name="who">';
-		foreach ( [ 'platform' => __( 'Art of život (doprava, poplatky, členství)', 'nkz-mp-invoices' ), 'vendors' => __( 'Prodejci (samofakturace)', 'nkz-mp-invoices' ), 'all' => __( 'Vše', 'nkz-mp-invoices' ) ] as $k => $label ) {
+		foreach ( [ 'platform' => __( 'Art of život (doprava, poplatky, členství, provize)', 'nkz-mp-invoices' ), 'vendors' => __( 'Prodejci (samofakturace)', 'nkz-mp-invoices' ), 'all' => __( 'Vše', 'nkz-mp-invoices' ) ] as $k => $label ) {
 			echo '<option value="' . esc_attr( $k ) . '"' . selected( $who, $k, false ) . '>' . esc_html( $label ) . '</option>';
 		}
 		echo '</select></label>';
@@ -148,7 +149,7 @@ final class AccountantExport {
 			}
 			echo '<table class="widefat striped" style="margin-top:16px;max-width:1000px;"><thead><tr><th>' . esc_html__( 'Číslo', 'nkz-mp-invoices' ) . '</th><th>' . esc_html__( 'Typ', 'nkz-mp-invoices' ) . '</th><th>' . esc_html__( 'Dodavatel', 'nkz-mp-invoices' ) . '</th><th>' . esc_html__( 'Odběratel', 'nkz-mp-invoices' ) . '</th><th>' . esc_html__( 'Vystaveno', 'nkz-mp-invoices' ) . '</th><th style="text-align:right;">' . esc_html__( 'Celkem', 'nkz-mp-invoices' ) . '</th></tr></thead><tbody>';
 			foreach ( array_slice( $docs, 0, 300 ) as $d ) {
-				$type = ( $d['type'] ?? '' ) === 'credit' ? __( 'dobropis', 'nkz-mp-invoices' ) : ( (string) ( $d['order_number'] ?? '' ) === '' ? __( 'členství', 'nkz-mp-invoices' ) : __( 'doklad', 'nkz-mp-invoices' ) );
+				$type = ( $d['type'] ?? '' ) === 'credit' ? __( 'dobropis', 'nkz-mp-invoices' ) : ( ( $d['kind'] ?? '' ) === 'commission' ? __( 'provize', 'nkz-mp-invoices' ) : ( (string) ( $d['order_number'] ?? '' ) === '' ? __( 'členství', 'nkz-mp-invoices' ) : __( 'doklad', 'nkz-mp-invoices' ) ) );
 				printf(
 					'<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td style="text-align:right;">%s</td></tr>',
 					esc_html( (string) $d['number'] ),
@@ -166,7 +167,28 @@ final class AccountantExport {
 		} else {
 			echo '<p>' . esc_html__( 'V tomto měsíci nejsou žádné doklady.', 'nkz-mp-invoices' ) . '</p>';
 		}
+		self::commission_box( $month );
 		echo '</div>';
+	}
+
+	/** Ruční vystavení dokladů za provizi (starší měsíce / kontrola). */
+	private static function commission_box( string $month ): void {
+		if ( ! CommissionInvoices::enabled() ) {
+			return;
+		}
+		echo '<hr style="margin:32px 0 16px;max-width:1000px;"><h2>' . esc_html__( 'Doklady za provizi prodejcům', 'nkz-mp-invoices' ) . '</h2>';
+		echo '<p class="description" style="max-width:760px;">' . esc_html__( 'Vystavují se samy 1. den v měsíci za předchozí měsíc (od měsíce nasazení). Tady je můžeš vystavit ručně za starší měsíc – kdo už doklad za ten měsíc má, druhý nedostane.', 'nkz-mp-invoices' ) . '</p>';
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		if ( isset( $_GET['commission_issued'] ) ) {
+			echo '<div class="notice notice-success inline"><p>' . esc_html( sprintf( /* translators: %d: počet */ __( 'Vystaveno dokladů: %d', 'nkz-mp-invoices' ), absint( $_GET['commission_issued'] ) ) ) . '</p></div>'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		}
+		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">';
+		echo '<input type="hidden" name="action" value="nkzmp_commission_issue">';
+		wp_nonce_field( 'nkzmp_commission_issue' );
+		echo '<label>' . esc_html__( 'Měsíc', 'nkz-mp-invoices' ) . '<br><input type="month" name="month" max="' . esc_attr( wp_date( 'Y-m', strtotime( 'first day of last month' ) ) ) . '" value="' . esc_attr( $month < wp_date( 'Y-m' ) ? $month : wp_date( 'Y-m', strtotime( 'first day of last month' ) ) ) . '"></label>';
+		echo '<label><input type="checkbox" name="mail" value="1" checked> ' . esc_html__( 'poslat prodejcům e-mailem', 'nkz-mp-invoices' ) . '</label>';
+		submit_button( __( 'Vystavit doklady za provizi', 'nkz-mp-invoices' ), 'secondary', '', false );
+		echo '</form>';
 	}
 
 	public function download(): void {

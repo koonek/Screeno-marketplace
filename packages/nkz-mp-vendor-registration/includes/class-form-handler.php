@@ -77,8 +77,37 @@ final class FormHandler {
 		// prodává v rámci své samostatné činnosti (ne jako spotřebitel).
 		$id_mode      = ( $_POST['id_mode'] ?? '' ) === 'none' ? 'none' : 'ico';
 		$birth_number = '';
-		if ( $name === '' || ! is_email( $email ) || $bio === '' || ! $terms || ! $gdpr || ! $vendor_terms_ok ) {
-			$this->redirect_error( __( 'Vyplň prosím všechna povinná pole a odsouhlas všechny souhlasy.', 'nkz-mp-vendor-registration' ) );
+		// Cizinec bez IČO a bez českého rodného čísla: datum narození
+		// (+ nepovinně identifikační číslo ze své země).
+		$foreigner  = $id_mode === 'none' && ! empty( $_POST['foreigner'] );
+		$birth_date = '';
+		$foreign_id = '';
+		// Konkrétně, co chybí – obecná hláška nechávala lidi hádat.
+		$missing = [];
+		if ( $name === '' ) {
+			$missing[] = __( 'jméno nebo název značky', 'nkz-mp-vendor-registration' );
+		}
+		if ( ! is_email( $email ) ) {
+			$missing[] = __( 'platný e-mail', 'nkz-mp-vendor-registration' );
+		}
+		if ( $bio === '' ) {
+			$missing[] = __( 'popis tvorby', 'nkz-mp-vendor-registration' );
+		}
+		if ( ! $terms ) {
+			$missing[] = __( 'souhlas s podmínkami platformy', 'nkz-mp-vendor-registration' );
+		}
+		if ( ! $vendor_terms_ok ) {
+			$missing[] = __( 'souhlas s podmínkami pro prodejce', 'nkz-mp-vendor-registration' );
+		}
+		if ( ! $gdpr ) {
+			$missing[] = __( 'souhlas se zpracováním osobních údajů', 'nkz-mp-vendor-registration' );
+		}
+		if ( $missing ) {
+			$this->redirect_error( sprintf(
+				/* translators: %s: seznam chybějících polí */
+				__( 'Chybí: %s.', 'nkz-mp-vendor-registration' ),
+				implode( ', ', $missing )
+			) );
 		}
 		if ( $id_mode === 'ico' ) {
 			$ico_digits = preg_replace( '/\D/', '', $ico );
@@ -86,11 +115,23 @@ final class FormHandler {
 				$this->redirect_error( __( 'Vyplň prosím IČO (8 číslic), nebo zvol „Nemám IČO“.', 'nkz-mp-vendor-registration' ) );
 			}
 			$ico = str_pad( $ico_digits, 8, '0', STR_PAD_LEFT );
+			if ( ! IcoCheck::valid( $ico ) ) {
+				/* translators: %s: IČO */
+				$this->redirect_error( sprintf( __( 'IČO %s není platné (nesedí kontrolní číslice) – zkontroluj prosím překlep, nebo zvol „Nemám IČO“.', 'nkz-mp-vendor-registration' ), $ico ) );
+			}
 		} else {
-			$ico          = '';
-			$birth_number = (string) self::normalize_birth_number( (string) wp_unslash( $_POST['birth_number'] ?? '' ) );
-			if ( $birth_number === '' ) {
-				$this->redirect_error( __( 'Rodné číslo nevypadá správně. Zadej ho prosím ve tvaru 905123/4567.', 'nkz-mp-vendor-registration' ) );
+			$ico = '';
+			if ( $foreigner ) {
+				$birth_date = (string) self::normalize_birth_date( (string) wp_unslash( $_POST['birth_date'] ?? '' ) );
+				if ( $birth_date === '' ) {
+					$this->redirect_error( __( 'Vyplň prosím datum narození (místo rodného čísla).', 'nkz-mp-vendor-registration' ) );
+				}
+				$foreign_id = substr( sanitize_text_field( wp_unslash( $_POST['foreign_id'] ?? '' ) ), 0, 40 );
+			} else {
+				$birth_number = (string) self::normalize_birth_number( (string) wp_unslash( $_POST['birth_number'] ?? '' ) );
+				if ( $birth_number === '' ) {
+					$this->redirect_error( __( 'Rodné číslo nevypadá správně. Zadej ho prosím ve tvaru 905123/4567. Pokud české rodné číslo nemáš, zaškrtni „Nemám české rodné číslo“.', 'nkz-mp-vendor-registration' ) );
+				}
 			}
 			if ( ! $business_declaration_ok ) {
 				$this->redirect_error( __( 'Bez IČO je potřeba zaškrtnout prohlášení o prodeji v rámci samostatné činnosti.', 'nkz-mp-vendor-registration' ) );
@@ -131,6 +172,14 @@ final class FormHandler {
 			// Citlivý údaj: jen pro správce (identifikace, hlášení DAC7).
 			// Nikde veřejně, ne v e-mailech, ne v exportech pro prodejce.
 			update_post_meta( $vendor_id, '_nkzmp_birth_number', $birth_number );
+		}
+		if ( $foreigner ) {
+			// Stejně citlivé jako rodné číslo – jen pro správce.
+			update_post_meta( $vendor_id, '_nkzmp_foreigner', 'yes' );
+			update_post_meta( $vendor_id, '_nkzmp_birth_date', $birth_date );
+			if ( $foreign_id !== '' ) {
+				update_post_meta( $vendor_id, '_nkzmp_foreign_id', $foreign_id );
+			}
 		}
 		if ( $website ) {
 			update_post_meta( $vendor_id, '_nkv_vendor_website', $website );
@@ -224,6 +273,17 @@ final class FormHandler {
 	 * 9místné jen pro narozené před rokem 1954. Měsíc +50 u žen, od roku
 	 * 2004 i +20 / +70.
 	 */
+	/** Datum narození → „Y-m-d", nebo null (nesmysl, budoucnost, méně než 15 nebo víc než 110 let). */
+	public static function normalize_birth_date( string $raw ): ?string {
+		$raw = trim( $raw );
+		$d   = \DateTime::createFromFormat( '!Y-m-d', $raw ) ?: \DateTime::createFromFormat( '!j.n.Y', str_replace( ' ', '', $raw ) );
+		if ( ! $d ) {
+			return null;
+		}
+		$age = (int) $d->diff( new \DateTime( 'today' ) )->format( '%r%y' );
+		return ( $age >= 15 && $age <= 110 ) ? $d->format( 'Y-m-d' ) : null;
+	}
+
 	public static function normalize_birth_number( string $raw ): ?string {
 		$d = preg_replace( '/[\s\/]/', '', $raw );
 		if ( ! preg_match( '/^\d{9,10}$/', (string) $d ) ) {

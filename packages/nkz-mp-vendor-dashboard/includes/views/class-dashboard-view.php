@@ -63,6 +63,15 @@ final class DashboardView {
 				<?php endforeach; ?>
 			</section>
 
+			<?php
+			/**
+			 * Pod souhrnnými čísly (např. zobrazení a oblíbené za 30 dní).
+			 *
+			 * @param int $vendor_id
+			 */
+			do_action( 'nkzmp/v1/dashboard/overview_after_stats', $vendor_id );
+			?>
+
 			<section class="nkzmp-vd-actions">
 				<a class="nkzmp-vd-action" href="<?php echo esc_url( wc_get_account_endpoint_url( 'vendor-products' ) ); ?>">
 					<strong><?php esc_html_e( 'Moje produkty', 'nkz-mp-vendor-dashboard' ); ?></strong>

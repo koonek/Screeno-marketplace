@@ -86,31 +86,22 @@ final class ShopDiscovery {
 		$vendors = self::vendors();
 		$query   = is_search() ? (string) get_search_query( false ) : '';
 
-		$this->styles();
-
+		// Styly uvnitř bloku: filtry ho při změně výsledků (AJAX) přenesou
+		// i se styly do nového obsahu, takže pás značek nezmizí.
 		echo '<div class="nkzmp-discover">';
+		$this->styles();
 		$this->search_form( $query );
 
 		if ( $query !== '' ) {
 			$this->matching_vendors( $vendors, $query );
-		} elseif ( is_shop() && ! self::filters_active() ) {
+		} elseif ( is_shop() ) {
+			// Pás značek v obchodě vždy – i na další stránce a s filtrem
+			// (klient: mizel po přepnutí stránky a po vyčištění filtrů).
 			$this->vendor_strip( $vendors );
 		}
 		echo '</div>';
 
 		$this->script( $vendors );
-	}
-
-	/** Má zákazník zapnutý nějaký filtr? Pak pás prodejců jen překáží. */
-	private static function filters_active(): bool {
-		// phpcs:disable WordPress.Security.NonceVerification.Recommended
-		foreach ( [ 'vendor', 'cat', 'min_price', 'max_price', 'instock', 'orderby' ] as $k ) {
-			if ( isset( $_GET[ $k ] ) && $_GET[ $k ] !== '' ) {
-				return true;
-			}
-		}
-		// phpcs:enable WordPress.Security.NonceVerification.Recommended
-		return is_paged();
 	}
 
 	private function search_form( string $query ): void {

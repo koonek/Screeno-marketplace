@@ -2,10 +2,13 @@
 /**
  * Shortcodes pro vkládání marketplace komponent kdekoli na webu.
  *
- * [nkzmp_latest_products limit="4" columns="4" category="" button="no"]
+ * [nkzmp_latest_products limit="4" columns="4" category="" button="no" one_per_vendor="1" exclude_vendors=""]
  *   Grid nejnovějších produktů (orderby=date desc), stejný card markup jako
  *   /obchod/ – obrázek, název, „OD <prodejce>" badge, cena. Tlačítko
  *   „Přidat do košíku / Číst více" je default vypnuté (teaser na landingu).
+ *   one_per_vendor="1" (výchozí): jeden produkt od jedné značky, doplnění
+ *   po kolech (LatestProducts); "0" = původní N nejnovějších. Platí jen pro
+ *   řazení podle data. exclude_vendors="1661,…" vyřadí prodejce (ID).
  *
  * [nkzmp_product_categories limit="6" columns="4" parent="0" hide_empty="yes" show_count="no" hide_uncategorized="yes"]
  *   Grid kategorií produktů. Wrappuje WC builtin [product_categories] +
@@ -53,6 +56,11 @@ final class Shortcodes {
 			'more'       => 'yes',
 			'more_text'  => '',
 			'more_url'   => '',
+			// Jeden produkt od jedné značky (výchozí zapnuto – blok se
+			// změní bez úprav v Elementoru). "0" = původní chování.
+			'one_per_vendor'  => '1',
+			// ID prodejců k vyřazení, čárkou (např. účet Art of život).
+			'exclude_vendors' => '',
 		], (array) $atts, 'nkzmp_latest_products' );
 
 		$show_button = in_array( strtolower( (string) $a['button'] ), [ 'yes', 'true', '1' ], true );
@@ -66,6 +74,26 @@ final class Shortcodes {
 			esc_attr( $a['order'] ),
 			$a['category'] !== '' ? ' category="' . esc_attr( $a['category'] ) . '"' : ''
 		);
+
+		// Jeden produkt od jedné značky: vybereme ID a vykreslí je stejný
+		// [products] (ids + orderby=post__in) – karty zůstávají beze změny.
+		$per_vendor = in_array( strtolower( (string) $a['one_per_vendor'] ), [ 'yes', 'true', '1' ], true );
+		$by_date    = strtolower( (string) $a['orderby'] ) === 'date' && strtoupper( (string) $a['order'] ) === 'DESC';
+		if ( $per_vendor && $by_date && class_exists( LatestProducts::class ) ) {
+			$ids = LatestProducts::ids( [
+				'limit'           => (int) $a['limit'],
+				'category'        => (string) $a['category'],
+				'exclude_vendors' => LatestProducts::parse_ids( (string) $a['exclude_vendors'] ),
+			] );
+			if ( $ids ) {
+				$inner = sprintf(
+					'[products ids="%s" limit="%d" columns="%d" orderby="post__in"]',
+					esc_attr( implode( ',', $ids ) ),
+					count( $ids ),
+					(int) $a['columns']
+				);
+			}
+		}
 
 		// Vynutit storefront CSS (Assets standardne ladi jen na WC strankach).
 		Assets::ensure_storefront_css();

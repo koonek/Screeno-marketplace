@@ -55,6 +55,8 @@ final class Settings {
 			'vendor_copy'     => 'yes',
 			// Faktury Art of život prodejcům za členství (místo faktur ze Stripe).
 			'membership'      => 'yes',
+			// Měsíční doklad Art of život prodejci za provizi (souhrn za měsíc).
+			'commission'      => 'yes',
 			// Od kdy podmínky pro prodejce obsahují zmocnění k samofakturaci
 			// (RRRR-MM-DD). Prázdné = doklady jménem prodejců se nevystavují.
 			'mandate_from'    => '',
@@ -110,7 +112,7 @@ final class Settings {
 		foreach ( [ 'name', 'street', 'city', 'zip', 'country', 'ico', 'dic', 'registry', 'prefix_platform', 'prefix_vendor', 'prefix_credit' ] as $k ) {
 			$out[ $k ] = sanitize_text_field( wp_unslash( (string) ( $in[ $k ] ?? '' ) ) );
 		}
-		foreach ( [ 'enabled', 'vat_payer', 'attach_email', 'combined', 'vendor_copy', 'membership', 'mandate_enforce' ] as $k ) {
+		foreach ( [ 'enabled', 'vat_payer', 'attach_email', 'combined', 'vendor_copy', 'membership', 'commission', 'mandate_enforce' ] as $k ) {
 			$out[ $k ] = ! empty( $in[ $k ] ) ? 'yes' : 'no';
 		}
 		$out['vat_rate'] = max( 0, min( 100, (int) ( $in['vat_rate'] ?? 21 ) ) );
@@ -216,6 +218,7 @@ final class Settings {
 		$row(
 			__( 'Faktury za členství', 'nkz-mp-invoices' ),
 			$check( 'membership', __( 'vystavovat prodejcům faktury za členství (stejná řada a podoba jako ostatní doklady)', 'nkz-mp-invoices' ) ),
+			$check( 'commission', __( 'vystavovat prodejcům měsíční doklad za provizi (1. den v měsíci za předchozí měsíc, e-mailem)', 'nkz-mp-invoices' ) ),
 			__( 'Důležité: ve Stripe pak vypni rozesílání jeho faktur (Settings → Billing → Subscriptions and emails → „Email finalized invoices to customers"). Jinak prodejce dostane za jednu platbu dva doklady s různými čísly.', 'nkz-mp-invoices' )
 		);
 

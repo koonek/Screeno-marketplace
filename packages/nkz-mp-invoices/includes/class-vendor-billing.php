@@ -122,10 +122,30 @@ final class VendorBilling {
 		}
 		if ( array_key_exists( 'nkzmp_billing_ico', $src ) ) {
 			$ico = sanitize_text_field( wp_unslash( (string) $src['nkzmp_billing_ico'] ) );
-			update_post_meta( $vendor_id, '_nkv_vendor_ico', $ico );
-			update_post_meta( $vendor_id, '_nkzmp_vendor_ico', $ico );
+			if ( $ico !== '' && ! self::valid_ico( $ico ) ) {
+				// Překlep – neuložit, prodejci to ukážeme u pole.
+				set_transient( 'nkzmp_billing_ico_err_' . $vendor_id, $ico, 300 );
+			} else {
+				$ico = $ico === '' ? '' : str_pad( preg_replace( '/\D/', '', $ico ), 8, '0', STR_PAD_LEFT );
+				update_post_meta( $vendor_id, '_nkv_vendor_ico', $ico );
+				update_post_meta( $vendor_id, '_nkzmp_vendor_ico', $ico );
+			}
 		}
 		update_post_meta( $vendor_id, self::PAYER, ! empty( $src[ self::PAYER ] ) ? 'yes' : 'no' );
+	}
+
+	/** IČO: 6–8 číslic a sedí kontrolní číslice (vážený součet mod 11). */
+	public static function valid_ico( string $ico ): bool {
+		$d = (string) preg_replace( '/\D/', '', $ico );
+		if ( strlen( $d ) < 6 || strlen( $d ) > 8 || preg_match( '/[^\d\s]/', $ico ) ) {
+			return false;
+		}
+		$d   = str_pad( $d, 8, '0', STR_PAD_LEFT );
+		$sum = 0;
+		for ( $i = 0; $i < 7; $i++ ) {
+			$sum += (int) $d[ $i ] * ( 8 - $i );
+		}
+		return ( 11 - $sum % 11 ) % 10 === (int) $d[7];
 	}
 
 	public function meta_box(): void {
@@ -219,6 +239,15 @@ final class VendorBilling {
 				esc_attr( $k ), esc_html( $label ), esc_attr( $vals[ $k ] ), esc_attr( $ph[ $k ] )
 			);
 			if ( $k === self::NAME ) {
+				$ico_err = get_transient( 'nkzmp_billing_ico_err_' . $vendor_id );
+				if ( $ico_err !== false ) {
+					delete_transient( 'nkzmp_billing_ico_err_' . $vendor_id );
+					printf(
+						'<div class="nkzmp-vd-form-error" role="alert">%s</div>',
+						/* translators: %s: zadané IČO */
+						esc_html( sprintf( __( 'IČO %s není platné (nesedí kontrolní číslice), takže jsme ho neuložili. Zkontroluj prosím překlep.', 'nkz-mp-invoices' ), (string) $ico_err ) )
+					);
+				}
 				printf(
 					'<div class="nkzmp-vd-field"><label for="nkzmp_billing_ico">%s</label><input id="nkzmp_billing_ico" type="text" name="nkzmp_billing_ico" maxlength="12" inputmode="numeric" value="%s" /><small>%s</small></div>',
 					esc_html__( 'IČO (pokud máš)', 'nkz-mp-invoices' ),
